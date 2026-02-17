@@ -145,6 +145,8 @@ let categoryClickHandler = null;
 let touchStartHandler = null;
 let touchEndHandler = null;
 let isSwitching = false; // Prevent rapid switching
+let cachedActiveCategory = null; // Cache active category element
+let cachedActiveTab = null; // Cache active tab element
 
 // Debounce function
 function debounce(func, wait) {
@@ -194,76 +196,208 @@ function initMenuCategories() {
     categoriesArrayCache = Array.from(menuCategories);
     
     function switchCategory(categoryId) {
-        // Prevent rapid switching
-        if (isSwitching) return;
-        isSwitching = true;
-        
-        // Use cached references instead of re-querying
-        const allMenuCategories = menuCategoriesCache || document.querySelectorAll('.menu-category');
-        const allCategoryTabs = categoryTabsCache || document.querySelectorAll('.category-tab');
-        
-        // Remove active class from all categories and tabs
-        allMenuCategories.forEach(cat => cat.classList.remove('active'));
-        allCategoryTabs.forEach(tab => tab.classList.remove('active'));
-        
-        // Find the category and tab by ID
-        const targetCategory = document.getElementById(categoryId);
-        const targetTab = Array.from(allCategoryTabs).find(tab => tab.dataset.category === categoryId);
-        
-        if (targetCategory && targetTab) {
-            targetCategory.classList.add('active');
-            targetTab.classList.add('active');
-            
-            // Update current index
-            const categories = categoriesArrayCache || Array.from(allMenuCategories);
-            currentCategoryIndex = categories.findIndex(cat => cat.id === categoryId);
-            
-            // Use requestAnimationFrame for smooth scrolling
-            requestAnimationFrame(() => {
-                // Scroll to top of menu section (only if not already visible)
-                const menuSection = document.getElementById('menu');
-                if (menuSection) {
-                    const menuRect = menuSection.getBoundingClientRect();
-                    if (menuRect.top < 80 || menuRect.bottom < window.innerHeight) {
-                        const offsetTop = menuSection.offsetTop - 80;
-                        window.scrollTo({
-                            top: offsetTop,
-                            behavior: 'auto'
-                        });
-                    }
-                }
-                
-                // Scroll active tab into view (for mobile) - use instant scroll for better performance
-                const tabRect = targetTab.getBoundingClientRect();
-                const containerRect = categoryTabsList.getBoundingClientRect();
-                if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
-                    targetTab.scrollIntoView({
-                        behavior: 'auto',
-                        block: 'nearest',
-                        inline: 'center'
-                    });
-                }
-            });
+        // Prevent rapid switching - check FIRST before any DOM operations
+        if (isSwitching) {
+            return;
         }
         
-        // Reset switching flag after a short delay
+        // Set flags immediately to prevent concurrent calls
+        isSwitching = true;
+        isCategorySwitching = true;
+        
+        // Disable CSS transitions and hover effects to prevent performance issues
+        if (categoryTabsContainer) {
+            categoryTabsContainer.classList.add('no-transitions');
+            // Also add to tabs list to prevent hover during switch
+            if (categoryTabsList) {
+                categoryTabsList.classList.add('no-transitions');
+            }
+        }
+        
+        // Disable pointer events on category tabs to prevent clicks and hover during switch
+        if (categoryTabsList) {
+            categoryTabsList.style.pointerEvents = 'none';
+        }
+        
+        // Use cached references - avoid DOM queries if possible
+        const targetCategory = document.getElementById(categoryId);
+        if (!targetCategory) {
+            resetFlags();
+            return;
+        }
+        
+        // Find tab from cache
+        const allCategoryTabs = categoryTabsCache || document.querySelectorAll('.category-tab');
+        const targetTab = Array.from(allCategoryTabs).find(tab => tab.dataset.category === categoryId);
+        
+        if (!targetTab) {
+            resetFlags();
+            return;
+        }
+        
+        // Check if already active
+        if (targetCategory.classList.contains('active') && targetTab.classList.contains('active')) {
+            resetFlags();
+            return;
+        }
+        
+        // Remove active classes from cached elements (much faster than querySelectorAll)
+        if (cachedActiveCategory) {
+            cachedActiveCategory.classList.remove('active');
+        }
+        if (cachedActiveTab) {
+            cachedActiveTab.classList.remove('active');
+        }
+        
+        // Also check for any other active elements (fallback)
+        const activeCategories = document.querySelectorAll('.menu-category.active, .category-tab.active');
+        for (let i = 0; i < activeCategories.length; i++) {
+            activeCategories[i].classList.remove('active');
+        }
+        
+        // Add active classes
+        targetCategory.classList.add('active');
+        targetTab.classList.add('active');
+        
+        // Update cache
+        cachedActiveCategory = targetCategory;
+        cachedActiveTab = targetTab;
+        
+        // Update current index (use cached array)
+        const categories = categoriesArrayCache || Array.from(menuCategoriesCache || []);
+        currentCategoryIndex = categories.findIndex(cat => cat.id === categoryId);
+        
+        // Re-enable transitions after a brief delay (long enough for fast transition to complete)
+        // Don't remove here - let resetFlags handle it to ensure consistency
+        
+        // Defer scroll operation completely - don't do it during rapid clicks
+        // Only scroll if tab is actually out of view (check after transitions complete)
+        if (categoryTabsList && targetTab) {
+            setTimeout(() => {
+                // Don't scroll if another switch happened or if we're still switching
+                if (isSwitching) return;
+                
+                try {
+                    // Use getBoundingClientRect for more accurate visibility check
+                    const tabRect = targetTab.getBoundingClientRect();
+                    const containerRect = categoryTabsList.getBoundingClientRect();
+                    
+                    // Check if tab is fully visible within container
+                    const isFullyVisible = tabRect.left >= containerRect.left && 
+                                          tabRect.right <= containerRect.right;
+                    
+                    if (!isFullyVisible) {
+                        // Only scroll if really needed, use instant scroll to avoid animation conflicts
+                        const tabLeft = targetTab.offsetLeft;
+                        const containerWidth = categoryTabsList.clientWidth;
+                        const tabWidth = targetTab.offsetWidth;
+                        const scrollLeft = tabLeft - (containerWidth / 2) + (tabWidth / 2);
+                        
+                        categoryTabsList.scrollTo({
+                            left: Math.max(0, scrollLeft),
+                            behavior: 'auto' // Use instant scroll to prevent movement
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Error scrolling category tab:', e);
+                }
+            }, 150); // Wait for fast transition to complete
+        }
+        
+        // Reset flags after minimum delay
         setTimeout(() => {
-            isSwitching = false;
-        }, 300);
+            resetFlags();
+        }, 250);
+    }
+    
+    function resetFlags() {
+        isSwitching = false;
+        isCategorySwitching = false;
+        if (categoryTabsList) {
+            categoryTabsList.style.pointerEvents = '';
+            categoryTabsList.classList.remove('no-transitions');
+        }
+        if (categoryTabsContainer) {
+            categoryTabsContainer.classList.remove('no-transitions');
+        }
     }
     
     // Use event delegation - only add once
     if (!categoryClickHandler) {
-        categoryClickHandler = (e) => {
-            const tab = e.target.closest('.category-tab');
-            if (tab) {
-                const categoryId = tab.dataset.category;
-                if (categoryId) {
-                    switchCategory(categoryId);
+        let lastClickTime = 0;
+        let clickBlocked = false;
+        let clickQueue = [];
+        let processingQueue = false;
+        
+        function processClickQueue() {
+            if (processingQueue || clickQueue.length === 0) return;
+            
+            processingQueue = true;
+            const categoryId = clickQueue[clickQueue.length - 1]; // Process only the latest
+            clickQueue = [];
+            
+            switchCategory(categoryId);
+            
+            setTimeout(() => {
+                processingQueue = false;
+                clickBlocked = false;
+                if (clickQueue.length > 0) {
+                    processClickQueue();
                 }
+            }, 250);
+        }
+        
+        categoryClickHandler = (e) => {
+            // Block all clicks if we're currently switching
+            if (isSwitching || clickBlocked || processingQueue) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                return false;
             }
+            
+            const tab = e.target.closest('.category-tab');
+            if (!tab) return;
+            
+            const categoryId = tab.dataset.category;
+            if (!categoryId) return;
+            
+            const currentTime = Date.now();
+            
+            // Very strict debounce - block ALL clicks within 250ms
+            if (currentTime - lastClickTime < 250) {
+                // Queue the click instead of blocking completely
+                clickQueue.push(categoryId);
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                // Process queue after debounce
+                if (!processingQueue) {
+                    setTimeout(processClickQueue, 250 - (currentTime - lastClickTime));
+                }
+                return false;
+            }
+            
+            lastClickTime = currentTime;
+            clickBlocked = true;
+            
+            // Prevent event propagation
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // Switch category immediately
+            switchCategory(categoryId);
+            
+            // Unblock after debounce period
+            setTimeout(() => {
+                clickBlocked = false;
+            }, 250);
+            
+            return false;
         };
-        categoryTabsList.addEventListener('click', categoryClickHandler);
+        categoryTabsList.addEventListener('click', categoryClickHandler, { capture: true, passive: false });
     }
     
     // Touch swipe support for mobile - only add once
@@ -395,6 +529,8 @@ function initCategoryScrollIndicators() {
 // ============================================
 let stickyTabsInitialized = false;
 let stickyTabsScrollHandler = null;
+let cachedMenuTop = null;
+let isCategorySwitching = false; // Flag to prevent scroll handler during category switch
 
 function initStickyCategoryTabs() {
     if (stickyTabsInitialized) return;
@@ -402,17 +538,46 @@ function initStickyCategoryTabs() {
     const menuSection = document.getElementById('menu');
     if (!menuSection || !categoryTabsContainer) return;
     
+    // Cache menu top position (only recalculate on resize)
+    function updateMenuTop() {
+        cachedMenuTop = menuSection.offsetTop;
+    }
+    updateMenuTop();
+    
+    // Recalculate on resize
+    window.addEventListener('resize', debounce(updateMenuTop, 250), { passive: true });
+    
     if (!stickyTabsScrollHandler) {
+        let lastPosition = null;
+        
         stickyTabsScrollHandler = throttle(() => {
-            const menuTop = menuSection.offsetTop;
+            // Skip if category is switching to avoid conflicts
+            if (isCategorySwitching) return;
+            
+            // Ensure we have a cached value (calculate once if missing)
+            if (cachedMenuTop === null) {
+                cachedMenuTop = menuSection.offsetTop;
+            }
+            
             const scrollY = window.pageYOffset;
             
-            if (scrollY >= menuTop - 80) {
-                categoryTabsContainer.style.position = 'sticky';
-            } else {
-                categoryTabsContainer.style.position = 'relative';
+            // Use cached value instead of recalculating
+            const threshold = cachedMenuTop - 80;
+            const shouldBeSticky = scrollY >= threshold;
+            
+            // Only update if position changed to avoid unnecessary style updates
+            if (lastPosition !== shouldBeSticky) {
+                // Use requestAnimationFrame to batch style updates
+                requestAnimationFrame(() => {
+                    if (shouldBeSticky) {
+                        categoryTabsContainer.style.position = 'sticky';
+                    } else {
+                        categoryTabsContainer.style.position = 'relative';
+                    }
+                });
+                lastPosition = shouldBeSticky;
             }
-        }, 150);
+        }, 200); // Increased throttle time
         
         window.addEventListener('scroll', stickyTabsScrollHandler, { passive: true });
     }
@@ -1179,6 +1344,22 @@ function renderMenu() {
     // Re-initialize menu categories for tab switching (after menu is loaded)
     // This will update cache references without re-adding event listeners
     initMenuCategories();
+    
+    // Initialize cached active elements
+    const activeCategory = document.querySelector('.menu-category.active');
+    const activeTab = document.querySelector('.category-tab.active');
+    if (activeCategory) cachedActiveCategory = activeCategory;
+    if (activeTab) cachedActiveTab = activeTab;
+    
+    // Update cached menu top position after menu is rendered (if sticky tabs initialized)
+    if (cachedMenuTop !== null) {
+        setTimeout(() => {
+            const menuSection = document.getElementById('menu');
+            if (menuSection) {
+                cachedMenuTop = menuSection.offsetTop;
+            }
+        }, 100);
+    }
     
     // Re-observe menu items for scroll animations
     if (scrollAnimationsObserver) {

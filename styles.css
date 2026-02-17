@@ -896,7 +896,6 @@ button {
     margin: -2rem -2rem 2rem -2rem;
     border-bottom: 1px solid rgba(76, 175, 80, 0.1);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    transition: all var(--transition-normal);
 }
 
 .category-tabs-wrapper {
@@ -936,7 +935,6 @@ button {
     font-size: 0.9rem;
     white-space: nowrap;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
     min-width: fit-content;
@@ -944,42 +942,19 @@ button {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.category-tab::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.5s ease;
-}
-
-.category-tab:hover::before {
-    left: 100%;
-}
-
 .category-icon {
     font-size: 1.3rem;
     line-height: 1;
-    transition: transform 0.3s ease;
     display: inline-block;
 }
 
-.category-text {
-    transition: all 0.3s ease;
-}
+/* Category text - no transitions or animations needed */
 
-.category-tab:hover {
+.category-tab:hover:not(.active) {
     border-color: var(--logo-green);
     color: var(--logo-green);
-    transform: translateY(-3px) scale(1.02);
     box-shadow: 0 6px 20px rgba(76, 175, 80, 0.25);
     background: linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(76, 175, 80, 0.1) 100%);
-}
-
-.category-tab:hover .category-icon {
-    transform: scale(1.2) rotate(5deg);
 }
 
 .category-tab.active {
@@ -987,16 +962,24 @@ button {
     color: white;
     border-color: var(--logo-green);
     box-shadow: 0 6px 25px rgba(76, 175, 80, 0.4);
-    transform: translateY(-2px) scale(1.05);
-}
-
-.category-tab.active .category-icon {
-    transform: scale(1.3);
 }
 
 .category-tab.active .category-text {
     font-weight: 700;
     letter-spacing: 0.3px;
+}
+
+/* Remove any transform animations from category tabs */
+.category-tab,
+.category-tab::before,
+.category-tab .category-icon,
+.category-tab .category-text {
+    transition: none !important;
+    animation: none !important;
+}
+
+.category-tab:active {
+    transform: none !important;
 }
 
 .category-scroll-indicator {
@@ -3246,9 +3229,9 @@ body.fast-scroll .video-background video {
         transform: none;
     }
     
-    /* Active states for touch */
+    /* Active states for touch - no transform */
     .category-tab:active {
-        transform: scale(0.98);
+        transform: none;
     }
     
     .btn:active {
