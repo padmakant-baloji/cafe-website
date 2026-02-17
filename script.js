@@ -138,23 +138,26 @@ let currentCategoryIndex = 0;
 function initMenuCategories() {
     // This will be called after menu is loaded
     const menuCategories = document.querySelectorAll('.menu-category');
-    const categoryTabs = document.querySelectorAll('.category-tab');
+    const categoryTabsContainer = document.getElementById('categoryTabsList');
     
-    if (menuCategories.length === 0 || categoryTabs.length === 0) {
+    if (menuCategories.length === 0 || !categoryTabsContainer) {
         return; // Menu not loaded yet
     }
     
     const categories = Array.from(menuCategories);
-    const tabs = Array.from(categoryTabs);
     
     function switchCategory(categoryId) {
+        // Re-query elements to ensure we have fresh references
+        const allMenuCategories = document.querySelectorAll('.menu-category');
+        const allCategoryTabs = document.querySelectorAll('.category-tab');
+        
         // Remove active class from all categories and tabs
-        menuCategories.forEach(cat => cat.classList.remove('active'));
-        categoryTabs.forEach(tab => tab.classList.remove('active'));
+        allMenuCategories.forEach(cat => cat.classList.remove('active'));
+        allCategoryTabs.forEach(tab => tab.classList.remove('active'));
         
         // Find the category and tab by ID
         const targetCategory = document.getElementById(categoryId);
-        const targetTab = Array.from(categoryTabs).find(tab => tab.dataset.category === categoryId);
+        const targetTab = Array.from(allCategoryTabs).find(tab => tab.dataset.category === categoryId);
         
         if (targetCategory && targetTab) {
             targetCategory.classList.add('active');
@@ -182,25 +185,22 @@ function initMenuCategories() {
         }
     }
     
-    // Remove existing event listeners by cloning and replacing
-    tabs.forEach(tab => {
-        const newTab = tab.cloneNode(true);
-        tab.parentNode.replaceChild(newTab, tab);
-    });
-    
-    // Re-query after cloning
-    const newTabs = document.querySelectorAll('.category-tab');
-    
-    // Tab click handlers - use ID-based matching
-    newTabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
+    // Use event delegation to handle clicks (works even after DOM changes)
+    categoryTabsContainer.addEventListener('click', (e) => {
+        const tab = e.target.closest('.category-tab');
+        if (tab) {
             const categoryId = tab.dataset.category;
-            switchCategory(categoryId);
-        });
+            if (categoryId) {
+                switchCategory(categoryId);
+            }
+        }
     });
     
     // Touch swipe support for mobile
     const menuContainer = document.querySelector('.menu-items-container');
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
     if (menuContainer) {
         menuContainer.addEventListener('touchstart', (e) => {
             touchStartX = e.changedTouches[0].screenX;
@@ -211,9 +211,6 @@ function initMenuCategories() {
             handleSwipe();
         });
     }
-    
-    let touchStartX = 0;
-    let touchEndX = 0;
     
     function handleSwipe() {
         const swipeThreshold = 50;
@@ -233,7 +230,7 @@ function initMenuCategories() {
     }
     
     // Keyboard navigation
-    document.addEventListener('keydown', (e) => {
+    const keyboardHandler = (e) => {
         if (e.key === 'ArrowLeft' && currentCategoryIndex > 0) {
             const prevCategory = categories[currentCategoryIndex - 1];
             if (prevCategory) switchCategory(prevCategory.id);
@@ -241,6 +238,63 @@ function initMenuCategories() {
             const nextCategory = categories[currentCategoryIndex + 1];
             if (nextCategory) switchCategory(nextCategory.id);
         }
+    };
+    
+    // Remove old keyboard handler if it exists
+    document.removeEventListener('keydown', keyboardHandler);
+    document.addEventListener('keydown', keyboardHandler);
+    
+    // Initialize scroll indicators
+    initCategoryScrollIndicators();
+}
+
+// ============================================
+// Category Scroll Indicators
+// ============================================
+function initCategoryScrollIndicators() {
+    const categoryTabs = document.getElementById('categoryTabsList');
+    const scrollLeft = document.getElementById('scrollLeft');
+    const scrollRight = document.getElementById('scrollRight');
+    
+    if (!categoryTabs || !scrollLeft || !scrollRight) return;
+    
+    function updateScrollIndicators() {
+        const isScrollable = categoryTabs.scrollWidth > categoryTabs.clientWidth;
+        const isAtStart = categoryTabs.scrollLeft <= 10;
+        const isAtEnd = categoryTabs.scrollLeft >= categoryTabs.scrollWidth - categoryTabs.clientWidth - 10;
+        
+        if (isScrollable) {
+            scrollLeft.classList.toggle('visible', !isAtStart);
+            scrollRight.classList.toggle('visible', !isAtEnd);
+        } else {
+            scrollLeft.classList.remove('visible');
+            scrollRight.classList.remove('visible');
+        }
+    }
+    
+    // Initial check
+    updateScrollIndicators();
+    
+    // Update on scroll
+    categoryTabs.addEventListener('scroll', updateScrollIndicators);
+    
+    // Update on resize
+    window.addEventListener('resize', updateScrollIndicators);
+    
+    // Scroll left
+    scrollLeft.addEventListener('click', () => {
+        categoryTabs.scrollBy({
+            left: -200,
+            behavior: 'smooth'
+        });
+    });
+    
+    // Scroll right
+    scrollRight.addEventListener('click', () => {
+        categoryTabs.scrollBy({
+            left: 200,
+            behavior: 'smooth'
+        });
     });
 }
 
@@ -1021,6 +1075,11 @@ function renderMenu() {
     
     // Re-initialize menu categories for tab switching (after menu is loaded)
     initMenuCategories();
+    
+    // Initialize scroll indicators after a short delay to ensure DOM is ready
+    setTimeout(() => {
+        initCategoryScrollIndicators();
+    }, 100);
 }
 
 function createMenuItem(item, categoryId) {
