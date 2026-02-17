@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://www.balojicafe.com/</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://www.balojicafe.com/images/logo/logo-baloji%20cafe.png</image:loc>
+      <image:title>Baloji's Cafe Logo</image:title>
+      <image:caption>Baloji's Cafe - Best Restaurant in Kudachi</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Menu Section -->
+  <url>
+    <loc>https://www.balojicafe.com/#menu</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <!-- Gallery Section -->
+  <url>
+    <loc>https://www.balojicafe.com/#gallery</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://www.balojicafe.com/images/pizza/margaretta.jpg</image:loc>
+      <image:title>Margherita Pizza at Baloji's Cafe</image:title>
+      <image:caption>Fresh Margherita Pizza - Best Pizza in Kudachi</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://www.balojicafe.com/images/burger/clasic.jpg</image:loc>
+      <image:title>Classic Veg Burger at Baloji's Cafe</image:title>
+      <image:caption>Delicious Veg Burger - Best Burger in Kudachi</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://www.balojicafe.com/images/ricenoodles/hakkoNoodles.jpg</image:loc>
+      <image:title>Hakka Noodles at Baloji's Cafe</image:title>
+      <image:caption>Authentic Chinese Hakka Noodles in Kudachi</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://www.balojicafe.com/images/pasta/alfredo-pasta.jpg</image:loc>
+      <image:title>Creamy Alfredo Pasta at Baloji's Cafe</image:title>
+      <image:caption>Italian Pasta Dishes - Best Pasta in Kudachi</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://www.balojicafe.com/images/momo/momo.jpg</image:loc>
+      <image:title>Veg Momos at Baloji's Cafe</image:title>
+      <image:caption>Steamed Veg Momos - Best Momos in Kudachi</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Testimonials Section -->
+  <url>
+    <loc>https://www.balojicafe.com/#testimonials</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Contact Section -->
+  <url>
+    <loc>https://www.balojicafe.com/#contact</loc>
+    <lastmod>2024-12-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+</urlset>
