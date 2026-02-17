@@ -222,22 +222,8 @@ function initMenuCategories() {
             const categories = categoriesArrayCache || Array.from(allMenuCategories);
             currentCategoryIndex = categories.findIndex(cat => cat.id === categoryId);
             
-            // Use requestAnimationFrame for smooth scrolling
+            // Scroll active tab into view (for mobile) - use instant scroll for better performance
             requestAnimationFrame(() => {
-                // Scroll to top of menu section (only if not already visible)
-                const menuSection = document.getElementById('menu');
-                if (menuSection) {
-                    const menuRect = menuSection.getBoundingClientRect();
-                    if (menuRect.top < 80 || menuRect.bottom < window.innerHeight) {
-                        const offsetTop = menuSection.offsetTop - 80;
-                        window.scrollTo({
-                            top: offsetTop,
-                            behavior: 'auto'
-                        });
-                    }
-                }
-                
-                // Scroll active tab into view (for mobile) - use instant scroll for better performance
                 const tabRect = targetTab.getBoundingClientRect();
                 const containerRect = categoryTabsList.getBoundingClientRect();
                 if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
