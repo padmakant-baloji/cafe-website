@@ -2046,6 +2046,15 @@ button {
     border-radius: 10px;
     margin-top: 1rem;
     border: 2px solid var(--beige-bg);
+    position: relative;
+    z-index: 1;
+}
+
+/* Leaflet map container styling */
+.location-map .leaflet-container {
+    border-radius: 10px;
+    height: 100%;
+    width: 100%;
 }
 
 .order-summary {

@@ -448,7 +448,7 @@
             <form class="checkout-form" id="checkoutForm">
                 <div class="form-group">
                     <label for="mobileNumber">Mobile Number *</label>
-                    <input type="tel" id="mobileNumber" name="mobileNumber" placeholder="+91 9876543210" required pattern="[+]?[0-9]{10,13}">
+                    <input type="tel" id="mobileNumber" name="mobileNumber" placeholder="9876543210" required pattern="[0-9]{10}">
                 </div>
                 
                 <div class="form-group">
@@ -523,9 +523,9 @@
     </div>
 
     <!-- Scripts -->
-    <!-- Google Maps API - Replace YOUR_GOOGLE_MAPS_API_KEY with your actual API key -->
-    <!-- Get your API key from: https://console.cloud.google.com/google/maps-apis -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places" async defer></script>
+    <!-- Leaflet - Free Open Source Maps (No API key required) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="script.js"></script>
 </body>
 </html>

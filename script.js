@@ -1456,41 +1456,48 @@ function initCheckoutModal() {
 function initMap() {
     const locationMap = document.getElementById('locationMap');
     
-    // Check if Google Maps is available
-    if (typeof google === 'undefined' || !google.maps) {
-        locationMap.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-light);">Please add your Google Maps API key to enable map functionality. You can still enter your address manually.</p>';
+    if (!locationMap) {
+        return;
+    }
+    
+    // Check if Leaflet is available
+    if (typeof L === 'undefined') {
+        locationMap.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-light);">⚠️ Map library is not loaded. Please refresh the page. You can still enter your address manually.</p>';
         return;
     }
     
     try {
-        // Initialize map centered on Baloji's Cafe
-        map = new google.maps.Map(locationMap, {
-            center: { lat: 16.6236149, lng: 74.8578799 }, // Baloji's Cafe coordinates
-            zoom: 15,
-            mapTypeControl: false,
-            streetViewControl: false
-        });
+        // Clear any existing content
+        locationMap.innerHTML = '';
         
-        // Add marker
-        marker = new google.maps.Marker({
-            map: map,
+        // Initialize map centered on Baloji's Cafe
+        map = L.map(locationMap).setView([16.6236149, 74.8578799], 15); // [lat, lng], zoom
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Add marker at Baloji's Cafe
+        marker = L.marker([16.6236149, 74.8578799], {
             draggable: true
-        });
+        }).addTo(map);
         
         // Update location input when marker is dragged
-        marker.addListener('dragend', () => {
-            const position = marker.getPosition();
-            updateLocationFromCoordinates(position.lat(), position.lng());
+        marker.on('dragend', () => {
+            const position = marker.getLatLng();
+            updateLocationFromCoordinates(position.lat, position.lng);
         });
         
         // Update marker when map is clicked
-        map.addListener('click', (e) => {
-            marker.setPosition(e.latLng);
-            updateLocationFromCoordinates(e.latLng.lat(), e.latLng.lng());
+        map.on('click', (e) => {
+            marker.setLatLng(e.latlng);
+            updateLocationFromCoordinates(e.latlng.lat, e.latlng.lng);
         });
     } catch (error) {
         console.error('Error initializing map:', error);
-        locationMap.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-light);">Map could not be loaded. Please enter your address manually.</p>';
+        locationMap.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-light);">⚠️ Map could not be loaded. Please refresh the page. You can still enter your address manually.</p>';
     }
 }
 
@@ -1507,10 +1514,9 @@ function getCurrentLocation() {
                 
                 updateLocationFromCoordinates(lat, lng);
                 
-                if (map) {
-                    const location = new google.maps.LatLng(lat, lng);
-                    map.setCenter(location);
-                    marker.setPosition(location);
+                if (map && marker) {
+                    map.setView([lat, lng], 15);
+                    marker.setLatLng([lat, lng]);
                 }
                 
                 getLocationBtn.textContent = '📍 Get Current Location';
@@ -1533,18 +1539,21 @@ function updateLocationFromCoordinates(lat, lng) {
     document.getElementById('latitude').value = lat;
     document.getElementById('longitude').value = lng;
     
-    // Reverse geocode to get address
-    if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
-        try {
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    document.getElementById('deliveryLocation').value = results[0].formatted_address;
+    // Reverse geocode to get address using Nominatim (OpenStreetMap's free geocoding service)
+    try {
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.display_name) {
+                    document.getElementById('deliveryLocation').value = data.display_name;
                 }
+            })
+            .catch(error => {
+                console.error('Geocoding error:', error);
+                // If geocoding fails, user can still enter address manually
             });
-        } catch (error) {
-            console.error('Geocoding error:', error);
-        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
     }
 }
 
