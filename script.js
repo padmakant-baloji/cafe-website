@@ -5,8 +5,9 @@ const navbar = document.getElementById('navbar');
 const hamburger = document.getElementById('hamburger');
 const navMenu = document.getElementById('navMenu');
 const darkModeToggle = document.getElementById('darkModeToggle');
-const categoryTabs = document.querySelectorAll('.category-tab');
-const menuCategories = document.querySelectorAll('.menu-category');
+// These will be queried dynamically after menu loads
+let categoryTabs = null;
+let menuCategories = null;
 const categoryTabsContainer = document.getElementById('categoryTabs');
 const galleryItems = document.querySelectorAll('.gallery-item');
 const lightbox = document.getElementById('lightbox');
@@ -132,47 +133,69 @@ function initActiveNavLink() {
 // ============================================
 // Menu Category Switching
 // ============================================
+let currentCategoryIndex = 0;
+
 function initMenuCategories() {
-    let touchStartX = 0;
-    let touchEndX = 0;
-    let currentCategoryIndex = 0;
+    // This will be called after menu is loaded
+    const menuCategories = document.querySelectorAll('.menu-category');
+    const categoryTabs = document.querySelectorAll('.category-tab');
+    
+    if (menuCategories.length === 0 || categoryTabs.length === 0) {
+        return; // Menu not loaded yet
+    }
     
     const categories = Array.from(menuCategories);
     const tabs = Array.from(categoryTabs);
     
-    function switchCategory(index) {
+    function switchCategory(categoryId) {
         // Remove active class from all categories and tabs
         menuCategories.forEach(cat => cat.classList.remove('active'));
         categoryTabs.forEach(tab => tab.classList.remove('active'));
         
-        // Add active class to selected category and tab
-        categories[index].classList.add('active');
-        tabs[index].classList.add('active');
+        // Find the category and tab by ID
+        const targetCategory = document.getElementById(categoryId);
+        const targetTab = Array.from(categoryTabs).find(tab => tab.dataset.category === categoryId);
         
-        // Scroll to top of menu section
-        const menuSection = document.getElementById('menu');
-        if (menuSection) {
-            const offsetTop = menuSection.offsetTop - 80;
-            window.scrollTo({
-                top: offsetTop,
-                behavior: 'smooth'
+        if (targetCategory && targetTab) {
+            targetCategory.classList.add('active');
+            targetTab.classList.add('active');
+            
+            // Update current index
+            currentCategoryIndex = categories.findIndex(cat => cat.id === categoryId);
+            
+            // Scroll to top of menu section
+            const menuSection = document.getElementById('menu');
+            if (menuSection) {
+                const offsetTop = menuSection.offsetTop - 80;
+                window.scrollTo({
+                    top: offsetTop,
+                    behavior: 'smooth'
+                });
+            }
+            
+            // Scroll active tab into view (for mobile)
+            targetTab.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
             });
         }
-        
-        // Scroll active tab into view (for mobile)
-        tabs[index].scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest',
-            inline: 'center'
-        });
-        
-        currentCategoryIndex = index;
     }
     
-    // Tab click handlers
-    categoryTabs.forEach((tab, index) => {
+    // Remove existing event listeners by cloning and replacing
+    tabs.forEach(tab => {
+        const newTab = tab.cloneNode(true);
+        tab.parentNode.replaceChild(newTab, tab);
+    });
+    
+    // Re-query after cloning
+    const newTabs = document.querySelectorAll('.category-tab');
+    
+    // Tab click handlers - use ID-based matching
+    newTabs.forEach((tab) => {
         tab.addEventListener('click', () => {
-            switchCategory(index);
+            const categoryId = tab.dataset.category;
+            switchCategory(categoryId);
         });
     });
     
@@ -189,6 +212,9 @@ function initMenuCategories() {
         });
     }
     
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
     function handleSwipe() {
         const swipeThreshold = 50;
         const diff = touchStartX - touchEndX;
@@ -196,10 +222,12 @@ function initMenuCategories() {
         if (Math.abs(diff) > swipeThreshold) {
             if (diff > 0 && currentCategoryIndex < categories.length - 1) {
                 // Swipe left - next category
-                switchCategory(currentCategoryIndex + 1);
+                const nextCategory = categories[currentCategoryIndex + 1];
+                if (nextCategory) switchCategory(nextCategory.id);
             } else if (diff < 0 && currentCategoryIndex > 0) {
                 // Swipe right - previous category
-                switchCategory(currentCategoryIndex - 1);
+                const prevCategory = categories[currentCategoryIndex - 1];
+                if (prevCategory) switchCategory(prevCategory.id);
             }
         }
     }
@@ -207,9 +235,11 @@ function initMenuCategories() {
     // Keyboard navigation
     document.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowLeft' && currentCategoryIndex > 0) {
-            switchCategory(currentCategoryIndex - 1);
+            const prevCategory = categories[currentCategoryIndex - 1];
+            if (prevCategory) switchCategory(prevCategory.id);
         } else if (e.key === 'ArrowRight' && currentCategoryIndex < categories.length - 1) {
-            switchCategory(currentCategoryIndex + 1);
+            const nextCategory = categories[currentCategoryIndex + 1];
+            if (nextCategory) switchCategory(nextCategory.id);
         }
     });
 }
@@ -352,9 +382,8 @@ function saveCart() {
 
 // Add item to cart
 function addToCart(itemName, price) {
-    // Extract numeric price (handle formats like "₹50 / ₹80" or "₹99")
-    const priceMatch = price.match(/₹(\d+)/);
-    const itemPrice = priceMatch ? parseInt(priceMatch[1]) : 0;
+    // Price can be a number or string - handle both
+    const itemPrice = typeof price === 'number' ? price : (parseInt(price) || 0);
     
     // Check if item already exists in cart
     const existingItem = cart.find(item => item.name === itemName);
@@ -486,6 +515,679 @@ function showCartNotification() {
 }
 
 // ============================================
+// Menu Loading from JSON
+// ============================================
+let menuData = null;
+
+// Fallback menu data (embedded in script for file:// protocol support)
+const fallbackMenuData = {
+  "categories": [
+    {
+      "id": "soups",
+      "name": "Soups",
+      "items": [
+        {
+          "id": "classic-manchow",
+          "name": "Classic Manchow Soup",
+          "image": "images/soup/classic-manchow.jpg",
+          "alt": "Classic Manchow Soup",
+          "sizes": [
+            { "label": "Half", "price": 50 },
+            { "label": "Full", "price": 80 }
+          ]
+        },
+        {
+          "id": "tomato-soup",
+          "name": "Garden Fresh Tomato Soup",
+          "image": "images/soup/tomato.jpg",
+          "alt": "Garden Fresh Tomato Soup",
+          "sizes": [
+            { "label": "Half", "price": 60 },
+            { "label": "Full", "price": 110 }
+          ]
+        },
+        {
+          "id": "mushroom-soup",
+          "name": "Creamy Mushroom Delight",
+          "image": "images/soup/mashroom.jpg",
+          "alt": "Creamy Mushroom Delight",
+          "sizes": [
+            { "label": "Half", "price": 60 },
+            { "label": "Full", "price": 110 }
+          ]
+        },
+        {
+          "id": "garlic-soup",
+          "name": "Roasted Garlic Soup",
+          "image": "images/soup/garlic.jpg",
+          "alt": "Roasted Garlic Soup",
+          "sizes": [
+            { "label": "Half", "price": 60 },
+            { "label": "Full", "price": 110 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quick-bites",
+      "name": "Quick Bites",
+      "items": [
+        {
+          "id": "gobi65",
+          "name": "Gobi 65",
+          "image": "images/quickBites/gobi65.jpg",
+          "alt": "Gobi 65",
+          "sizes": [
+            { "label": "Half", "price": 70 },
+            { "label": "Full", "price": 120 }
+          ]
+        },
+        {
+          "id": "gobi-chilly",
+          "name": "Gobi Chilly",
+          "image": "images/quickBites/gobiChilly.jpg",
+          "alt": "Gobi Chilly",
+          "sizes": [
+            { "label": "Half", "price": 60 },
+            { "label": "Full", "price": 110 }
+          ]
+        },
+        {
+          "id": "gobi-manchurian",
+          "name": "Gobi Manchurian",
+          "image": "images/quickBites/gobimanchurian.jpg",
+          "alt": "Gobi Manchurian",
+          "sizes": [
+            { "label": "Half", "price": 60 },
+            { "label": "Full", "price": 110 }
+          ]
+        },
+        {
+          "id": "gobi-salt-pepper",
+          "name": "Gobi Salt & Pepper",
+          "image": "images/quickBites/gobiSaltAndPaper.jpg",
+          "alt": "Gobi Salt & Pepper",
+          "sizes": [
+            { "label": "Half", "price": 60 },
+            { "label": "Full", "price": 110 }
+          ]
+        },
+        {
+          "id": "paneer65",
+          "name": "Paneer 65",
+          "image": "images/quickBites/paneer65.jpg",
+          "alt": "Paneer 65",
+          "sizes": [
+            { "label": "Half", "price": 100 },
+            { "label": "Full", "price": 190 }
+          ]
+        },
+        {
+          "id": "paneer-chilly",
+          "name": "Paneer Chilly",
+          "image": "images/quickBites/paneerchilly.jpg",
+          "alt": "Paneer Chilly",
+          "sizes": [
+            { "label": "Half", "price": 100 },
+            { "label": "Full", "price": 190 }
+          ]
+        },
+        {
+          "id": "paneer-manchurian",
+          "name": "Paneer Manchurian",
+          "image": "images/quickBites/paneerManchuri.jpg",
+          "alt": "Paneer Manchurian",
+          "sizes": [
+            { "label": "Half", "price": 100 },
+            { "label": "Full", "price": 190 }
+          ]
+        },
+        {
+          "id": "paneer-salt-pepper",
+          "name": "Paneer Salt & Pepper",
+          "image": "images/quickBites/paneersaltandpaper.jpg",
+          "alt": "Paneer Salt & Pepper",
+          "sizes": [
+            { "label": "Half", "price": 100 },
+            { "label": "Full", "price": 190 }
+          ]
+        },
+        {
+          "id": "american-butter-corn",
+          "name": "American Butter Corn",
+          "image": "images/quickBites/americanbuttercorn.jpg",
+          "alt": "American Butter Corn",
+          "price": 99
+        },
+        {
+          "id": "corn-basket",
+          "name": "Corn Crunch Basket",
+          "image": "images/quickBites/cornbasket.jpg",
+          "alt": "Corn Crunch Basket",
+          "price": 120
+        },
+        {
+          "id": "french-fries",
+          "name": "French Fries",
+          "image": "images/quickBites/frenchfries.jpg",
+          "alt": "French Fries",
+          "price": 99,
+          "addons": [
+            { "label": "Masala", "price": 10 },
+            { "label": "Peri-Peri", "price": 10 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rice-noodles",
+      "name": "Rice & Noodles",
+      "items": [
+        {
+          "id": "schezwan-fried",
+          "name": "Schezwan Fried Rice/Noodles",
+          "image": "images/ricenoodles/sehezwan.jpg",
+          "alt": "Schezwan Fried Rice/Noodles",
+          "sizes": [
+            { "label": "Half", "price": 80 },
+            { "label": "Full", "price": 150 }
+          ]
+        },
+        {
+          "id": "chilli-garlic",
+          "name": "Chilli Garlic Rice/Noodles",
+          "image": "images/ricenoodles/chilly garlic.jpg",
+          "alt": "Chilli Garlic Rice/Noodles",
+          "sizes": [
+            { "label": "Half", "price": 80 },
+            { "label": "Full", "price": 150 }
+          ]
+        },
+        {
+          "id": "veg-fried",
+          "name": "Veg Fried Rice/Noodles",
+          "image": "images/ricenoodles/vegfried.jpg",
+          "alt": "Veg Fried Rice/Noodles",
+          "sizes": [
+            { "label": "Half", "price": 70 },
+            { "label": "Full", "price": 130 }
+          ]
+        },
+        {
+          "id": "hakka-noodles",
+          "name": "Hakka Noodles",
+          "image": "images/ricenoodles/hakkoNoodles.jpg",
+          "alt": "Hakka Noodles",
+          "sizes": [
+            { "label": "Half", "price": 70 },
+            { "label": "Full", "price": 130 }
+          ]
+        },
+        {
+          "id": "special-fried",
+          "name": "Special Fried Rice/Noodles",
+          "image": "images/ricenoodles/spcl.jpg",
+          "alt": "Special Fried Rice/Noodles",
+          "sizes": [
+            { "label": "Half", "price": 90 },
+            { "label": "Full", "price": 170 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pasta",
+      "name": "Pasta",
+      "items": [
+        {
+          "id": "alfredo-pasta",
+          "name": "Creamy Alfredo Pasta",
+          "image": "images/pasta/alfredo-pasta.jpg",
+          "alt": "Creamy Alfredo Pasta",
+          "price": 150
+        },
+        {
+          "id": "arrabiata-pasta",
+          "name": "Arrabiata Fusion Pasta",
+          "image": "images/pasta/arrabiate-pasta.jpg",
+          "alt": "Arrabiata Fusion Pasta",
+          "price": 150
+        }
+      ]
+    },
+    {
+      "id": "rolls",
+      "name": "Rolls",
+      "items": [
+        {
+          "id": "kolkata-roll",
+          "name": "Kolkata Style Veg Roll",
+          "image": "images/rolls/kolkattaspcl.jpg",
+          "alt": "Kolkata Style Veg Roll",
+          "price": 99
+        },
+        {
+          "id": "special-roll",
+          "name": "Special Roll",
+          "image": "images/rolls/spcl-roll.jpg",
+          "alt": "Special Roll",
+          "price": 150
+        }
+      ]
+    },
+    {
+      "id": "pizza",
+      "name": "Pizza",
+      "items": [
+        {
+          "id": "margherita",
+          "name": "Classic Margherita",
+          "image": "images/pizza/margaretta.jpg",
+          "alt": "Classic Margherita",
+          "sizes": [
+            { "label": "Small", "price": 99 },
+            { "label": "Medium", "price": 150 }
+          ]
+        },
+        {
+          "id": "american-queen",
+          "name": "American Queen",
+          "image": "images/pizza/american-queen.jpg",
+          "alt": "American Queen",
+          "sizes": [
+            { "label": "Small", "price": 120 },
+            { "label": "Medium", "price": 170 }
+          ]
+        },
+        {
+          "id": "farmhouse",
+          "name": "Farmhouse Feast",
+          "image": "images/pizza/farmhouse.jpg",
+          "alt": "Farmhouse Feast",
+          "sizes": [
+            { "label": "Small", "price": 130 },
+            { "label": "Medium", "price": 180 }
+          ]
+        },
+        {
+          "id": "paneer-tikka-pizza",
+          "name": "Paneer Tikka Pizza",
+          "image": "images/pizza/paneertikka.jpg",
+          "alt": "Paneer Tikka Pizza",
+          "sizes": [
+            { "label": "Small", "price": 130 },
+            { "label": "Medium", "price": 180 }
+          ]
+        },
+        {
+          "id": "corn-cheese-pizza",
+          "name": "Corn & Cheese Delight",
+          "image": "images/pizza/corncheese.jpg",
+          "alt": "Corn & Cheese Delight",
+          "sizes": [
+            { "label": "Small", "price": 120 },
+            { "label": "Medium", "price": 170 }
+          ]
+        },
+        {
+          "id": "gobi-manchuri-pizza",
+          "name": "Gobi Manchuri Pizza",
+          "image": "images/pizza/gobimanchurianpizza.jpg",
+          "alt": "Gobi Manchuri Pizza",
+          "price": 130
+        }
+      ]
+    },
+    {
+      "id": "burger",
+      "name": "Burger",
+      "items": [
+        {
+          "id": "classic-burger",
+          "name": "Classic Veg Burger",
+          "image": "images/burger/clasic.jpg",
+          "alt": "Classic Veg Burger",
+          "price": 99
+        },
+        {
+          "id": "paneer-burger",
+          "name": "Paneer Crunch Burger",
+          "image": "images/burger/paneer.jpg",
+          "alt": "Paneer Crunch Burger",
+          "price": 120
+        },
+        {
+          "id": "double-burger",
+          "name": "Double Decker Burger",
+          "image": "images/burger/doubledecker.jpg",
+          "alt": "Double Decker Burger",
+          "price": 180
+        }
+      ]
+    },
+    {
+      "id": "sandwich",
+      "name": "Sandwich",
+      "items": [
+        {
+          "id": "grilled-sandwich",
+          "name": "Grilled Veg Sandwich",
+          "image": "images/sandwich/veggrill.jpg",
+          "alt": "Grilled Veg Sandwich",
+          "price": 100
+        },
+        {
+          "id": "paneer-sandwich",
+          "name": "Paneer Tikka Sandwich",
+          "image": "images/sandwich/paneertikaa.jpg",
+          "alt": "Paneer Tikka Sandwich",
+          "price": 120
+        },
+        {
+          "id": "bombay-sandwich",
+          "name": "Bombay Masala Sandwich",
+          "image": "images/sandwich/bombaymasal.jpg",
+          "alt": "Bombay Masala Sandwich",
+          "price": 120
+        }
+      ]
+    },
+    {
+      "id": "momo",
+      "name": "Momo",
+      "items": [
+        {
+          "id": "veg-momos",
+          "name": "Veg Momos",
+          "image": "images/momo/momo.jpg",
+          "alt": "Veg Momos",
+          "sizes": [
+            { "label": "Steamed", "price": 99 },
+            { "label": "Fried", "price": 109 },
+            { "label": "Schezwan", "price": 119 },
+            { "label": "Cheesy", "price": 129 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "beverages",
+      "name": "Beverages",
+      "items": [
+        {
+          "id": "hot-coffee",
+          "name": "Hot Coffee",
+          "image": "images/brewerages/hotcoffe.jpg",
+          "alt": "Hot Coffee",
+          "sizes": [
+            { "label": "Small", "price": 20 },
+            { "label": "Medium", "price": 30 }
+          ]
+        },
+        {
+          "id": "cold-coffee",
+          "name": "Cold Coffee",
+          "image": "images/brewerages/coldcoffe.jpg",
+          "alt": "Cold Coffee",
+          "price": 70
+        },
+        {
+          "id": "masala-chai",
+          "name": "Masala Chai",
+          "image": "images/brewerages/masalachai.jpg",
+          "alt": "Masala Chai",
+          "price": 20
+        },
+        {
+          "id": "masala-coldrinks",
+          "name": "Masala Coldrinks",
+          "image": "images/brewerages/masalacoldrinks.jpg",
+          "alt": "Masala Coldrinks",
+          "price": 50
+        }
+      ]
+    },
+    {
+      "id": "dessert",
+      "name": "Dessert",
+      "items": [
+        {
+          "id": "sizzling-brownie",
+          "name": "Sizzling Brownie with Ice Cream",
+          "image": "images/esserts/sizzlingbrownie.jpg",
+          "alt": "Sizzling Brownie with Ice Cream",
+          "price": 120
+        },
+        {
+          "id": "gulab-jamun",
+          "name": "Gulab Jamun with Ice Cream",
+          "image": "images/esserts/gulabjamun.jpg",
+          "alt": "Gulab Jamun with Ice Cream",
+          "price": 99
+        },
+        {
+          "id": "softy-icecream",
+          "name": "Softy Ice Cream",
+          "image": "images/esserts/softy.jpg",
+          "alt": "Softy Ice Cream",
+          "price": 20
+        }
+      ]
+    }
+  ]
+};
+
+async function loadMenu() {
+    try {
+        const response = await fetch('menu.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        menuData = await response.json();
+        renderMenu();
+    } catch (error) {
+        console.warn('Could not load menu.json, using embedded menu data:', error);
+        // Use fallback menu data if fetch fails (e.g., when opening file directly)
+        menuData = fallbackMenuData;
+        renderMenu();
+    }
+}
+
+function renderMenu() {
+    if (!menuData) return;
+    
+    const container = document.getElementById('menuItemsContainer');
+    container.innerHTML = '';
+    
+    menuData.categories.forEach((category, categoryIndex) => {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = `menu-category ${categoryIndex === 0 ? 'active' : ''}`;
+        categoryDiv.id = category.id;
+        
+        const menuGrid = document.createElement('div');
+        menuGrid.className = 'menu-grid';
+        
+        category.items.forEach(item => {
+            const menuItem = createMenuItem(item, category.id);
+            menuGrid.appendChild(menuItem);
+        });
+        
+        categoryDiv.appendChild(menuGrid);
+        container.appendChild(categoryDiv);
+    });
+    
+    // Re-initialize order buttons after menu is rendered
+    initOrderButtons();
+    
+    // Re-initialize menu categories for tab switching (after menu is loaded)
+    initMenuCategories();
+}
+
+function createMenuItem(item, categoryId) {
+    const menuItem = document.createElement('div');
+    menuItem.className = 'menu-item';
+    menuItem.dataset.itemId = item.id;
+    
+    let priceHTML = '';
+    let addonSelectorHTML = '';
+    
+    // Handle items with sizes (half/full or small/medium or momo options)
+    if (item.sizes && item.sizes.length > 0) {
+        // Show all prices
+        const prices = item.sizes.map(s => s.price);
+        const labels = item.sizes.map(s => s.label);
+        
+        if (prices.length === 2) {
+            // For items with 2 options (Half/Full or Small/Medium)
+            priceHTML = `<p class="price">₹${prices[0]} / ₹${prices[1]} <small>(${labels[0]} / ${labels[1]})</small></p>`;
+        } else {
+            // For items with multiple options (like momos with 4 options)
+            const priceRange = prices.join(' / ₹');
+            const labelRange = labels.join(' / ');
+            priceHTML = `<p class="price">₹${priceRange} <small>(${labelRange})</small></p>`;
+        }
+    } else {
+        // Single price item
+        priceHTML = `<p class="price">₹${item.price}</p>`;
+    }
+    
+    // Handle addons (for rolls and french fries)
+    if (item.addons && item.addons.length > 0) {
+        const addonOptions = item.addons.map((addon, index) => 
+            `<label class="addon-option">
+                <input type="checkbox" value="${addon.price}" data-label="${addon.label}" data-item-id="${item.id}">
+                <span>${addon.label} ${addon.price > 0 ? `+₹${addon.price}` : ''}</span>
+            </label>`
+        ).join('');
+        
+        addonSelectorHTML = `
+            <div class="addon-selector">
+                <p class="addons-label">Add-ons:</p>
+                <div class="addon-options">
+                    ${addonOptions}
+                </div>
+            </div>
+        `;
+    }
+    
+    menuItem.innerHTML = `
+        <div class="menu-item-image">
+            <img src="${item.image}" alt="${item.alt}" loading="lazy">
+        </div>
+        <div class="menu-item-content">
+            <h3>${item.name}</h3>
+            ${priceHTML}
+            ${addonSelectorHTML}
+            <button class="order-btn" data-item-id="${item.id}">Add to Cart</button>
+        </div>
+    `;
+    
+    return menuItem;
+}
+
+// ============================================
+// Size Selection Modal
+// ============================================
+function showSizeSelectionModal(item) {
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.className = 'size-selection-modal';
+    modal.id = 'sizeSelectionModal';
+    
+    // Create size buttons
+    const sizeButtons = item.sizes.map(size => 
+        `<button class="size-option-btn" data-label="${size.label}" data-price="${size.price}">
+            ${size.label} - ₹${size.price}
+        </button>`
+    ).join('');
+    
+    modal.innerHTML = `
+        <div class="size-modal-content">
+            <div class="size-modal-header">
+                <h3>Select Size for ${item.name}</h3>
+                <button class="size-modal-close">&times;</button>
+            </div>
+            <div class="size-options">
+                ${sizeButtons}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+    
+    // Close modal handlers
+    const closeBtn = modal.querySelector('.size-modal-close');
+    const closeModal = () => {
+        modal.remove();
+        document.body.style.overflow = '';
+    };
+    
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    
+    // Size button handlers
+    const sizeBtns = modal.querySelectorAll('.size-option-btn');
+    sizeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const selectedSize = {
+                label: btn.dataset.label,
+                price: parseInt(btn.dataset.price)
+            };
+            closeModal();
+            handleAddToCart(item, selectedSize);
+        });
+    });
+    
+    // Close on Escape key
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+}
+
+// ============================================
+// Handle Add to Cart with size and addons
+// ============================================
+function handleAddToCart(item, selectedSize = null) {
+    const menuItem = document.querySelector(`[data-item-id="${item.id}"]`);
+    if (!menuItem) return;
+    
+    // Get selected addons
+    const selectedAddons = [];
+    const addonCheckboxes = menuItem.querySelectorAll(`input[type="checkbox"][data-item-id="${item.id}"]:checked`);
+    addonCheckboxes.forEach(checkbox => {
+        selectedAddons.push({
+            label: checkbox.dataset.label,
+            price: parseInt(checkbox.value)
+        });
+    });
+    
+    // Calculate total price
+    let totalPrice = selectedSize ? selectedSize.price : item.price;
+    selectedAddons.forEach(addon => {
+        totalPrice += addon.price;
+    });
+    
+    // Build item name with size and addons
+    let itemName = item.name;
+    if (selectedSize) {
+        itemName += ` (${selectedSize.label})`;
+    }
+    if (selectedAddons.length > 0) {
+        const addonLabels = selectedAddons.map(a => a.label).join(', ');
+        itemName += ` [${addonLabels}]`;
+    }
+    
+    addToCart(itemName, totalPrice);
+}
+
+// ============================================
 // Order Button Handlers
 // ============================================
 function initOrderButtons() {
@@ -493,11 +1195,24 @@ function initOrderButtons() {
     
     orderButtons.forEach(button => {
         button.addEventListener('click', () => {
-            const menuItem = button.closest('.menu-item');
-            const itemName = menuItem.querySelector('h3').textContent;
-            const price = menuItem.querySelector('.price').textContent;
+            const itemId = button.dataset.itemId;
             
-            addToCart(itemName, price);
+            // Find the item in menuData
+            let item = null;
+            for (const category of menuData.categories) {
+                item = category.items.find(i => i.id === itemId);
+                if (item) break;
+            }
+            
+            if (!item) return;
+            
+            // If item has sizes, show size selection modal
+            if (item.sizes && item.sizes.length > 0) {
+                showSizeSelectionModal(item);
+            } else {
+                // No size selection needed, add directly to cart
+                handleAddToCart(item);
+            }
         });
     });
 }
@@ -873,12 +1588,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initMobileMenu();
     initSmoothScroll();
     initActiveNavLink();
+    loadMenu(); // Load menu from JSON first
     initMenuCategories();
     initStickyCategoryTabs();
     initGallery();
     initTestimonials();
     loadCart();
-    initOrderButtons();
     initCartModal();
     initCheckoutModal();
     initLazyLoading();
