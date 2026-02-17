@@ -1425,7 +1425,7 @@ function createMenuItem(item, categoryId) {
     
     menuItem.innerHTML = `
         <div class="menu-item-image">
-            <img src="${item.image}" alt="${item.alt}" loading="lazy">
+            <img src="${item.image}" alt="${item.alt}" loading="lazy" decoding="async" width="400" height="300">
         </div>
         <div class="menu-item-content">
             <h3>${item.name}</h3>
