@@ -32,7 +32,10 @@ function initStickyNav() {
 // Mobile Menu Toggle
 // ============================================
 function initMobileMenu() {
-    hamburger.addEventListener('click', () => {
+    if (!hamburger || !navMenu) return;
+    
+    hamburger.addEventListener('click', (e) => {
+        e.stopPropagation();
         hamburger.classList.toggle('active');
         navMenu.classList.toggle('active');
         document.body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : '';
@@ -49,12 +52,34 @@ function initMobileMenu() {
     
     // Close menu when clicking outside
     document.addEventListener('click', (e) => {
-        if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
+        if (navMenu.classList.contains('active') && 
+            !hamburger.contains(e.target) && 
+            !navMenu.contains(e.target)) {
             hamburger.classList.remove('active');
             navMenu.classList.remove('active');
             document.body.style.overflow = '';
         }
     });
+    
+    // Close menu on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && navMenu.classList.contains('active')) {
+            hamburger.classList.remove('active');
+            navMenu.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+    
+    // Prevent body scroll when menu is open on mobile
+    navMenu.addEventListener('touchmove', (e) => {
+        if (navMenu.classList.contains('active')) {
+            // Allow scrolling within menu
+            const scrollable = e.target.closest('.nav-menu');
+            if (!scrollable || scrollable.scrollHeight <= scrollable.clientHeight) {
+                e.preventDefault();
+            }
+        }
+    }, { passive: false });
 }
 
 // ============================================
@@ -70,11 +95,23 @@ function initSmoothScroll() {
             const target = document.querySelector(href);
             
             if (target) {
-                const offsetTop = target.offsetTop - 80;
+                // Calculate offset based on screen size
+                const isMobile = window.innerWidth <= 768;
+                const navbarHeight = isMobile ? 70 : 80;
+                const categoryTabsHeight = (href === '#menu' && !isMobile) ? 80 : 0;
+                const offsetTop = target.offsetTop - navbarHeight - categoryTabsHeight;
+                
                 window.scrollTo({
-                    top: offsetTop,
-                    behavior: 'auto'
+                    top: Math.max(0, offsetTop),
+                    behavior: 'smooth'
                 });
+                
+                // Close mobile menu if open
+                if (isMobile && navMenu && navMenu.classList.contains('active')) {
+                    hamburger.classList.remove('active');
+                    navMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
             }
         });
     });
