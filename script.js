@@ -993,10 +993,10 @@ const fallbackMenuData = {
           "name": "French Fries",
           "image": "images/quickBites/frenchfries.jpg",
           "alt": "French Fries",
-          "price": 99,
-          "addons": [
-            { "label": "Masala", "price": 10 },
-            { "label": "Peri-Peri", "price": 10 }
+          "sizes": [
+            { "label": "Salted", "price": 99 },
+            { "label": "Masala", "price": 109 },
+            { "label": "Peri Peri", "price": 109 }
           ]
         }
       ]
@@ -1404,7 +1404,7 @@ function createMenuItem(item, categoryId) {
         priceHTML = `<p class="price">₹${item.price}</p>`;
     }
     
-    // Handle addons (for rolls and french fries)
+    // Handle addons (for rolls)
     if (item.addons && item.addons.length > 0) {
         const addonOptions = item.addons.map((addon, index) => 
             `<label class="addon-option">

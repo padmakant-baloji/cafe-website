@@ -149,10 +149,10 @@
           "name": "French Fries",
           "image": "images/quickBites/frenchfries.jpg",
           "alt": "French Fries",
-          "price": 99,
-          "addons": [
-            { "label": "Masala", "price": 10 },
-            { "label": "Peri-Peri", "price": 10 }
+          "sizes": [
+            { "label": "Salted", "price": 99 },
+            { "label": "Masala", "price": 109 },
+            { "label": "Peri Peri", "price": 109 }
           ]
         }
       ]
