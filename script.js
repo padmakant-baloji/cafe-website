@@ -21,21 +21,33 @@ const navLinks = document.querySelectorAll('.nav-link');
 // Sticky Navigation
 // ============================================
 let stickyNavInitialized = false;
+let stickyNavScrollHandler = null;
 
 function initStickyNav() {
     if (stickyNavInitialized) return;
+    
+    if (!stickyNavScrollHandler) {
+        stickyNavScrollHandler = throttle(() => {
+            const currentScroll = window.pageYOffset;
+            
+            if (currentScroll > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        }, 150);
+        
+        window.addEventListener('scroll', stickyNavScrollHandler, { passive: true });
+    }
+    
     stickyNavInitialized = true;
-    // Handled by unified scroll handler
 }
 
 // ============================================
 // Mobile Menu Toggle
 // ============================================
 function initMobileMenu() {
-    if (!hamburger || !navMenu) return;
-    
-    hamburger.addEventListener('click', (e) => {
-        e.stopPropagation();
+    hamburger.addEventListener('click', () => {
         hamburger.classList.toggle('active');
         navMenu.classList.toggle('active');
         document.body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : '';
@@ -52,34 +64,12 @@ function initMobileMenu() {
     
     // Close menu when clicking outside
     document.addEventListener('click', (e) => {
-        if (navMenu.classList.contains('active') && 
-            !hamburger.contains(e.target) && 
-            !navMenu.contains(e.target)) {
+        if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
             hamburger.classList.remove('active');
             navMenu.classList.remove('active');
             document.body.style.overflow = '';
         }
     });
-    
-    // Close menu on escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && navMenu.classList.contains('active')) {
-            hamburger.classList.remove('active');
-            navMenu.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-    });
-    
-    // Prevent body scroll when menu is open on mobile
-    navMenu.addEventListener('touchmove', (e) => {
-        if (navMenu.classList.contains('active')) {
-            // Allow scrolling within menu
-            const scrollable = e.target.closest('.nav-menu');
-            if (!scrollable || scrollable.scrollHeight <= scrollable.clientHeight) {
-                e.preventDefault();
-            }
-        }
-    }, { passive: false });
 }
 
 // ============================================
@@ -95,23 +85,11 @@ function initSmoothScroll() {
             const target = document.querySelector(href);
             
             if (target) {
-                // Calculate offset based on screen size
-                const isMobile = window.innerWidth <= 768;
-                const navbarHeight = isMobile ? 70 : 80;
-                const categoryTabsHeight = (href === '#menu' && !isMobile) ? 80 : 0;
-                const offsetTop = target.offsetTop - navbarHeight - categoryTabsHeight;
-                
+                const offsetTop = target.offsetTop - 80;
                 window.scrollTo({
-                    top: Math.max(0, offsetTop),
-                    behavior: 'smooth'
+                    top: offsetTop,
+                    behavior: 'auto'
                 });
-                
-                // Close mobile menu if open
-                if (isMobile && navMenu && navMenu.classList.contains('active')) {
-                    hamburger.classList.remove('active');
-                    navMenu.classList.remove('active');
-                    document.body.style.overflow = '';
-                }
             }
         });
     });
@@ -121,11 +99,37 @@ function initSmoothScroll() {
 // Active Nav Link on Scroll
 // ============================================
 let activeNavLinkInitialized = false;
+let activeNavLinkScrollHandler = null;
 
 function initActiveNavLink() {
     if (activeNavLinkInitialized) return;
+    
+    const sections = document.querySelectorAll('section[id]');
+    
+    if (!activeNavLinkScrollHandler) {
+        activeNavLinkScrollHandler = throttle(() => {
+            const scrollY = window.pageYOffset;
+            
+            sections.forEach(section => {
+                const sectionHeight = section.offsetHeight;
+                const sectionTop = section.offsetTop - 100;
+                const sectionId = section.getAttribute('id');
+                
+                if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${sectionId}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, 200);
+        
+        window.addEventListener('scroll', activeNavLinkScrollHandler, { passive: true });
+    }
+    
     activeNavLinkInitialized = true;
-    // Handled by unified scroll handler
 }
 
 // ============================================
@@ -192,27 +196,19 @@ function initMenuCategories() {
     function switchCategory(categoryId) {
         // Prevent rapid switching
         if (isSwitching) return;
+        isSwitching = true;
         
         // Use cached references instead of re-querying
         const allMenuCategories = menuCategoriesCache || document.querySelectorAll('.menu-category');
         const allCategoryTabs = categoryTabsCache || document.querySelectorAll('.category-tab');
         
-        // Find the category and tab by ID
-        const targetCategory = document.getElementById(categoryId);
-        const targetTab = Array.from(allCategoryTabs).find(tab => tab.dataset.category === categoryId);
-        
-        // Check if this category is already active - if so, do nothing
-        if (targetCategory && targetTab) {
-            if (targetCategory.classList.contains('active') && targetTab.classList.contains('active')) {
-                return; // Already active, no need to switch
-            }
-        }
-        
-        isSwitching = true;
-        
         // Remove active class from all categories and tabs
         allMenuCategories.forEach(cat => cat.classList.remove('active'));
         allCategoryTabs.forEach(tab => tab.classList.remove('active'));
+        
+        // Find the category and tab by ID
+        const targetCategory = document.getElementById(categoryId);
+        const targetTab = Array.from(allCategoryTabs).find(tab => tab.dataset.category === categoryId);
         
         if (targetCategory && targetTab) {
             targetCategory.classList.add('active');
@@ -222,8 +218,22 @@ function initMenuCategories() {
             const categories = categoriesArrayCache || Array.from(allMenuCategories);
             currentCategoryIndex = categories.findIndex(cat => cat.id === categoryId);
             
-            // Scroll active tab into view (for mobile) - use instant scroll for better performance
+            // Use requestAnimationFrame for smooth scrolling
             requestAnimationFrame(() => {
+                // Scroll to top of menu section (only if not already visible)
+                const menuSection = document.getElementById('menu');
+                if (menuSection) {
+                    const menuRect = menuSection.getBoundingClientRect();
+                    if (menuRect.top < 80 || menuRect.bottom < window.innerHeight) {
+                        const offsetTop = menuSection.offsetTop - 80;
+                        window.scrollTo({
+                            top: offsetTop,
+                            behavior: 'auto'
+                        });
+                    }
+                }
+                
+                // Scroll active tab into view (for mobile) - use instant scroll for better performance
                 const tabRect = targetTab.getBoundingClientRect();
                 const containerRect = categoryTabsList.getBoundingClientRect();
                 if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
@@ -244,27 +254,14 @@ function initMenuCategories() {
     
     // Use event delegation - only add once
     if (!categoryClickHandler) {
-        let lastClickTime = 0;
-        let lastCategoryId = null;
-        
         categoryClickHandler = (e) => {
             const tab = e.target.closest('.category-tab');
-            if (!tab) return;
-            
-            const categoryId = tab.dataset.category;
-            if (!categoryId) return;
-            
-            const currentTime = Date.now();
-            
-            // Prevent rapid clicks on the same category
-            if (categoryId === lastCategoryId && (currentTime - lastClickTime) < 500) {
-                return; // Ignore rapid clicks on same category
+            if (tab) {
+                const categoryId = tab.dataset.category;
+                if (categoryId) {
+                    switchCategory(categoryId);
+                }
             }
-            
-            lastClickTime = currentTime;
-            lastCategoryId = categoryId;
-            
-            switchCategory(categoryId);
         };
         categoryTabsList.addEventListener('click', categoryClickHandler);
     }
@@ -397,11 +394,30 @@ function initCategoryScrollIndicators() {
 // Sticky Category Tabs
 // ============================================
 let stickyTabsInitialized = false;
+let stickyTabsScrollHandler = null;
 
 function initStickyCategoryTabs() {
     if (stickyTabsInitialized) return;
+    
+    const menuSection = document.getElementById('menu');
+    if (!menuSection || !categoryTabsContainer) return;
+    
+    if (!stickyTabsScrollHandler) {
+        stickyTabsScrollHandler = throttle(() => {
+            const menuTop = menuSection.offsetTop;
+            const scrollY = window.pageYOffset;
+            
+            if (scrollY >= menuTop - 80) {
+                categoryTabsContainer.style.position = 'sticky';
+            } else {
+                categoryTabsContainer.style.position = 'relative';
+            }
+        }, 150);
+        
+        window.addEventListener('scroll', stickyTabsScrollHandler, { passive: true });
+    }
+    
     stickyTabsInitialized = true;
-    // Handled by unified scroll handler
 }
 
 // ============================================
@@ -1164,7 +1180,19 @@ function renderMenu() {
     // This will update cache references without re-adding event listeners
     initMenuCategories();
     
-    // Scroll animations disabled for performance
+    // Re-observe menu items for scroll animations
+    if (scrollAnimationsObserver) {
+        setTimeout(() => {
+            document.querySelectorAll('.menu-item').forEach(item => {
+                if (item.style.opacity !== '1') {
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateY(30px)';
+                    item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                    scrollAnimationsObserver.observe(item);
+                }
+            });
+        }, 100);
+    }
 }
 
 function createMenuItem(item, categoryId) {
@@ -1479,48 +1507,41 @@ function initCheckoutModal() {
 function initMap() {
     const locationMap = document.getElementById('locationMap');
     
-    if (!locationMap) {
-        return;
-    }
-    
-    // Check if Leaflet is available
-    if (typeof L === 'undefined') {
-        locationMap.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-light);">⚠️ Map library is not loaded. Please refresh the page. You can still enter your address manually.</p>';
+    // Check if Google Maps is available
+    if (typeof google === 'undefined' || !google.maps) {
+        locationMap.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-light);">Please add your Google Maps API key to enable map functionality. You can still enter your address manually.</p>';
         return;
     }
     
     try {
-        // Clear any existing content
-        locationMap.innerHTML = '';
+        // Initialize map centered on Kudachi
+        map = new google.maps.Map(locationMap, {
+            center: { lat: 16.1234, lng: 74.1234 }, // Approximate coordinates for Kudachi
+            zoom: 15,
+            mapTypeControl: false,
+            streetViewControl: false
+        });
         
-        // Initialize map centered on Baloji's Cafe
-        map = L.map(locationMap).setView([16.6236149, 74.8578799], 15); // [lat, lng], zoom
-        
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }).addTo(map);
-        
-        // Add marker at Baloji's Cafe
-        marker = L.marker([16.6236149, 74.8578799], {
+        // Add marker
+        marker = new google.maps.Marker({
+            map: map,
             draggable: true
-        }).addTo(map);
+        });
         
         // Update location input when marker is dragged
-        marker.on('dragend', () => {
-            const position = marker.getLatLng();
-            updateLocationFromCoordinates(position.lat, position.lng);
+        marker.addListener('dragend', () => {
+            const position = marker.getPosition();
+            updateLocationFromCoordinates(position.lat(), position.lng());
         });
         
         // Update marker when map is clicked
-        map.on('click', (e) => {
-            marker.setLatLng(e.latlng);
-            updateLocationFromCoordinates(e.latlng.lat, e.latlng.lng);
+        map.addListener('click', (e) => {
+            marker.setPosition(e.latLng);
+            updateLocationFromCoordinates(e.latLng.lat(), e.latLng.lng());
         });
     } catch (error) {
         console.error('Error initializing map:', error);
-        locationMap.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-light);">⚠️ Map could not be loaded. Please refresh the page. You can still enter your address manually.</p>';
+        locationMap.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-light);">Map could not be loaded. Please enter your address manually.</p>';
     }
 }
 
@@ -1537,9 +1558,10 @@ function getCurrentLocation() {
                 
                 updateLocationFromCoordinates(lat, lng);
                 
-                if (map && marker) {
-                    map.setView([lat, lng], 15);
-                    marker.setLatLng([lat, lng]);
+                if (map) {
+                    const location = new google.maps.LatLng(lat, lng);
+                    map.setCenter(location);
+                    marker.setPosition(location);
                 }
                 
                 getLocationBtn.textContent = '📍 Get Current Location';
@@ -1562,21 +1584,18 @@ function updateLocationFromCoordinates(lat, lng) {
     document.getElementById('latitude').value = lat;
     document.getElementById('longitude').value = lng;
     
-    // Reverse geocode to get address using Nominatim (OpenStreetMap's free geocoding service)
-    try {
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
-            .then(response => response.json())
-            .then(data => {
-                if (data && data.display_name) {
-                    document.getElementById('deliveryLocation').value = data.display_name;
+    // Reverse geocode to get address
+    if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
+        try {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    document.getElementById('deliveryLocation').value = results[0].formatted_address;
                 }
-            })
-            .catch(error => {
-                console.error('Geocoding error:', error);
-                // If geocoding fails, user can still enter address manually
             });
-    } catch (error) {
-        console.error('Geocoding error:', error);
+        } catch (error) {
+            console.error('Geocoding error:', error);
+        }
     }
 }
 
@@ -1659,137 +1678,63 @@ function initLazyLoading() {
 }
 
 // ============================================
-// Scroll Animations - DISABLED for performance
+// Scroll Animations
 // ============================================
+let scrollAnimationsObserver = null;
+let scrollAnimationsInitialized = false;
+
 function initScrollAnimations() {
-    // Scroll animations disabled for better scroll performance
-    // All items are visible by default
+    if (scrollAnimationsInitialized && scrollAnimationsObserver) return;
+    
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    scrollAnimationsObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+                // Unobserve after animation to improve performance
+                scrollAnimationsObserver.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+    
+    // Observe menu items (will be called after menu is rendered)
+    function observeMenuItems() {
+        document.querySelectorAll('.menu-item').forEach(item => {
+            // Only observe if not already animated
+            if (item.style.opacity !== '1') {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(30px)';
+                item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                scrollAnimationsObserver.observe(item);
+            }
+        });
+    }
+    
+    // Observe gallery items
+    document.querySelectorAll('.gallery-item').forEach(item => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(30px)';
+        item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        scrollAnimationsObserver.observe(item);
+    });
+    
+    // Observe menu items after menu is loaded
+    setTimeout(observeMenuItems, 100);
+    
+    scrollAnimationsInitialized = true;
 }
 
 // ============================================
 // Performance Optimization
 // ============================================
-let isScrolling = false;
-let scrollTimeout = null;
-let videoElement = null;
-
-// ============================================
-// Unified Scroll Handler - Single optimized handler
-// ============================================
-let unifiedScrollHandler = null;
-let lastScrollTop = 0;
-let lastUpdateTime = 0;
-const UPDATE_INTERVAL = 200; // Update max once every 200ms
-
-// Cache DOM elements
-let cachedSections = null;
-let cachedMenuSection = null;
-let cachedHeroSection = null;
-let cachedSectionData = null;
-
 function initPerformanceOptimizations() {
-    if (unifiedScrollHandler) return;
-    
-    // Cache all DOM elements once
-    videoElement = document.querySelector('.video-background video');
-    cachedSections = document.querySelectorAll('section[id]');
-    cachedMenuSection = document.getElementById('menu');
-    cachedHeroSection = document.querySelector('.hero');
-    
-    // Pre-calculate section data to avoid repeated calculations
-    cachedSectionData = Array.from(cachedSections).map(section => ({
-        element: section,
-        id: section.getAttribute('id'),
-        top: section.offsetTop - 100,
-        height: section.offsetHeight
-    }));
-    
-    // Cache menu top position
-    const menuTop = cachedMenuSection ? cachedMenuSection.offsetTop : 0;
-    
-    unifiedScrollHandler = () => {
-        const now = performance.now();
-        if (now - lastUpdateTime < UPDATE_INTERVAL) return;
-        lastUpdateTime = now;
-        
-        requestAnimationFrame(() => {
-            const scrollY = window.pageYOffset;
-            const currentScrollTop = scrollY;
-            const scrollSpeed = Math.abs(currentScrollTop - lastScrollTop);
-            lastScrollTop = currentScrollTop;
-            
-            // Fast scroll detection - disable transitions
-            if (scrollSpeed > 30) {
-                document.body.classList.add('fast-scroll');
-            } else {
-                document.body.classList.remove('fast-scroll');
-            }
-            
-            // Sticky nav - simple class toggle
-            if (scrollY > 100) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
-            
-            // Active nav link - use cached data
-            if (cachedSectionData) {
-                for (let i = 0; i < cachedSectionData.length; i++) {
-                    const section = cachedSectionData[i];
-                    if (scrollY > section.top && scrollY <= section.top + section.height) {
-                        // Only update if changed
-                        const activeLink = document.querySelector(`.nav-link[href="#${section.id}"]`);
-                        if (activeLink && !activeLink.classList.contains('active')) {
-                            navLinks.forEach(link => link.classList.remove('active'));
-                            activeLink.classList.add('active');
-                        }
-                        break;
-                    }
-                }
-            }
-            
-            // Sticky category tabs - use cached position
-            if (categoryTabsContainer) {
-                if (scrollY >= menuTop - 80) {
-                    if (categoryTabsContainer.style.position !== 'sticky') {
-                        categoryTabsContainer.style.position = 'sticky';
-                    }
-                } else {
-                    if (categoryTabsContainer.style.position !== 'relative') {
-                        categoryTabsContainer.style.position = 'relative';
-                    }
-                }
-            }
-            
-            // Video pause during scroll - use cached element
-            if (videoElement) {
-                if (!isScrolling) {
-                    isScrolling = true;
-                    if (!videoElement.paused) {
-                        videoElement.pause();
-                    }
-                }
-                
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => {
-                    isScrolling = false;
-                    // Only resume if hero is visible - use cached element
-                    if (cachedHeroSection) {
-                        const rect = cachedHeroSection.getBoundingClientRect();
-                        const isVisible = rect.bottom > 0 && rect.top < window.innerHeight;
-                        if (isVisible && videoElement.paused) {
-                            videoElement.play().catch(() => {});
-                        }
-                    }
-                }, 1000);
-            }
-        });
-    };
-    
-    window.addEventListener('scroll', unifiedScrollHandler, { passive: true });
-    
-    // Initial update
-    unifiedScrollHandler();
+    // Functions are now defined at module level and used throughout
+    // This function can be used for additional optimizations if needed
 }
 
 // ============================================
