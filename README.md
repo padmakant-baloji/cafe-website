@@ -9,7 +9,6 @@ A stunning, modern, and fully responsive website for Baloji's Cafe featuring a c
 - **Food Gallery** with lightbox preview
 - **Auto-sliding Testimonials** carousel
 - **Contact Section** with Google Maps integration
-- **Dark Mode** toggle
 - **Fully Responsive** design (mobile-first)
 - **Smooth Animations** and transitions
 - **WhatsApp Integration** for easy ordering
@@ -131,7 +130,6 @@ Update contact details in the HTML:
 - **Smooth Animations**: Fade-in, slide-up, and hover effects
 - **Modern Typography**: Playfair Display (headings) + Poppins (body)
 - **Color Palette**: Red/orange accents with cream/beige backgrounds
-- **Dark Mode**: Toggle between light and dark themes
 
 ## ⚡ Performance Tips
 

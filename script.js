@@ -4,7 +4,6 @@
 const navbar = document.getElementById('navbar');
 const hamburger = document.getElementById('hamburger');
 const navMenu = document.getElementById('navMenu');
-const darkModeToggle = document.getElementById('darkModeToggle');
 // These will be queried dynamically after menu loads
 let categoryTabs = null;
 let menuCategories = null;
@@ -17,21 +16,6 @@ const lightboxClose = document.querySelector('.lightbox-close');
 const testimonialSlides = document.querySelectorAll('.testimonial-slide');
 const testimonialDots = document.querySelectorAll('.dot');
 const navLinks = document.querySelectorAll('.nav-link');
-
-// ============================================
-// Dark Mode Toggle
-// ============================================
-function initDarkMode() {
-    const isDarkMode = localStorage.getItem('darkMode') === 'true';
-    if (isDarkMode) {
-        document.body.classList.add('dark-mode');
-    }
-    
-    darkModeToggle.addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
-        localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-    });
-}
 
 // ============================================
 // Sticky Navigation
@@ -1757,7 +1741,6 @@ function initPerformanceOptimizations() {
 // Initialize Everything
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
-    initDarkMode();
     initStickyNav();
     initMobileMenu();
     initSmoothScroll();
