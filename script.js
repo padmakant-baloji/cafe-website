@@ -1784,18 +1784,20 @@ function updateLocationFromCoordinates(lat, lng) {
 // Place Order
 // ============================================
 function placeOrder() {
+    const customerName = document.getElementById('customerName').value;
     const mobileNumber = document.getElementById('mobileNumber').value;
     const deliveryLocation = document.getElementById('deliveryLocation').value;
     const latitude = document.getElementById('latitude').value;
     const longitude = document.getElementById('longitude').value;
     
-    if (!mobileNumber || !deliveryLocation) {
+    if (!customerName || !mobileNumber || !deliveryLocation) {
         alert('Please fill in all required fields');
         return;
     }
     
     // Build order message
     let message = `🍽️ *Order from Baloji's Cafe*\n\n`;
+    message += `👤 *Name:* ${customerName}\n`;
     message += `📱 *Mobile Number:* ${mobileNumber}\n`;
     message += `📍 *Delivery Location:* ${deliveryLocation}\n`;
     
