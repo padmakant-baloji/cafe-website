@@ -267,6 +267,40 @@ function initMenuCategories() {
         const categories = categoriesArrayCache || Array.from(menuCategoriesCache || []);
         currentCategoryIndex = categories.findIndex(cat => cat.id === categoryId);
         
+        // Scroll to first menu item of the selected category
+        setTimeout(() => {
+            try {
+                // Find the first menu item in the active category
+                const firstMenuItem = targetCategory.querySelector('.menu-item');
+                if (firstMenuItem) {
+                    // Calculate offset for sticky header and category tabs
+                    const navbarHeight = 80; // Approximate navbar height
+                    const categoryTabsHeight = categoryTabsContainer ? categoryTabsContainer.offsetHeight : 100;
+                    const offset = navbarHeight + categoryTabsHeight + 20; // 20px extra spacing
+                    
+                    // Get the position of the first menu item
+                    const itemRect = firstMenuItem.getBoundingClientRect();
+                    const itemTop = itemRect.top + window.pageYOffset;
+                    const currentScrollY = window.pageYOffset;
+                    const targetScrollY = itemTop - offset;
+                    
+                    // Only scroll if the item is not already visible in the viewport
+                    // Check if item is above the viewport or too far below
+                    const isItemVisible = itemRect.top >= offset && itemRect.top <= (window.innerHeight - 100);
+                    
+                    if (!isItemVisible || Math.abs(currentScrollY - targetScrollY) > 100) {
+                        // Scroll to the item with offset
+                        window.scrollTo({
+                            top: targetScrollY,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Error scrolling to menu item:', e);
+            }
+        }, 200); // Wait a bit for category to be visible
+        
         // Re-enable transitions after a brief delay (long enough for fast transition to complete)
         // Don't remove here - let resetFlags handle it to ensure consistency
         
@@ -1315,21 +1349,48 @@ async function loadMenu() {
     }
 }
 
-function renderMenu() {
+function renderMenu(searchQuery = '') {
     if (!menuData) return;
     
     const container = document.getElementById('menuItemsContainer');
     container.innerHTML = '';
     
+    let totalResults = 0;
+    let hasResults = false;
+    
     menuData.categories.forEach((category, categoryIndex) => {
+        // Filter items based on search query
+        let filteredItems = category.items;
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            filteredItems = category.items.filter(item => {
+                const nameMatch = item.name.toLowerCase().includes(query);
+                const categoryMatch = category.name.toLowerCase().includes(query);
+                const altMatch = item.alt && item.alt.toLowerCase().includes(query);
+                return nameMatch || categoryMatch || altMatch;
+            });
+        }
+        
+        if (filteredItems.length === 0 && searchQuery.trim()) {
+            return; // Skip empty categories when searching
+        }
+        
+        totalResults += filteredItems.length;
+        hasResults = true;
+        
         const categoryDiv = document.createElement('div');
-        categoryDiv.className = `menu-category ${categoryIndex === 0 ? 'active' : ''}`;
+        categoryDiv.className = `menu-category ${categoryIndex === 0 && !searchQuery.trim() ? 'active' : ''}`;
         categoryDiv.id = category.id;
+        
+        // Show category if searching or if it's the first category
+        if (searchQuery.trim() || categoryIndex === 0) {
+            categoryDiv.classList.add('active');
+        }
         
         const menuGrid = document.createElement('div');
         menuGrid.className = 'menu-grid';
         
-        category.items.forEach(item => {
+        filteredItems.forEach(item => {
             const menuItem = createMenuItem(item, category.id);
             menuGrid.appendChild(menuItem);
         });
@@ -1338,18 +1399,34 @@ function renderMenu() {
         container.appendChild(categoryDiv);
     });
     
+    // Update search results info
+    const searchResultsInfo = document.getElementById('searchResultsInfo');
+    if (searchQuery.trim()) {
+        if (totalResults > 0) {
+            searchResultsInfo.style.display = 'block';
+            searchResultsInfo.innerHTML = `<strong>${totalResults}</strong> ${totalResults === 1 ? 'item' : 'items'} found for "<strong>${searchQuery}</strong>"`;
+        } else {
+            searchResultsInfo.style.display = 'block';
+            searchResultsInfo.innerHTML = `No items found for "<strong>${searchQuery}</strong>". Try a different search term.`;
+        }
+    } else {
+        searchResultsInfo.style.display = 'none';
+    }
+    
     // Re-initialize order buttons after menu is rendered
     initOrderButtons();
     
     // Re-initialize menu categories for tab switching (after menu is loaded)
     // This will update cache references without re-adding event listeners
-    initMenuCategories();
-    
-    // Initialize cached active elements
-    const activeCategory = document.querySelector('.menu-category.active');
-    const activeTab = document.querySelector('.category-tab.active');
-    if (activeCategory) cachedActiveCategory = activeCategory;
-    if (activeTab) cachedActiveTab = activeTab;
+    if (!searchQuery.trim()) {
+        initMenuCategories();
+        
+        // Initialize cached active elements
+        const activeCategory = document.querySelector('.menu-category.active');
+        const activeTab = document.querySelector('.category-tab.active');
+        if (activeCategory) cachedActiveCategory = activeCategory;
+        if (activeTab) cachedActiveTab = activeTab;
+    }
     
     // Update cached menu top position after menu is rendered (if sticky tabs initialized)
     if (cachedMenuTop !== null) {
@@ -1931,6 +2008,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMenu(); // Load menu from JSON first
     initMenuCategories();
     initStickyCategoryTabs();
+    initMenuSearch(); // Initialize search functionality
     initGallery();
     initTestimonials();
     loadCart();
@@ -1943,6 +2021,86 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add loaded class to body for CSS transitions
     document.body.classList.add('loaded');
 });
+
+// ============================================
+// Menu Search Functionality
+// ============================================
+function initMenuSearch() {
+    const searchInput = document.getElementById('menuSearchInput');
+    const searchClearBtn = document.getElementById('searchClearBtn');
+    const categoryTabs = document.querySelectorAll('.category-tab');
+    
+    if (!searchInput) return;
+    
+    let searchTimeout;
+    
+    // Search input handler
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        // Show/hide clear button
+        if (query) {
+            searchClearBtn.style.display = 'flex';
+        } else {
+            searchClearBtn.style.display = 'none';
+        }
+        
+        // Debounce search
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            renderMenu(query);
+            
+            // Hide category tabs when searching
+            if (query) {
+                categoryTabs.forEach(tab => {
+                    tab.style.display = 'none';
+                });
+            } else {
+                categoryTabs.forEach(tab => {
+                    tab.style.display = 'flex';
+                });
+            }
+        }, 300);
+    });
+    
+    // Clear button handler
+    if (searchClearBtn) {
+        searchClearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            searchClearBtn.style.display = 'none';
+            renderMenu('');
+            
+            // Show category tabs again
+            categoryTabs.forEach(tab => {
+                tab.style.display = 'flex';
+            });
+            
+            // Reset to first category
+            const firstCategory = document.querySelector('.menu-category');
+            const firstTab = document.querySelector('.category-tab');
+            if (firstCategory && firstTab) {
+                document.querySelectorAll('.menu-category').forEach(cat => cat.classList.remove('active'));
+                document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
+                firstCategory.classList.add('active');
+                firstTab.classList.add('active');
+            }
+            
+            searchInput.focus();
+        });
+    }
+    
+    // Escape key to clear search
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && searchInput.value) {
+            searchInput.value = '';
+            searchClearBtn.style.display = 'none';
+            renderMenu('');
+            categoryTabs.forEach(tab => {
+                tab.style.display = 'flex';
+            });
+        }
+    });
+}
 
 // ============================================
 // Error Handling
