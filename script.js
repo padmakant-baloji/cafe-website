@@ -1463,9 +1463,9 @@ function initMap() {
     }
     
     try {
-        // Initialize map centered on Kudachi
+        // Initialize map centered on Baloji's Cafe
         map = new google.maps.Map(locationMap, {
-            center: { lat: 16.1234, lng: 74.1234 }, // Approximate coordinates for Kudachi
+            center: { lat: 16.6236149, lng: 74.8578799 }, // Baloji's Cafe coordinates
             zoom: 15,
             mapTypeControl: false,
             streetViewControl: false
