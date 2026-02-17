@@ -719,8 +719,6 @@ function initTestimonials() {
 // Cart System
 // ============================================
 let cart = [];
-let map = null;
-let marker = null;
 
 // Load cart from localStorage
 function loadCart() {
@@ -1720,11 +1718,6 @@ function openCheckoutModal() {
     
     checkoutModal.classList.add('active');
     document.body.style.overflow = 'hidden';
-    
-    // Initialize map if not already done
-    if (!map) {
-        initMap();
-    }
 }
 
 function initCheckoutModal() {
@@ -1732,7 +1725,6 @@ function initCheckoutModal() {
     const checkoutClose = document.getElementById('checkoutClose');
     const backToCartBtn = document.getElementById('backToCartBtn');
     const checkoutForm = document.getElementById('checkoutForm');
-    const getLocationBtn = document.getElementById('getLocationBtn');
     
     checkoutClose.addEventListener('click', () => {
         checkoutModal.classList.remove('active');
@@ -1751,110 +1743,10 @@ function initCheckoutModal() {
         }
     });
     
-    getLocationBtn.addEventListener('click', getCurrentLocation);
-    
     checkoutForm.addEventListener('submit', (e) => {
         e.preventDefault();
         placeOrder();
     });
-}
-
-// ============================================
-// Location Services
-// ============================================
-function initMap() {
-    const locationMap = document.getElementById('locationMap');
-    
-    // Check if Google Maps is available
-    if (typeof google === 'undefined' || !google.maps) {
-        locationMap.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-light);">Please add your Google Maps API key to enable map functionality. You can still enter your address manually.</p>';
-        return;
-    }
-    
-    try {
-        // Initialize map centered on Kudachi
-        map = new google.maps.Map(locationMap, {
-            center: { lat: 16.1234, lng: 74.1234 }, // Approximate coordinates for Kudachi
-            zoom: 15,
-            mapTypeControl: false,
-            streetViewControl: false
-        });
-        
-        // Add marker
-        marker = new google.maps.Marker({
-            map: map,
-            draggable: true
-        });
-        
-        // Update location input when marker is dragged
-        marker.addListener('dragend', () => {
-            const position = marker.getPosition();
-            updateLocationFromCoordinates(position.lat(), position.lng());
-        });
-        
-        // Update marker when map is clicked
-        map.addListener('click', (e) => {
-            marker.setPosition(e.latLng);
-            updateLocationFromCoordinates(e.latLng.lat(), e.latLng.lng());
-        });
-    } catch (error) {
-        console.error('Error initializing map:', error);
-        locationMap.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--text-light);">Map could not be loaded. Please enter your address manually.</p>';
-    }
-}
-
-function getCurrentLocation() {
-    const getLocationBtn = document.getElementById('getLocationBtn');
-    getLocationBtn.textContent = '📍 Getting Location...';
-    getLocationBtn.disabled = true;
-    
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                
-                updateLocationFromCoordinates(lat, lng);
-                
-                if (map) {
-                    const location = new google.maps.LatLng(lat, lng);
-                    map.setCenter(location);
-                    marker.setPosition(location);
-                }
-                
-                getLocationBtn.textContent = '📍 Get Current Location';
-                getLocationBtn.disabled = false;
-            },
-            (error) => {
-                alert('Unable to get your location. Please enter it manually.');
-                getLocationBtn.textContent = '📍 Get Current Location';
-                getLocationBtn.disabled = false;
-            }
-        );
-    } else {
-        alert('Geolocation is not supported by your browser. Please enter your location manually.');
-        getLocationBtn.textContent = '📍 Get Current Location';
-        getLocationBtn.disabled = false;
-    }
-}
-
-function updateLocationFromCoordinates(lat, lng) {
-    document.getElementById('latitude').value = lat;
-    document.getElementById('longitude').value = lng;
-    
-    // Reverse geocode to get address
-    if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
-        try {
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-                if (status === 'OK' && results[0]) {
-                    document.getElementById('deliveryLocation').value = results[0].formatted_address;
-                }
-            });
-        } catch (error) {
-            console.error('Geocoding error:', error);
-        }
-    }
 }
 
 // ============================================
@@ -1863,11 +1755,8 @@ function updateLocationFromCoordinates(lat, lng) {
 function placeOrder() {
     const customerName = document.getElementById('customerName').value;
     const mobileNumber = document.getElementById('mobileNumber').value;
-    const deliveryLocation = document.getElementById('deliveryLocation').value;
-    const latitude = document.getElementById('latitude').value;
-    const longitude = document.getElementById('longitude').value;
     
-    if (!customerName || !mobileNumber || !deliveryLocation) {
+    if (!customerName || !mobileNumber) {
         alert('Please fill in all required fields');
         return;
     }
@@ -1876,12 +1765,6 @@ function placeOrder() {
     let message = `🍽️ *Order from Baloji's Cafe*\n\n`;
     message += `👤 *Name:* ${customerName}\n`;
     message += `📱 *Mobile Number:* ${mobileNumber}\n`;
-    message += `📍 *Delivery Location:* ${deliveryLocation}\n`;
-    
-    if (latitude && longitude) {
-        const mapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
-        message += `🗺️ *Map Link:* ${mapLink}\n`;
-    }
     
     message += `\n📋 *Order Details:*\n`;
     cart.forEach((item, index) => {
