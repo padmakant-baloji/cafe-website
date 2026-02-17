@@ -265,6 +265,7 @@ button {
     justify-content: center;
     overflow: hidden;
     padding: 2rem 0;
+    animation: fadeIn 1s ease-in-out;
 }
 
 .video-background {
@@ -282,6 +283,16 @@ button {
     height: 100%;
     object-fit: cover;
     transform: scale(1.1);
+    animation: videoZoom 20s ease-in-out infinite;
+}
+
+@keyframes videoZoom {
+    0%, 100% {
+        transform: scale(1.1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
 }
 
 /* Mobile video optimizations */
@@ -318,6 +329,16 @@ button {
     height: 100%;
     background: linear-gradient(135deg, rgba(211, 47, 47, 0.75) 0%, rgba(255, 107, 53, 0.65) 50%, rgba(26, 35, 126, 0.7) 100%);
     z-index: 1;
+    animation: overlayPulse 8s ease-in-out infinite;
+}
+
+@keyframes overlayPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.95;
+    }
 }
 
 .gradient-overlay {
@@ -326,9 +347,22 @@ button {
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at 30% 50%, rgba(76, 175, 80, 0.2) 0%, transparent 50%),
-                radial-gradient(circle at 70% 50%, rgba(255, 215, 0, 0.15) 0%, transparent 50%);
+    background: radial-gradient(circle at 30% 50%, rgba(76, 175, 80, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(255, 215, 0, 0.25) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
     z-index: 1;
+    animation: gradientShift 15s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.9;
+        transform: scale(1.05);
+    }
 }
 
 
@@ -399,6 +433,18 @@ button {
     display: flex;
     flex-direction: column;
     align-items: center;
+    animation: slideUpFade 1.2s ease-out;
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 
@@ -408,6 +454,21 @@ button {
     align-items: center;
     gap: 1rem;
     margin-bottom: 1.5rem;
+    animation: logoEntrance 1.5s ease-out;
+}
+
+@keyframes logoEntrance {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(-20px);
+    }
+    60% {
+        transform: scale(1.05) translateY(0);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 
@@ -419,6 +480,16 @@ button {
     align-items: center;
     justify-content: center;
     margin-bottom: 1rem;
+    animation: logoFloat 6s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-15px) rotate(5deg);
+    }
 }
 
 .logo-glow {
@@ -426,8 +497,43 @@ button {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 215, 0, 0.4) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.6) 0%, rgba(76, 175, 80, 0.3) 40%, transparent 70%);
     z-index: -1;
+    animation: glowPulse 3s ease-in-out infinite;
+    filter: blur(15px);
+}
+
+@keyframes glowPulse {
+    0%, 100% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+.hero-logo-icon::before {
+    content: '';
+    position: absolute;
+    width: 120%;
+    height: 120%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, transparent 70%);
+    z-index: -2;
+    animation: outerGlow 4s ease-in-out infinite;
+}
+
+@keyframes outerGlow {
+    0%, 100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.15);
+    }
 }
 
 
@@ -437,6 +543,12 @@ button {
     object-fit: contain;
     position: relative;
     z-index: 1;
+    filter: drop-shadow(0 10px 30px rgba(255, 215, 0, 0.5));
+    transition: transform 0.3s ease;
+}
+
+.hero-logo-icon:hover .hero-logo-img {
+    transform: scale(1.1) rotate(5deg);
 }
 
 
@@ -450,15 +562,49 @@ button {
     flex-direction: column;
     align-items: center;
     gap: 0.3rem;
+    animation: titleEntrance 1.8s ease-out;
+}
+
+@keyframes titleEntrance {
+    0% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 
 .title-line {
     color: var(--logo-golden);
-    text-shadow: 0 0 30px rgba(255, 215, 0, 0.5),
-                 0 4px 20px rgba(0, 0, 0, 0.4),
-                 2px 2px 10px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 40px rgba(255, 215, 0, 0.7),
+                 0 0 60px rgba(255, 215, 0, 0.4),
+                 0 4px 20px rgba(0, 0, 0, 0.5),
+                 2px 2px 10px rgba(0, 0, 0, 0.4);
     display: inline-block;
+    animation: textGlow 3s ease-in-out infinite;
+    transition: transform 0.3s ease;
+}
+
+@keyframes textGlow {
+    0%, 100% {
+        text-shadow: 0 0 40px rgba(255, 215, 0, 0.7),
+                     0 0 60px rgba(255, 215, 0, 0.4),
+                     0 4px 20px rgba(0, 0, 0, 0.5),
+                     2px 2px 10px rgba(0, 0, 0, 0.4);
+    }
+    50% {
+        text-shadow: 0 0 50px rgba(255, 215, 0, 0.9),
+                     0 0 80px rgba(255, 215, 0, 0.6),
+                     0 4px 20px rgba(0, 0, 0, 0.5),
+                     2px 2px 10px rgba(0, 0, 0, 0.4);
+    }
+}
+
+.title-line:hover {
+    transform: scale(1.05);
 }
 
 
@@ -468,35 +614,75 @@ button {
     font-weight: 700;
     font-size: 4rem;
     font-style: normal;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5),
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.6),
+                 0 0 50px rgba(255, 255, 255, 0.3),
                  0 4px 20px rgba(0, 0, 0, 0.5),
                  2px 2px 10px rgba(0, 0, 0, 0.4);
     letter-spacing: 2px;
     display: inline-block;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.9) 100%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0.9) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     position: relative;
+    animation: textGradientShift 4s ease-in-out infinite;
+    transition: transform 0.3s ease;
+}
+
+@keyframes textGradientShift {
+    0%, 100% {
+        filter: brightness(1);
+    }
+    50% {
+        filter: brightness(1.1);
+    }
+}
+
+.hero-cafe:hover {
+    transform: scale(1.05);
 }
 
 .hero-cafe::after {
     content: '';
     position: absolute;
-    bottom: -5px;
+    bottom: -8px;
     left: 50%;
     transform: translateX(-50%);
     width: 80%;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, var(--logo-green), transparent);
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--logo-green), var(--logo-golden), var(--logo-green), transparent);
     border-radius: 2px;
+    animation: underlineGlow 2s ease-in-out infinite;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
+}
+
+@keyframes underlineGlow {
+    0%, 100% {
+        opacity: 0.8;
+        box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 20px rgba(76, 175, 80, 0.9), 0 0 30px rgba(76, 175, 80, 0.5);
+    }
 }
 
 
 .hero-tagline-wrapper {
     margin: 1rem 0;
+    animation: taglineEntrance 2s ease-out;
 }
 
+@keyframes taglineEntrance {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
 .hero-tagline {
     font-size: 2rem;
@@ -512,10 +698,17 @@ button {
 
 .tagline-word {
     color: var(--logo-green);
-    text-shadow: 0 0 20px rgba(76, 175, 80, 0.6),
-                 0 4px 15px rgba(0, 0, 0, 0.4);
+    text-shadow: 0 0 25px rgba(76, 175, 80, 0.8),
+                 0 0 40px rgba(76, 175, 80, 0.4),
+                 0 4px 15px rgba(0, 0, 0, 0.5);
     display: inline-block;
     position: relative;
+    animation: wordFloat 4s ease-in-out infinite;
+    transition: transform 0.3s ease;
+}
+
+.tagline-word:hover {
+    transform: translateY(-5px) scale(1.1);
 }
 
 .tagline-word:nth-child(1) {
@@ -523,17 +716,39 @@ button {
 }
 
 .tagline-word:nth-child(3) {
-    animation-delay: 0.3s;
+    animation-delay: 0.4s;
 }
 
 .tagline-word:nth-child(5) {
-    animation-delay: 0.6s;
+    animation-delay: 0.8s;
+}
+
+@keyframes wordFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
 }
 
 
 .tagline-dot {
     color: var(--logo-golden);
     font-size: 1.5rem;
+    animation: dotPulse 2s ease-in-out infinite;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+}
+
+@keyframes dotPulse {
+    0%, 100% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.3);
+    }
 }
 
 
@@ -543,7 +758,49 @@ button {
     margin: 1rem 0 2rem 0;
     font-style: italic;
     color: rgba(255, 255, 255, 0.95);
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 2px 15px rgba(0, 0, 0, 0.4),
+                 0 0 20px rgba(255, 255, 255, 0.2);
+    animation: subtitleFade 2.2s ease-out;
+}
+
+@keyframes subtitleFade {
+    0% {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.hero-description {
+    animation: descriptionFade 2.5s ease-out;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    padding: 1.5rem;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.hero-description:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-5px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes descriptionFade {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 
@@ -558,17 +815,32 @@ button {
 
 .badge {
     background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     padding: 1rem 1.8rem;
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     display: flex;
     align-items: center;
     gap: 1rem;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2),
+                0 0 30px rgba(255, 255, 255, 0.1);
     position: relative;
     overflow: hidden;
+    animation: badgeEntrance 2.5s ease-out;
+}
+
+@keyframes badgeEntrance {
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .badge-link {
@@ -599,10 +871,11 @@ button {
 }
 
 .badge:hover {
-    transform: translateY(-5px) scale(1.05);
-    background: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-8px) scale(1.08);
+    background: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3),
+                0 0 40px rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.6);
 }
 
 .badge-icon {
@@ -678,16 +951,32 @@ button {
 .btn-primary {
     background: linear-gradient(135deg, var(--logo-green) 0%, #45a049 100%);
     color: white;
-    box-shadow: 0 6px 25px rgba(76, 175, 80, 0.5),
-                0 0 30px rgba(76, 175, 80, 0.3);
+    box-shadow: 0 8px 30px rgba(76, 175, 80, 0.6),
+                0 0 40px rgba(76, 175, 80, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
     position: relative;
     z-index: 1;
+    animation: buttonEntrance 2.8s ease-out;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes buttonEntrance {
+    0% {
+        opacity: 0;
+        transform: translateY(25px) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .btn-primary:hover {
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 0 10px 35px rgba(76, 175, 80, 0.6),
-                0 0 40px rgba(76, 175, 80, 0.4);
+    transform: translateY(-8px) scale(1.08);
+    box-shadow: 0 15px 45px rgba(76, 175, 80, 0.7),
+                0 0 60px rgba(76, 175, 80, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, #45a049 0%, var(--logo-green) 100%);
 }
 
 .btn-secondary {
@@ -743,18 +1032,36 @@ button {
     left: 0;
     pointer-events: none;
     z-index: 2;
-    display: none;
+    display: block;
 }
 
 .food-icon {
     position: absolute;
     font-size: 3.5rem;
-    opacity: 0.25;
-    transition: opacity 0.3s ease;
+    opacity: 0.3;
+    transition: all 0.4s ease;
+    animation: iconFloat 8s ease-in-out infinite;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
 }
 
 .food-icon:hover {
-    opacity: 0.5;
+    opacity: 0.7;
+    transform: scale(1.2) rotate(15deg);
+}
+
+@keyframes iconFloat {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    25% {
+        transform: translateY(-20px) rotate(5deg);
+    }
+    50% {
+        transform: translateY(-10px) rotate(-5deg);
+    }
+    75% {
+        transform: translateY(-25px) rotate(3deg);
+    }
 }
 
 .food-icon:nth-child(1) {
