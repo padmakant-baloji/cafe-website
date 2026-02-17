@@ -36,20 +36,27 @@ function initDarkMode() {
 // ============================================
 // Sticky Navigation
 // ============================================
+let stickyNavInitialized = false;
+let stickyNavScrollHandler = null;
+
 function initStickyNav() {
-    let lastScroll = 0;
+    if (stickyNavInitialized) return;
     
-    window.addEventListener('scroll', () => {
-        const currentScroll = window.pageYOffset;
+    if (!stickyNavScrollHandler) {
+        stickyNavScrollHandler = throttle(() => {
+            const currentScroll = window.pageYOffset;
+            
+            if (currentScroll > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        }, 50);
         
-        if (currentScroll > 100) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
-        
-        lastScroll = currentScroll;
-    });
+        window.addEventListener('scroll', stickyNavScrollHandler, { passive: true });
+    }
+    
+    stickyNavInitialized = true;
 }
 
 // ============================================
@@ -107,49 +114,109 @@ function initSmoothScroll() {
 // ============================================
 // Active Nav Link on Scroll
 // ============================================
+let activeNavLinkInitialized = false;
+let activeNavLinkScrollHandler = null;
+
 function initActiveNavLink() {
+    if (activeNavLinkInitialized) return;
+    
     const sections = document.querySelectorAll('section[id]');
     
-    window.addEventListener('scroll', () => {
-        const scrollY = window.pageYOffset;
-        
-        sections.forEach(section => {
-            const sectionHeight = section.offsetHeight;
-            const sectionTop = section.offsetTop - 100;
-            const sectionId = section.getAttribute('id');
+    if (!activeNavLinkScrollHandler) {
+        activeNavLinkScrollHandler = throttle(() => {
+            const scrollY = window.pageYOffset;
             
-            if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-                navLinks.forEach(link => {
-                    link.classList.remove('active');
-                    if (link.getAttribute('href') === `#${sectionId}`) {
-                        link.classList.add('active');
-                    }
-                });
-            }
-        });
-    });
+            sections.forEach(section => {
+                const sectionHeight = section.offsetHeight;
+                const sectionTop = section.offsetTop - 100;
+                const sectionId = section.getAttribute('id');
+                
+                if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === `#${sectionId}`) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, 100);
+        
+        window.addEventListener('scroll', activeNavLinkScrollHandler, { passive: true });
+    }
+    
+    activeNavLinkInitialized = true;
 }
 
 // ============================================
 // Menu Category Switching
 // ============================================
 let currentCategoryIndex = 0;
+let menuCategoriesCache = null;
+let categoryTabsCache = null;
+let categoriesArrayCache = null;
+let isInitialized = false;
+let keyboardHandlerRef = null;
+let categoryClickHandler = null;
+let touchStartHandler = null;
+let touchEndHandler = null;
+let isSwitching = false; // Prevent rapid switching
+
+// Debounce function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Throttle function
+function throttle(func, limit) {
+    let inThrottle;
+    return function(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
 
 function initMenuCategories() {
-    // This will be called after menu is loaded
-    const menuCategories = document.querySelectorAll('.menu-category');
-    const categoryTabsContainer = document.getElementById('categoryTabsList');
+    // Prevent multiple initializations
+    if (isInitialized) {
+        // Just update cache references
+        menuCategoriesCache = document.querySelectorAll('.menu-category');
+        categoriesArrayCache = Array.from(menuCategoriesCache);
+        categoryTabsCache = document.querySelectorAll('.category-tab');
+        return;
+    }
     
-    if (menuCategories.length === 0 || !categoryTabsContainer) {
+    const menuCategories = document.querySelectorAll('.menu-category');
+    const categoryTabsList = document.getElementById('categoryTabsList');
+    
+    if (menuCategories.length === 0 || !categoryTabsList) {
         return; // Menu not loaded yet
     }
     
-    const categories = Array.from(menuCategories);
+    // Cache DOM references
+    menuCategoriesCache = menuCategories;
+    categoryTabsCache = document.querySelectorAll('.category-tab');
+    categoriesArrayCache = Array.from(menuCategories);
     
     function switchCategory(categoryId) {
-        // Re-query elements to ensure we have fresh references
-        const allMenuCategories = document.querySelectorAll('.menu-category');
-        const allCategoryTabs = document.querySelectorAll('.category-tab');
+        // Prevent rapid switching
+        if (isSwitching) return;
+        isSwitching = true;
+        
+        // Use cached references instead of re-querying
+        const allMenuCategories = menuCategoriesCache || document.querySelectorAll('.menu-category');
+        const allCategoryTabs = categoryTabsCache || document.querySelectorAll('.category-tab');
         
         // Remove active class from all categories and tabs
         allMenuCategories.forEach(cat => cat.classList.remove('active'));
@@ -164,57 +231,79 @@ function initMenuCategories() {
             targetTab.classList.add('active');
             
             // Update current index
+            const categories = categoriesArrayCache || Array.from(allMenuCategories);
             currentCategoryIndex = categories.findIndex(cat => cat.id === categoryId);
             
-            // Scroll to top of menu section
-            const menuSection = document.getElementById('menu');
-            if (menuSection) {
-                const offsetTop = menuSection.offsetTop - 80;
-                window.scrollTo({
-                    top: offsetTop,
-                    behavior: 'smooth'
-                });
-            }
-            
-            // Scroll active tab into view (for mobile)
-            targetTab.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center'
+            // Use requestAnimationFrame for smooth scrolling
+            requestAnimationFrame(() => {
+                // Scroll to top of menu section (only if not already visible)
+                const menuSection = document.getElementById('menu');
+                if (menuSection) {
+                    const menuRect = menuSection.getBoundingClientRect();
+                    if (menuRect.top < 80 || menuRect.bottom < window.innerHeight) {
+                        const offsetTop = menuSection.offsetTop - 80;
+                        window.scrollTo({
+                            top: offsetTop,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+                
+                // Scroll active tab into view (for mobile) - use instant scroll for better performance
+                const tabRect = targetTab.getBoundingClientRect();
+                const containerRect = categoryTabsList.getBoundingClientRect();
+                if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
+                    targetTab.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest',
+                        inline: 'center'
+                    });
+                }
             });
         }
+        
+        // Reset switching flag after a short delay
+        setTimeout(() => {
+            isSwitching = false;
+        }, 300);
     }
     
-    // Use event delegation to handle clicks (works even after DOM changes)
-    categoryTabsContainer.addEventListener('click', (e) => {
-        const tab = e.target.closest('.category-tab');
-        if (tab) {
-            const categoryId = tab.dataset.category;
-            if (categoryId) {
-                switchCategory(categoryId);
+    // Use event delegation - only add once
+    if (!categoryClickHandler) {
+        categoryClickHandler = (e) => {
+            const tab = e.target.closest('.category-tab');
+            if (tab) {
+                const categoryId = tab.dataset.category;
+                if (categoryId) {
+                    switchCategory(categoryId);
+                }
             }
-        }
-    });
+        };
+        categoryTabsList.addEventListener('click', categoryClickHandler);
+    }
     
-    // Touch swipe support for mobile
+    // Touch swipe support for mobile - only add once
     const menuContainer = document.querySelector('.menu-items-container');
     let touchStartX = 0;
     let touchEndX = 0;
     
-    if (menuContainer) {
-        menuContainer.addEventListener('touchstart', (e) => {
+    if (menuContainer && !touchStartHandler) {
+        touchStartHandler = (e) => {
             touchStartX = e.changedTouches[0].screenX;
-        });
-        
-        menuContainer.addEventListener('touchend', (e) => {
+        };
+        touchEndHandler = (e) => {
             touchEndX = e.changedTouches[0].screenX;
             handleSwipe();
-        });
+        };
+        
+        menuContainer.addEventListener('touchstart', touchStartHandler, { passive: true });
+        menuContainer.addEventListener('touchend', touchEndHandler, { passive: true });
     }
     
     function handleSwipe() {
         const swipeThreshold = 50;
         const diff = touchStartX - touchEndX;
+        const categories = categoriesArrayCache || Array.from(menuCategoriesCache);
         
         if (Math.abs(diff) > swipeThreshold) {
             if (diff > 0 && currentCategoryIndex < categories.length - 1) {
@@ -229,29 +318,40 @@ function initMenuCategories() {
         }
     }
     
-    // Keyboard navigation
-    const keyboardHandler = (e) => {
-        if (e.key === 'ArrowLeft' && currentCategoryIndex > 0) {
-            const prevCategory = categories[currentCategoryIndex - 1];
-            if (prevCategory) switchCategory(prevCategory.id);
-        } else if (e.key === 'ArrowRight' && currentCategoryIndex < categories.length - 1) {
-            const nextCategory = categories[currentCategoryIndex + 1];
-            if (nextCategory) switchCategory(nextCategory.id);
-        }
-    };
+    // Keyboard navigation - only add once
+    if (!keyboardHandlerRef) {
+        keyboardHandlerRef = (e) => {
+            const categories = categoriesArrayCache || Array.from(menuCategoriesCache);
+            if (e.key === 'ArrowLeft' && currentCategoryIndex > 0) {
+                const prevCategory = categories[currentCategoryIndex - 1];
+                if (prevCategory) switchCategory(prevCategory.id);
+            } else if (e.key === 'ArrowRight' && currentCategoryIndex < categories.length - 1) {
+                const nextCategory = categories[currentCategoryIndex + 1];
+                if (nextCategory) switchCategory(nextCategory.id);
+            }
+        };
+        document.addEventListener('keydown', keyboardHandlerRef);
+    }
     
-    // Remove old keyboard handler if it exists
-    document.removeEventListener('keydown', keyboardHandler);
-    document.addEventListener('keydown', keyboardHandler);
+    isInitialized = true;
     
-    // Initialize scroll indicators
-    initCategoryScrollIndicators();
+    // Initialize scroll indicators (only once)
+    if (!document.getElementById('categoryTabsList').dataset.indicatorsInitialized) {
+        initCategoryScrollIndicators();
+        document.getElementById('categoryTabsList').dataset.indicatorsInitialized = 'true';
+    }
 }
 
 // ============================================
 // Category Scroll Indicators
 // ============================================
+let scrollIndicatorsInitialized = false;
+let scrollIndicatorUpdateHandler = null;
+let resizeIndicatorHandler = null;
+
 function initCategoryScrollIndicators() {
+    if (scrollIndicatorsInitialized) return;
+    
     const categoryTabs = document.getElementById('categoryTabsList');
     const scrollLeft = document.getElementById('scrollLeft');
     const scrollRight = document.getElementById('scrollRight');
@@ -275,11 +375,17 @@ function initCategoryScrollIndicators() {
     // Initial check
     updateScrollIndicators();
     
-    // Update on scroll
-    categoryTabs.addEventListener('scroll', updateScrollIndicators);
+    // Update on scroll - use throttled version
+    if (!scrollIndicatorUpdateHandler) {
+        scrollIndicatorUpdateHandler = throttle(updateScrollIndicators, 100);
+        categoryTabs.addEventListener('scroll', scrollIndicatorUpdateHandler, { passive: true });
+    }
     
-    // Update on resize
-    window.addEventListener('resize', updateScrollIndicators);
+    // Update on resize - use debounced version
+    if (!resizeIndicatorHandler) {
+        resizeIndicatorHandler = debounce(updateScrollIndicators, 250);
+        window.addEventListener('resize', resizeIndicatorHandler);
+    }
     
     // Scroll left
     scrollLeft.addEventListener('click', () => {
@@ -296,25 +402,38 @@ function initCategoryScrollIndicators() {
             behavior: 'smooth'
         });
     });
+    
+    scrollIndicatorsInitialized = true;
 }
 
 // ============================================
 // Sticky Category Tabs
 // ============================================
+let stickyTabsInitialized = false;
+let stickyTabsScrollHandler = null;
+
 function initStickyCategoryTabs() {
-    const menuSection = document.getElementById('menu');
-    if (!menuSection) return;
+    if (stickyTabsInitialized) return;
     
-    window.addEventListener('scroll', () => {
-        const menuTop = menuSection.offsetTop;
-        const scrollY = window.pageYOffset;
+    const menuSection = document.getElementById('menu');
+    if (!menuSection || !categoryTabsContainer) return;
+    
+    if (!stickyTabsScrollHandler) {
+        stickyTabsScrollHandler = throttle(() => {
+            const menuTop = menuSection.offsetTop;
+            const scrollY = window.pageYOffset;
+            
+            if (scrollY >= menuTop - 80) {
+                categoryTabsContainer.style.position = 'sticky';
+            } else {
+                categoryTabsContainer.style.position = 'relative';
+            }
+        }, 50);
         
-        if (scrollY >= menuTop - 80) {
-            categoryTabsContainer.style.position = 'sticky';
-        } else {
-            categoryTabsContainer.style.position = 'relative';
-        }
-    });
+        window.addEventListener('scroll', stickyTabsScrollHandler, { passive: true });
+    }
+    
+    stickyTabsInitialized = true;
 }
 
 // ============================================
@@ -1074,12 +1193,22 @@ function renderMenu() {
     initOrderButtons();
     
     // Re-initialize menu categories for tab switching (after menu is loaded)
+    // This will update cache references without re-adding event listeners
     initMenuCategories();
     
-    // Initialize scroll indicators after a short delay to ensure DOM is ready
-    setTimeout(() => {
-        initCategoryScrollIndicators();
-    }, 100);
+    // Re-observe menu items for scroll animations
+    if (scrollAnimationsObserver) {
+        setTimeout(() => {
+            document.querySelectorAll('.menu-item').forEach(item => {
+                if (item.style.opacity !== '1') {
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateY(30px)';
+                    item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                    scrollAnimationsObserver.observe(item);
+                }
+            });
+        }, 100);
+    }
 }
 
 function createMenuItem(item, categoryId) {
@@ -1567,75 +1696,61 @@ function initLazyLoading() {
 // ============================================
 // Scroll Animations
 // ============================================
+let scrollAnimationsObserver = null;
+let scrollAnimationsInitialized = false;
+
 function initScrollAnimations() {
+    if (scrollAnimationsInitialized && scrollAnimationsObserver) return;
+    
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
     };
     
-    const observer = new IntersectionObserver((entries) => {
+    scrollAnimationsObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.style.opacity = '1';
                 entry.target.style.transform = 'translateY(0)';
+                // Unobserve after animation to improve performance
+                scrollAnimationsObserver.unobserve(entry.target);
             }
         });
     }, observerOptions);
     
-    // Observe menu items
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.style.opacity = '0';
-        item.style.transform = 'translateY(30px)';
-        item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(item);
-    });
+    // Observe menu items (will be called after menu is rendered)
+    function observeMenuItems() {
+        document.querySelectorAll('.menu-item').forEach(item => {
+            // Only observe if not already animated
+            if (item.style.opacity !== '1') {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(30px)';
+                item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                scrollAnimationsObserver.observe(item);
+            }
+        });
+    }
     
     // Observe gallery items
     document.querySelectorAll('.gallery-item').forEach(item => {
         item.style.opacity = '0';
         item.style.transform = 'translateY(30px)';
         item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(item);
+        scrollAnimationsObserver.observe(item);
     });
+    
+    // Observe menu items after menu is loaded
+    setTimeout(observeMenuItems, 100);
+    
+    scrollAnimationsInitialized = true;
 }
 
 // ============================================
 // Performance Optimization
 // ============================================
 function initPerformanceOptimizations() {
-    // Debounce function for scroll events
-    function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-    
-    // Throttle function for scroll events
-    function throttle(func, limit) {
-        let inThrottle;
-        return function() {
-            const args = arguments;
-            const context = this;
-            if (!inThrottle) {
-                func.apply(context, args);
-                inThrottle = true;
-                setTimeout(() => inThrottle = false, limit);
-            }
-        };
-    }
-    
-    // Optimize scroll handlers
-    const optimizedScrollHandler = throttle(() => {
-        // Scroll-based functions here
-    }, 100);
-    
-    window.addEventListener('scroll', optimizedScrollHandler);
+    // Functions are now defined at module level and used throughout
+    // This function can be used for additional optimizations if needed
 }
 
 // ============================================
