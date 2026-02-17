@@ -21,26 +21,11 @@ const navLinks = document.querySelectorAll('.nav-link');
 // Sticky Navigation
 // ============================================
 let stickyNavInitialized = false;
-let stickyNavScrollHandler = null;
 
 function initStickyNav() {
     if (stickyNavInitialized) return;
-    
-    if (!stickyNavScrollHandler) {
-        stickyNavScrollHandler = throttle(() => {
-            const currentScroll = window.pageYOffset;
-            
-            if (currentScroll > 100) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
-        }, 50);
-        
-        window.addEventListener('scroll', stickyNavScrollHandler, { passive: true });
-    }
-    
     stickyNavInitialized = true;
+    // Handled by unified scroll handler
 }
 
 // ============================================
@@ -88,7 +73,7 @@ function initSmoothScroll() {
                 const offsetTop = target.offsetTop - 80;
                 window.scrollTo({
                     top: offsetTop,
-                    behavior: 'smooth'
+                    behavior: 'auto'
                 });
             }
         });
@@ -99,37 +84,11 @@ function initSmoothScroll() {
 // Active Nav Link on Scroll
 // ============================================
 let activeNavLinkInitialized = false;
-let activeNavLinkScrollHandler = null;
 
 function initActiveNavLink() {
     if (activeNavLinkInitialized) return;
-    
-    const sections = document.querySelectorAll('section[id]');
-    
-    if (!activeNavLinkScrollHandler) {
-        activeNavLinkScrollHandler = throttle(() => {
-            const scrollY = window.pageYOffset;
-            
-            sections.forEach(section => {
-                const sectionHeight = section.offsetHeight;
-                const sectionTop = section.offsetTop - 100;
-                const sectionId = section.getAttribute('id');
-                
-                if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-                    navLinks.forEach(link => {
-                        link.classList.remove('active');
-                        if (link.getAttribute('href') === `#${sectionId}`) {
-                            link.classList.add('active');
-                        }
-                    });
-                }
-            });
-        }, 100);
-        
-        window.addEventListener('scroll', activeNavLinkScrollHandler, { passive: true });
-    }
-    
     activeNavLinkInitialized = true;
+    // Handled by unified scroll handler
 }
 
 // ============================================
@@ -196,19 +155,27 @@ function initMenuCategories() {
     function switchCategory(categoryId) {
         // Prevent rapid switching
         if (isSwitching) return;
-        isSwitching = true;
         
         // Use cached references instead of re-querying
         const allMenuCategories = menuCategoriesCache || document.querySelectorAll('.menu-category');
         const allCategoryTabs = categoryTabsCache || document.querySelectorAll('.category-tab');
         
-        // Remove active class from all categories and tabs
-        allMenuCategories.forEach(cat => cat.classList.remove('active'));
-        allCategoryTabs.forEach(tab => tab.classList.remove('active'));
-        
         // Find the category and tab by ID
         const targetCategory = document.getElementById(categoryId);
         const targetTab = Array.from(allCategoryTabs).find(tab => tab.dataset.category === categoryId);
+        
+        // Check if this category is already active - if so, do nothing
+        if (targetCategory && targetTab) {
+            if (targetCategory.classList.contains('active') && targetTab.classList.contains('active')) {
+                return; // Already active, no need to switch
+            }
+        }
+        
+        isSwitching = true;
+        
+        // Remove active class from all categories and tabs
+        allMenuCategories.forEach(cat => cat.classList.remove('active'));
+        allCategoryTabs.forEach(tab => tab.classList.remove('active'));
         
         if (targetCategory && targetTab) {
             targetCategory.classList.add('active');
@@ -228,7 +195,7 @@ function initMenuCategories() {
                         const offsetTop = menuSection.offsetTop - 80;
                         window.scrollTo({
                             top: offsetTop,
-                            behavior: 'smooth'
+                            behavior: 'auto'
                         });
                     }
                 }
@@ -238,7 +205,7 @@ function initMenuCategories() {
                 const containerRect = categoryTabsList.getBoundingClientRect();
                 if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
                     targetTab.scrollIntoView({
-                        behavior: 'smooth',
+                        behavior: 'auto',
                         block: 'nearest',
                         inline: 'center'
                     });
@@ -254,14 +221,27 @@ function initMenuCategories() {
     
     // Use event delegation - only add once
     if (!categoryClickHandler) {
+        let lastClickTime = 0;
+        let lastCategoryId = null;
+        
         categoryClickHandler = (e) => {
             const tab = e.target.closest('.category-tab');
-            if (tab) {
-                const categoryId = tab.dataset.category;
-                if (categoryId) {
-                    switchCategory(categoryId);
-                }
+            if (!tab) return;
+            
+            const categoryId = tab.dataset.category;
+            if (!categoryId) return;
+            
+            const currentTime = Date.now();
+            
+            // Prevent rapid clicks on the same category
+            if (categoryId === lastCategoryId && (currentTime - lastClickTime) < 500) {
+                return; // Ignore rapid clicks on same category
             }
+            
+            lastClickTime = currentTime;
+            lastCategoryId = categoryId;
+            
+            switchCategory(categoryId);
         };
         categoryTabsList.addEventListener('click', categoryClickHandler);
     }
@@ -361,7 +341,7 @@ function initCategoryScrollIndicators() {
     
     // Update on scroll - use throttled version
     if (!scrollIndicatorUpdateHandler) {
-        scrollIndicatorUpdateHandler = throttle(updateScrollIndicators, 100);
+        scrollIndicatorUpdateHandler = throttle(updateScrollIndicators, 200);
         categoryTabs.addEventListener('scroll', scrollIndicatorUpdateHandler, { passive: true });
     }
     
@@ -375,7 +355,7 @@ function initCategoryScrollIndicators() {
     scrollLeft.addEventListener('click', () => {
         categoryTabs.scrollBy({
             left: -200,
-            behavior: 'smooth'
+            behavior: 'auto'
         });
     });
     
@@ -383,7 +363,7 @@ function initCategoryScrollIndicators() {
     scrollRight.addEventListener('click', () => {
         categoryTabs.scrollBy({
             left: 200,
-            behavior: 'smooth'
+            behavior: 'auto'
         });
     });
     
@@ -394,30 +374,11 @@ function initCategoryScrollIndicators() {
 // Sticky Category Tabs
 // ============================================
 let stickyTabsInitialized = false;
-let stickyTabsScrollHandler = null;
 
 function initStickyCategoryTabs() {
     if (stickyTabsInitialized) return;
-    
-    const menuSection = document.getElementById('menu');
-    if (!menuSection || !categoryTabsContainer) return;
-    
-    if (!stickyTabsScrollHandler) {
-        stickyTabsScrollHandler = throttle(() => {
-            const menuTop = menuSection.offsetTop;
-            const scrollY = window.pageYOffset;
-            
-            if (scrollY >= menuTop - 80) {
-                categoryTabsContainer.style.position = 'sticky';
-            } else {
-                categoryTabsContainer.style.position = 'relative';
-            }
-        }, 50);
-        
-        window.addEventListener('scroll', stickyTabsScrollHandler, { passive: true });
-    }
-    
     stickyTabsInitialized = true;
+    // Handled by unified scroll handler
 }
 
 // ============================================
@@ -1180,19 +1141,7 @@ function renderMenu() {
     // This will update cache references without re-adding event listeners
     initMenuCategories();
     
-    // Re-observe menu items for scroll animations
-    if (scrollAnimationsObserver) {
-        setTimeout(() => {
-            document.querySelectorAll('.menu-item').forEach(item => {
-                if (item.style.opacity !== '1') {
-                    item.style.opacity = '0';
-                    item.style.transform = 'translateY(30px)';
-                    item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                    scrollAnimationsObserver.observe(item);
-                }
-            });
-        }, 100);
-    }
+    // Scroll animations disabled for performance
 }
 
 function createMenuItem(item, categoryId) {
@@ -1678,63 +1627,137 @@ function initLazyLoading() {
 }
 
 // ============================================
-// Scroll Animations
+// Scroll Animations - DISABLED for performance
 // ============================================
-let scrollAnimationsObserver = null;
-let scrollAnimationsInitialized = false;
-
 function initScrollAnimations() {
-    if (scrollAnimationsInitialized && scrollAnimationsObserver) return;
-    
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-    
-    scrollAnimationsObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-                // Unobserve after animation to improve performance
-                scrollAnimationsObserver.unobserve(entry.target);
-            }
-        });
-    }, observerOptions);
-    
-    // Observe menu items (will be called after menu is rendered)
-    function observeMenuItems() {
-        document.querySelectorAll('.menu-item').forEach(item => {
-            // Only observe if not already animated
-            if (item.style.opacity !== '1') {
-                item.style.opacity = '0';
-                item.style.transform = 'translateY(30px)';
-                item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                scrollAnimationsObserver.observe(item);
-            }
-        });
-    }
-    
-    // Observe gallery items
-    document.querySelectorAll('.gallery-item').forEach(item => {
-        item.style.opacity = '0';
-        item.style.transform = 'translateY(30px)';
-        item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        scrollAnimationsObserver.observe(item);
-    });
-    
-    // Observe menu items after menu is loaded
-    setTimeout(observeMenuItems, 100);
-    
-    scrollAnimationsInitialized = true;
+    // Scroll animations disabled for better scroll performance
+    // All items are visible by default
 }
 
 // ============================================
 // Performance Optimization
 // ============================================
+let isScrolling = false;
+let scrollTimeout = null;
+let videoElement = null;
+
+// ============================================
+// Unified Scroll Handler - Single optimized handler
+// ============================================
+let unifiedScrollHandler = null;
+let lastScrollTop = 0;
+let lastUpdateTime = 0;
+const UPDATE_INTERVAL = 200; // Update max once every 200ms
+
+// Cache DOM elements
+let cachedSections = null;
+let cachedMenuSection = null;
+let cachedHeroSection = null;
+let cachedSectionData = null;
+
 function initPerformanceOptimizations() {
-    // Functions are now defined at module level and used throughout
-    // This function can be used for additional optimizations if needed
+    if (unifiedScrollHandler) return;
+    
+    // Cache all DOM elements once
+    videoElement = document.querySelector('.video-background video');
+    cachedSections = document.querySelectorAll('section[id]');
+    cachedMenuSection = document.getElementById('menu');
+    cachedHeroSection = document.querySelector('.hero');
+    
+    // Pre-calculate section data to avoid repeated calculations
+    cachedSectionData = Array.from(cachedSections).map(section => ({
+        element: section,
+        id: section.getAttribute('id'),
+        top: section.offsetTop - 100,
+        height: section.offsetHeight
+    }));
+    
+    // Cache menu top position
+    const menuTop = cachedMenuSection ? cachedMenuSection.offsetTop : 0;
+    
+    unifiedScrollHandler = () => {
+        const now = performance.now();
+        if (now - lastUpdateTime < UPDATE_INTERVAL) return;
+        lastUpdateTime = now;
+        
+        requestAnimationFrame(() => {
+            const scrollY = window.pageYOffset;
+            const currentScrollTop = scrollY;
+            const scrollSpeed = Math.abs(currentScrollTop - lastScrollTop);
+            lastScrollTop = currentScrollTop;
+            
+            // Fast scroll detection - disable transitions
+            if (scrollSpeed > 30) {
+                document.body.classList.add('fast-scroll');
+            } else {
+                document.body.classList.remove('fast-scroll');
+            }
+            
+            // Sticky nav - simple class toggle
+            if (scrollY > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+            
+            // Active nav link - use cached data
+            if (cachedSectionData) {
+                for (let i = 0; i < cachedSectionData.length; i++) {
+                    const section = cachedSectionData[i];
+                    if (scrollY > section.top && scrollY <= section.top + section.height) {
+                        // Only update if changed
+                        const activeLink = document.querySelector(`.nav-link[href="#${section.id}"]`);
+                        if (activeLink && !activeLink.classList.contains('active')) {
+                            navLinks.forEach(link => link.classList.remove('active'));
+                            activeLink.classList.add('active');
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // Sticky category tabs - use cached position
+            if (categoryTabsContainer) {
+                if (scrollY >= menuTop - 80) {
+                    if (categoryTabsContainer.style.position !== 'sticky') {
+                        categoryTabsContainer.style.position = 'sticky';
+                    }
+                } else {
+                    if (categoryTabsContainer.style.position !== 'relative') {
+                        categoryTabsContainer.style.position = 'relative';
+                    }
+                }
+            }
+            
+            // Video pause during scroll - use cached element
+            if (videoElement) {
+                if (!isScrolling) {
+                    isScrolling = true;
+                    if (!videoElement.paused) {
+                        videoElement.pause();
+                    }
+                }
+                
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    isScrolling = false;
+                    // Only resume if hero is visible - use cached element
+                    if (cachedHeroSection) {
+                        const rect = cachedHeroSection.getBoundingClientRect();
+                        const isVisible = rect.bottom > 0 && rect.top < window.innerHeight;
+                        if (isVisible && videoElement.paused) {
+                            videoElement.play().catch(() => {});
+                        }
+                    }
+                }, 1000);
+            }
+        });
+    };
+    
+    window.addEventListener('scroll', unifiedScrollHandler, { passive: true });
+    
+    // Initial update
+    unifiedScrollHandler();
 }
 
 // ============================================
