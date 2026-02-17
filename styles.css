@@ -2490,6 +2490,7 @@ button {
 
 .cart-footer {
     padding: 1.5rem;
+    padding-bottom: 2.5rem;
     border-top: 2px solid var(--beige-bg);
     flex-shrink: 0;
     background: var(--warm-white);
@@ -2556,6 +2557,10 @@ button {
     max-width: 600px;
     margin: auto;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    overflow: hidden;
 }
 
 .checkout-modal-header {
@@ -2564,6 +2569,7 @@ button {
     align-items: center;
     padding: 1.5rem;
     border-bottom: 2px solid var(--beige-bg);
+    flex-shrink: 0;
 }
 
 .checkout-modal-header h2 {
@@ -2594,6 +2600,11 @@ button {
 
 .checkout-form {
     padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .form-group {
@@ -2706,6 +2717,8 @@ button {
     display: flex;
     gap: 1rem;
     margin-top: 2rem;
+    margin-bottom: 2.5rem;
+    flex-shrink: 0;
 }
 
 .form-actions .btn {
@@ -3358,6 +3371,7 @@ button {
         min-height: 0;
         /* Ensure footer is always visible */
         justify-content: flex-start;
+        padding-bottom: env(safe-area-inset-bottom);
     }
     
     .cart-modal-header {
@@ -3452,7 +3466,7 @@ button {
     
     .cart-footer {
         padding: 1.25rem 1rem;
-        padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+        padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
         flex-shrink: 0;
         position: relative;
         background: var(--warm-white);
@@ -3475,10 +3489,20 @@ button {
         min-height: 52px;
         font-size: 1.1rem;
         padding: 1.1rem;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-checkout:active {
+        transform: scale(0.98);
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
     }
     
     .checkout-form {
         padding: 1.25rem;
+        padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
     .form-group {
@@ -3521,13 +3545,37 @@ button {
     .form-actions {
         flex-direction: column;
         gap: 0.75rem;
+        margin-top: 1.5rem;
+        margin-bottom: 2rem;
+        padding-top: 1rem;
+        padding-bottom: 1.5rem;
+        border-top: 1px solid var(--beige-bg);
+        position: sticky;
+        bottom: 0;
+        background: var(--warm-white);
+        z-index: 10;
     }
     
     .form-actions .btn {
         width: 100%;
         padding: 1rem;
-        min-height: 48px;
-        font-size: 1rem;
+        min-height: 52px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .form-actions .btn-primary {
+        background: linear-gradient(135deg, var(--logo-green) 0%, #45a049 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+    
+    .form-actions .btn-primary:active {
+        transform: scale(0.98);
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
     }
     
     /* Footer mobile */
@@ -3808,6 +3856,7 @@ button {
     
     .cart-footer {
         padding: 1rem 0.75rem;
+        padding-bottom: calc(2rem + env(safe-area-inset-bottom));
     }
     
     .cart-total {
@@ -3817,6 +3866,13 @@ button {
     .btn-checkout {
         font-size: 1rem;
         padding: 1rem;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-checkout:active {
+        transform: scale(0.98);
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
     }
     
     .checkout-form {
@@ -4011,9 +4067,15 @@ body.fast-scroll .video-background video {
     .checkout-modal-content {
         border-radius: 20px 20px 0 0;
         margin: 0;
+        width: 100%;
+        max-width: 100%;
         max-height: 95vh;
         max-height: 95dvh;
         animation: slideUpMobile 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding-bottom: env(safe-area-inset-bottom);
     }
     
     .size-modal-content {
