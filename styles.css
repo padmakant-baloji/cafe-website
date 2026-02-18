@@ -1248,6 +1248,16 @@ button {
     padding: 0.5rem 0;
 }
 
+.menu-search-input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.menu-search-input:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
 .menu-search-input::placeholder {
     color: var(--text-light);
 }
@@ -3151,6 +3161,12 @@ button {
         padding: 0.25rem 0;
     }
     
+    .menu-search-input:focus,
+    .menu-search-input:focus-visible {
+        outline: none;
+        box-shadow: none;
+    }
+    
     .search-icon {
         width: 20px;
         height: 20px;
@@ -4242,7 +4258,7 @@ body.fast-scroll .video-background video {
     button:focus-visible,
     .btn:focus-visible,
     .category-tab:focus-visible,
-    input:focus-visible {
+    input:focus-visible:not(.menu-search-input) {
         outline: 3px solid var(--logo-green);
         outline-offset: 2px;
     }

@@ -1775,7 +1775,7 @@ function placeOrder() {
     message += `Thank you for ordering from Baloji's Cafe! 🎉`;
     
     // Open WhatsApp
-    const whatsappNumber = '919620538708';
+    const whatsappNumber = '916364065620';
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
     
