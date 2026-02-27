@@ -324,6 +324,7 @@
             </div>
             <ul class="nav-menu" id="navMenu">
                 <li><a href="#home" class="nav-link">Home</a></li>
+                <li><a href="#about" class="nav-link">About</a></li>
                 <li><a href="#menu" class="nav-link">Menu</a></li>
                 <li><a href="#gallery" class="nav-link">Gallery</a></li>
                 <li><a href="#testimonials" class="nav-link">Reviews</a></li>
@@ -346,10 +347,8 @@
 
     <!-- Hero Section -->
     <section class="hero" id="home">
-        <div class="video-background">
-            <video autoplay muted loop playsinline preload="metadata">
-                <source src="https://videos.pexels.com/video-files/3045163/3045163-hd_1920_1080_30fps.mp4" type="video/mp4">
-            </video>
+        <div class="video-background" aria-hidden="true">
+            <img src="images/pizza/farmhouse.jpg" alt="" width="1920" height="1080" fetchpriority="high" decoding="async">
             <div class="video-overlay"></div>
             <div class="gradient-overlay"></div>
         </div>
@@ -361,17 +360,6 @@
             <div class="particle"></div>
             <div class="particle"></div>
             <div class="particle"></div>
-        </div>
-        
-        <div class="floating-icons">
-            <span class="food-icon">🍕</span>
-            <span class="food-icon">🍔</span>
-            <span class="food-icon">☕</span>
-            <span class="food-icon">🍜</span>
-            <span class="food-icon">🍝</span>
-            <span class="food-icon">🥟</span>
-            <span class="food-icon">🍰</span>
-            <span class="food-icon">🌯</span>
         </div>
         
         <div class="hero-content">
@@ -395,8 +383,8 @@
                 </div>
             </div>
             
-            <p class="hero-subtitle">Delicious Food, Delightful Day!</p>
-            <p class="hero-description" style="max-width: 600px; margin: 20px auto; color: rgba(255,255,255,0.9); font-size: 1.1rem; line-height: 1.6;">Welcome to Baloji's Cafe, the best restaurant in Kudachi. We serve authentic Indian, Chinese, and Continental cuisine including delicious pizzas, burgers, pasta, momos, and more. Experience quality food with excellent service.</p>
+            <p class="hero-subtitle">Fresh, vegetarian comfort food in Kudachi</p>
+            <p class="hero-description">From cheesy pizzas and loaded burgers to momos, noodles, pasta and desserts — everything is prepared fresh, served hot, and packed with flavor.</p>
             
             <div class="hero-badges">
                 <div class="badge">
@@ -421,6 +409,56 @@
                     <span class="btn-text">View Menu</span>
                     <span class="btn-arrow">→</span>
                 </a>
+                <a href="https://wa.me/916364065620" class="btn btn-secondary" target="_blank" rel="noopener">
+                    <span class="btn-icon">💬</span>
+                    <span class="btn-text">Order on WhatsApp</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About / Highlights -->
+    <section class="about-section" id="about">
+        <div class="container">
+            <div class="about-grid">
+                <div class="about-media">
+                    <img src="images/pizza/margaretta.jpg" alt="Classic Margherita Pizza at Baloji's Cafe, Kudachi" loading="lazy" decoding="async" width="900" height="600">
+                    <div class="about-media-strip" aria-hidden="true">
+                        <img src="images/burger/paneer.jpg" alt="" loading="lazy" decoding="async" width="300" height="220">
+                        <img src="images/brewerages/hotcoffe.jpg" alt="" loading="lazy" decoding="async" width="300" height="220">
+                        <img src="images/esserts/sizzlingbrownie.jpg" alt="" loading="lazy" decoding="async" width="300" height="220">
+                    </div>
+                </div>
+                <div class="about-content">
+                    <h2 class="section-title section-title-left">Baloji’s Cafe — made for cravings, built for comfort</h2>
+                    <p class="section-subtitle section-subtitle-left">Opp. Railway Station, near Bus Stop • Kudachi (591311)</p>
+                    <p class="about-text">Whether it’s a quick snack, a late-evening hangout, or a family takeaway, we keep it simple: clean flavors, consistent quality, and a menu that has something for everyone.</p>
+                    <div class="highlights-grid">
+                        <div class="highlight-card">
+                            <h3>100% Vegetarian</h3>
+                            <p>Wide variety across Pizza, Burger, Chinese, Pasta, Momos, Rolls and more.</p>
+                        </div>
+                        <div class="highlight-card">
+                            <h3>Freshly Prepared</h3>
+                            <p>Made to order with quality ingredients — served hot and packed securely for delivery.</p>
+                        </div>
+                        <div class="highlight-card">
+                            <h3>Easy Ordering</h3>
+                            <p>Browse the menu, add to cart, and place your order directly via WhatsApp.</p>
+                        </div>
+                    </div>
+                    <div class="about-ctas">
+                        <a href="#menu" class="btn btn-primary">
+                            <span class="btn-icon">🍽</span>
+                            <span class="btn-text">Explore Menu</span>
+                            <span class="btn-arrow">→</span>
+                        </a>
+                        <a href="tel:+916364065620" class="btn btn-secondary">
+                            <span class="btn-icon">📞</span>
+                            <span class="btn-text">Call</span>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -779,7 +817,6 @@
                         <div class="contact-details">
                             <h3>Phone</h3>
                             <a href="tel:+916364065620">+91 6364065620</a>
-                            <a href="tel:+916364065620">+91 6364065620</a>
                         </div>
                     </div>
                     <div class="contact-item">
@@ -942,9 +979,6 @@
     </div>
 
     <!-- Scripts -->
-    <!-- Leaflet - Free Open Source Maps (No API key required) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="script.js"></script>
 </body>
 </html>

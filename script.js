@@ -1384,7 +1384,22 @@ function renderMenu(searchQuery = '') {
         if (searchQuery.trim() || categoryIndex === 0) {
             categoryDiv.classList.add('active');
         }
-        
+
+        // Category header for better usability
+        const header = document.createElement('div');
+        header.className = 'menu-category-header';
+
+        const titleEl = document.createElement('h3');
+        titleEl.className = 'menu-category-title';
+        titleEl.textContent = category.name;
+
+        const countEl = document.createElement('span');
+        countEl.className = 'menu-category-count';
+        countEl.textContent = `${filteredItems.length} item${filteredItems.length !== 1 ? 's' : ''}`;
+
+        header.appendChild(titleEl);
+        header.appendChild(countEl);
+
         const menuGrid = document.createElement('div');
         menuGrid.className = 'menu-grid';
         
@@ -1465,18 +1480,32 @@ function createMenuItem(item, categoryId) {
         const prices = item.sizes.map(s => s.price);
         const labels = item.sizes.map(s => s.label);
         
+        const minPrice = Math.min(...prices);
         if (prices.length === 2) {
             // For items with 2 options (Half/Full or Small/Medium)
-            priceHTML = `<p class="price">₹${prices[0]} / ₹${prices[1]} <small>(${labels[0]} / ${labels[1]})</small></p>`;
+            priceHTML = `
+                <p class="price">
+                    <span class="price-main">From ₹${minPrice}</span>
+                    <small>${labels[0]} / ${labels[1]}</small>
+                </p>
+            `;
         } else {
             // For items with multiple options (like momos with 4 options)
-            const priceRange = prices.join(' / ₹');
             const labelRange = labels.join(' / ');
-            priceHTML = `<p class="price">₹${priceRange} <small>(${labelRange})</small></p>`;
+            priceHTML = `
+                <p class="price">
+                    <span class="price-main">From ₹${minPrice}</span>
+                    <small>${labelRange}</small>
+                </p>
+            `;
         }
     } else {
         // Single price item
-        priceHTML = `<p class="price">₹${item.price}</p>`;
+        priceHTML = `
+            <p class="price">
+                <span class="price-main">₹${item.price}</span>
+            </p>
+        `;
     }
     
     // Handle addons (for rolls)
@@ -1503,8 +1532,11 @@ function createMenuItem(item, categoryId) {
             <img src="${item.image}" alt="${item.alt}" loading="lazy" decoding="async" width="400" height="300">
         </div>
         <div class="menu-item-content">
-            <h3>${item.name}</h3>
-            ${priceHTML}
+            <div class="menu-item-header">
+                <h3 class="menu-item-name">${item.name}</h3>
+                ${priceHTML}
+            </div>
+            ${item.sizes && item.sizes.length > 0 ? '<p class="menu-item-note">Tap “Add to Cart” to choose your preferred size.</p>' : ''}
             ${addonSelectorHTML}
             <button class="order-btn" data-item-id="${item.id}">Add to Cart</button>
         </div>

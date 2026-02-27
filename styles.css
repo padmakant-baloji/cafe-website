@@ -265,7 +265,7 @@ button {
     justify-content: center;
     overflow: hidden;
     padding: 2rem 0;
-    animation: fadeIn 1s ease-in-out;
+    animation: none;
 }
 
 .video-background {
@@ -278,12 +278,13 @@ button {
     contain: layout style paint;
 }
 
-.video-background video {
+.video-background video,
+.video-background img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: scale(1.1);
-    animation: videoZoom 20s ease-in-out infinite;
+    transform: scale(1.05);
+    animation: none;
 }
 
 @keyframes videoZoom {
@@ -297,7 +298,8 @@ button {
 
 /* Mobile video optimizations */
 @media (max-width: 768px) {
-    .video-background video {
+    .video-background video,
+    .video-background img {
         transform: scale(1);
         /* Reduce video quality on mobile for better performance */
     }
@@ -327,9 +329,9 @@ button {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(211, 47, 47, 0.75) 0%, rgba(255, 107, 53, 0.65) 50%, rgba(26, 35, 126, 0.7) 100%);
+    background: linear-gradient(135deg, rgba(10, 12, 20, 0.72) 0%, rgba(26, 35, 126, 0.55) 55%, rgba(10, 12, 20, 0.72) 100%);
     z-index: 1;
-    animation: overlayPulse 8s ease-in-out infinite;
+    animation: none;
 }
 
 @keyframes overlayPulse {
@@ -347,11 +349,10 @@ button {
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at 30% 50%, rgba(76, 175, 80, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 70% 50%, rgba(255, 215, 0, 0.25) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+    background: radial-gradient(circle at 20% 40%, rgba(76, 175, 80, 0.16) 0%, transparent 55%),
+                radial-gradient(circle at 80% 60%, rgba(255, 215, 0, 0.12) 0%, transparent 55%);
     z-index: 1;
-    animation: gradientShift 15s ease-in-out infinite;
+    animation: none;
 }
 
 @keyframes gradientShift {
@@ -433,7 +434,7 @@ button {
     display: flex;
     flex-direction: column;
     align-items: center;
-    animation: slideUpFade 1.2s ease-out;
+    animation: none;
 }
 
 @keyframes slideUpFade {
@@ -454,7 +455,7 @@ button {
     align-items: center;
     gap: 1rem;
     margin-bottom: 1.5rem;
-    animation: logoEntrance 1.5s ease-out;
+    animation: none;
 }
 
 @keyframes logoEntrance {
@@ -480,7 +481,7 @@ button {
     align-items: center;
     justify-content: center;
     margin-bottom: 1rem;
-    animation: logoFloat 6s ease-in-out infinite;
+    animation: none;
 }
 
 @keyframes logoFloat {
@@ -499,8 +500,9 @@ button {
     border-radius: 50%;
     background: radial-gradient(circle, rgba(255, 215, 0, 0.6) 0%, rgba(76, 175, 80, 0.3) 40%, transparent 70%);
     z-index: -1;
-    animation: glowPulse 3s ease-in-out infinite;
-    filter: blur(15px);
+    animation: none;
+    filter: blur(18px);
+    opacity: 0.9;
 }
 
 @keyframes glowPulse {
@@ -520,9 +522,9 @@ button {
     width: 120%;
     height: 120%;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.18) 0%, transparent 70%);
     z-index: -2;
-    animation: outerGlow 4s ease-in-out infinite;
+    animation: none;
 }
 
 @keyframes outerGlow {
@@ -543,18 +545,18 @@ button {
     object-fit: contain;
     position: relative;
     z-index: 1;
-    filter: drop-shadow(0 10px 30px rgba(255, 215, 0, 0.5));
+    filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.35));
     transition: transform 0.3s ease;
 }
 
 .hero-logo-icon:hover .hero-logo-img {
-    transform: scale(1.1) rotate(5deg);
+    transform: scale(1.04);
 }
 
 
 .hero-title {
     font-family: 'Dancing Script', 'Playfair Display', cursive;
-    font-size: 5.5rem;
+    font-size: 4.4rem;
     font-weight: 700;
     margin: 0;
     line-height: 1.2;
@@ -562,7 +564,7 @@ button {
     flex-direction: column;
     align-items: center;
     gap: 0.3rem;
-    animation: titleEntrance 1.8s ease-out;
+    animation: none;
 }
 
 @keyframes titleEntrance {
@@ -579,12 +581,9 @@ button {
 
 .title-line {
     color: var(--logo-golden);
-    text-shadow: 0 0 40px rgba(255, 215, 0, 0.7),
-                 0 0 60px rgba(255, 215, 0, 0.4),
-                 0 4px 20px rgba(0, 0, 0, 0.5),
-                 2px 2px 10px rgba(0, 0, 0, 0.4);
+    text-shadow: 0 8px 26px rgba(0, 0, 0, 0.40);
     display: inline-block;
-    animation: textGlow 3s ease-in-out infinite;
+    animation: none;
     transition: transform 0.3s ease;
 }
 
@@ -614,18 +613,15 @@ button {
     font-weight: 700;
     font-size: 4rem;
     font-style: normal;
-    text-shadow: 0 0 30px rgba(255, 255, 255, 0.6),
-                 0 0 50px rgba(255, 255, 255, 0.3),
-                 0 4px 20px rgba(0, 0, 0, 0.5),
-                 2px 2px 10px rgba(0, 0, 0, 0.4);
-    letter-spacing: 2px;
+    text-shadow: 0 10px 26px rgba(0, 0, 0, 0.40);
+    letter-spacing: 1px;
     display: inline-block;
     background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0.9) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     position: relative;
-    animation: textGradientShift 4s ease-in-out infinite;
+    animation: none;
     transition: transform 0.3s ease;
 }
 
@@ -643,17 +639,7 @@ button {
 }
 
 .hero-cafe::after {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-    height: 4px;
-    background: linear-gradient(90deg, transparent, var(--logo-green), var(--logo-golden), var(--logo-green), transparent);
-    border-radius: 2px;
-    animation: underlineGlow 2s ease-in-out infinite;
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
+    content: none;
 }
 
 @keyframes underlineGlow {
@@ -670,7 +656,7 @@ button {
 
 .hero-tagline-wrapper {
     margin: 1rem 0;
-    animation: taglineEntrance 2s ease-out;
+    animation: none;
 }
 
 @keyframes taglineEntrance {
@@ -685,10 +671,10 @@ button {
 }
 
 .hero-tagline {
-    font-size: 2rem;
+    font-size: 1rem;
     font-weight: 700;
     margin: 0;
-    letter-spacing: 6px;
+    letter-spacing: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -698,17 +684,15 @@ button {
 
 .tagline-word {
     color: var(--logo-green);
-    text-shadow: 0 0 25px rgba(76, 175, 80, 0.8),
-                 0 0 40px rgba(76, 175, 80, 0.4),
-                 0 4px 15px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
     display: inline-block;
     position: relative;
-    animation: wordFloat 4s ease-in-out infinite;
+    animation: none;
     transition: transform 0.3s ease;
 }
 
 .tagline-word:hover {
-    transform: translateY(-5px) scale(1.1);
+    transform: translateY(-1px);
 }
 
 .tagline-word:nth-child(1) {
@@ -736,8 +720,8 @@ button {
 .tagline-dot {
     color: var(--logo-golden);
     font-size: 1.5rem;
-    animation: dotPulse 2s ease-in-out infinite;
-    text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+    animation: none;
+    text-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
 @keyframes dotPulse {
@@ -753,14 +737,13 @@ button {
 
 
 .hero-subtitle {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 400;
     margin: 1rem 0 2rem 0;
-    font-style: italic;
+    font-style: normal;
     color: rgba(255, 255, 255, 0.95);
-    text-shadow: 0 2px 15px rgba(0, 0, 0, 0.4),
-                 0 0 20px rgba(255, 255, 255, 0.2);
-    animation: subtitleFade 2.2s ease-out;
+    text-shadow: 0 10px 24px rgba(0, 0, 0, 0.40);
+    animation: none;
 }
 
 @keyframes subtitleFade {
@@ -775,7 +758,7 @@ button {
 }
 
 .hero-description {
-    animation: descriptionFade 2.5s ease-out;
+    animation: none;
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     padding: 1.5rem;
@@ -784,12 +767,17 @@ button {
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
     transition: all 0.3s ease;
+    max-width: 650px;
+    margin: 20px auto;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 1.1rem;
+    line-height: 1.7;
 }
 
 .hero-description:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateY(-5px);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.14);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
 @keyframes descriptionFade {
@@ -829,7 +817,7 @@ button {
                 0 0 30px rgba(255, 255, 255, 0.1);
     position: relative;
     overflow: hidden;
-    animation: badgeEntrance 2.5s ease-out;
+    animation: none;
 }
 
 @keyframes badgeEntrance {
@@ -850,32 +838,20 @@ button {
 }
 
 .badge-link:hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
     background: rgba(255, 255, 255, 0.2);
 }
 
 .badge::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
-}
-
-.badge:hover::before {
-    left: 100%;
+    content: none;
 }
 
 .badge:hover {
-    transform: translateY(-8px) scale(1.08);
-    background: rgba(255, 255, 255, 0.35);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3),
-                0 0 40px rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-3px) scale(1.02);
+    background: rgba(255, 255, 255, 0.32);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    border-color: rgba(255, 255, 255, 0.55);
 }
 
 .badge-icon {
@@ -956,7 +932,7 @@ button {
                 inset 0 1px 0 rgba(255, 255, 255, 0.2);
     position: relative;
     z-index: 1;
-    animation: buttonEntrance 2.8s ease-out;
+    animation: none;
     border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -1161,6 +1137,108 @@ button {
     text-transform: uppercase;
     letter-spacing: 2px;
     opacity: 0.85;
+}
+
+/* ============================================
+   About / Highlights
+   ============================================ */
+.section-title.section-title-left,
+.section-subtitle.section-subtitle-left {
+    text-align: left;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.about-section {
+    padding: var(--spacing-xl) 0;
+    background: linear-gradient(180deg, rgba(250, 248, 243, 0.65) 0%, var(--warm-white) 100%);
+    position: relative;
+}
+
+.about-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 3rem;
+    align-items: center;
+}
+
+.about-media img {
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+}
+
+.about-media-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.about-media-strip img {
+    border-radius: 14px;
+    height: 120px;
+    width: 100%;
+    object-fit: cover;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.10);
+}
+
+.about-text {
+    color: var(--text-light);
+    line-height: 1.9;
+    margin: 0.75rem 0 1.5rem;
+    font-size: 1.05rem;
+}
+
+.highlights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1.25rem 0 1.75rem;
+}
+
+.highlight-card {
+    background: white;
+    border: 1px solid rgba(26, 35, 126, 0.08);
+    border-radius: 16px;
+    padding: 1.1rem 1.1rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.highlight-card h3 {
+    color: var(--logo-dark-blue);
+    font-size: 1.05rem;
+    margin-bottom: 0.4rem;
+}
+
+.highlight-card p {
+    color: var(--text-light);
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.highlight-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.09);
+}
+
+.about-ctas {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 992px) {
+    .about-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    .highlights-grid {
+        grid-template-columns: 1fr;
+    }
+    .about-media-strip img {
+        height: 110px;
+    }
 }
 
 
@@ -1471,9 +1549,29 @@ button {
     min-height: 500px;
 }
 
+.menu-category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.menu-category-title {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: var(--logo-dark-blue);
+    margin: 0;
+}
+
+.menu-category-count {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
 .menu-category {
     display: none;
-    animation: fadeInUp 0.6s ease-out;
+    animation: none;
 }
 
 .menu-category.active {
@@ -1492,7 +1590,7 @@ button {
 }
 
 .menu-item {
-    animation: fadeInUp 0.5s ease-out backwards;
+    animation: none;
 }
 
 .menu-item:nth-child(1) { animation-delay: 0.05s; }
@@ -1600,7 +1698,14 @@ button {
     z-index: 1;
 }
 
-.menu-item-content h3 {
+.menu-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.menu-item-name {
     font-family: var(--font-display);
     font-size: 1.35rem;
     color: var(--text-dark);
@@ -1615,26 +1720,29 @@ button {
 }
 
 .menu-item-content .price {
-    font-size: 1.5rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--logo-dark-blue) 0%, var(--logo-green) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
     margin: 0;
     display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.menu-item-content .price-main {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--logo-dark-blue);
 }
 
 .menu-item-content .price small {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--text-light);
     font-weight: 500;
     display: inline-block;
-    margin-left: 0.25rem;
-    -webkit-text-fill-color: var(--text-light);
+    margin-top: 0.1rem;
+}
+
+.menu-item-note {
+    font-size: 0.85rem;
+    color: var(--text-light);
 }
 
 .menu-item-content .addons {
@@ -2688,11 +2796,7 @@ button {
 }
 
 /* Leaflet map container styling */
-.location-map .leaflet-container {
-    border-radius: 10px;
-    height: 100%;
-    width: 100%;
-}
+/* (Leaflet removed) */
 
 .order-summary {
     background: white;
