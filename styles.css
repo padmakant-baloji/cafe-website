@@ -428,12 +428,14 @@ button {
     z-index: 3;
     text-align: center;
     color: white;
-    padding: 2rem;
+    padding: 3rem 2rem;
     max-width: 900px;
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
     animation: none;
 }
 
@@ -454,7 +456,7 @@ button {
     flex-direction: column;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
     animation: none;
 }
 
@@ -474,13 +476,14 @@ button {
 
 
 .hero-logo-icon {
-    width: 150px;
-    height: 150px;
+    width: 450px;
+    height: 450px;
+    max-width: 95%;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
     animation: none;
 }
 
@@ -542,6 +545,8 @@ button {
 .hero-logo-img {
     width: 100%;
     height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
     position: relative;
     z-index: 1;
@@ -739,7 +744,7 @@ button {
 .hero-subtitle {
     font-size: 1.25rem;
     font-weight: 400;
-    margin: 1rem 0 2rem 0;
+    margin: 0;
     font-style: normal;
     color: rgba(255, 255, 255, 0.95);
     text-shadow: 0 10px 24px rgba(0, 0, 0, 0.40);
@@ -768,7 +773,7 @@ button {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
     transition: all 0.3s ease;
     max-width: 650px;
-    margin: 20px auto;
+    margin: 0 auto;
     color: rgba(255, 255, 255, 0.92);
     font-size: 1.1rem;
     line-height: 1.7;
@@ -796,7 +801,7 @@ button {
     display: flex;
     gap: 1.5rem;
     justify-content: center;
-    margin-bottom: 2rem;
+    margin: 0;
     flex-wrap: wrap;
 }
 
@@ -1698,14 +1703,7 @@ button {
     z-index: 1;
 }
 
-.menu-item-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.75rem;
-}
-
-.menu-item-name {
+.menu-item-content h3 {
     font-family: var(--font-display);
     font-size: 1.35rem;
     color: var(--text-dark);
@@ -1720,29 +1718,26 @@ button {
 }
 
 .menu-item-content .price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--logo-dark-blue) 0%, var(--logo-green) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin: 0;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-}
-
-.menu-item-content .price-main {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--logo-dark-blue);
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .menu-item-content .price small {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--text-light);
     font-weight: 500;
     display: inline-block;
-    margin-top: 0.1rem;
-}
-
-.menu-item-note {
-    font-size: 0.85rem;
-    color: var(--text-light);
+    margin-left: 0.25rem;
+    -webkit-text-fill-color: var(--text-light);
 }
 
 .menu-item-content .addons {
@@ -2899,8 +2894,9 @@ button {
     }
     
     .hero-logo-icon {
-        width: 120px;
-        height: 120px;
+        width: 350px;
+        height: 350px;
+        max-width: 90%;
     }
     
     .hero-title {
@@ -3056,13 +3052,15 @@ button {
     }
     
     .hero-content {
-        padding: 1.5rem 1rem;
+        padding: 2rem 1rem;
         max-width: 100%;
+        gap: 1.25rem;
     }
     
     .hero-logo-icon {
-        width: 100px;
-        height: 100px;
+        width: 280px;
+        height: 280px;
+        max-width: 85%;
     }
     
     .hero-title {
@@ -3089,13 +3087,13 @@ button {
     
     .hero-subtitle {
         font-size: 1rem;
-        margin: 1rem 0 2rem 0;
+        margin: 0;
         padding: 0 0.5rem;
     }
     
     .hero-badges {
         gap: 1rem;
-        margin-bottom: 2rem;
+        margin: 0;
         width: 100%;
         flex-direction: column;
         padding: 0 0.5rem;
@@ -3756,12 +3754,14 @@ button {
     }
     
     .hero-content {
-        padding: 1rem 0.75rem;
+        padding: 1.5rem 0.75rem;
+        gap: 1rem;
     }
     
     .hero-logo-icon {
-        width: 80px;
-        height: 80px;
+        width: 220px;
+        height: 220px;
+        max-width: 80%;
     }
     
     .hero-title {
@@ -3785,7 +3785,7 @@ button {
     
     .hero-subtitle {
         font-size: 0.9rem;
-        margin: 0.75rem 0 1.5rem 0;
+        margin: 0;
     }
     
     .badge {
