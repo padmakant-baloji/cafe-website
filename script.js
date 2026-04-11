@@ -885,63 +885,63 @@ const fallbackMenuData = {
           "name": "Gobi Manchurian",
           "image": "images/quickBites/gobimanchurian.jpg",
           "alt": "Gobi Manchurian",
-          "price": 60
+          "price": 65
         },
         {
           "id": "gobi-chilly",
           "name": "Gobi Chilly",
           "image": "images/quickBites/gobiChilly.jpg",
           "alt": "Gobi Chilly",
-          "price": 60
+          "price": 65
         },
         {
           "id": "gobi-65",
           "name": "Gobi 65",
           "image": "images/quickBites/gobi65.jpg",
           "alt": "Gobi 65",
-          "price": 60
+          "price": 65
         },
         {
           "id": "paneer-manchurian",
           "name": "Paneer Manchurian",
           "image": "images/quickBites/paneerManchuri.jpg",
           "alt": "Paneer Manchurian",
-          "price": 70
+          "price": 75
         },
         {
           "id": "paneer-chilly",
           "name": "Paneer Chilly",
           "image": "images/quickBites/paneerchilly.jpg",
           "alt": "Paneer Chilly",
-          "price": 70
+          "price": 75
         },
         {
           "id": "paneer-65",
           "name": "Paneer 65",
           "image": "images/quickBites/paneer65.jpg",
           "alt": "Paneer 65",
-          "price": 70
+          "price": 75
         },
         {
           "id": "crispy-corn",
           "name": "Crispy corn",
           "image": "images/quickBites/americanbuttercorn.jpg",
           "alt": "Crispy corn",
-          "price": 60
+          "price": 65
         },
         {
           "id": "french-fries-salted",
           "name": "French Fries (salted)",
           "image": "images/quickBites/frenchfries.jpg",
           "alt": "French Fries (salted)",
-          "price": 60
+          "price": 65
         },
         {
           "id": "french-fries-peri-peri",
           "name": "French Fries (Peri Peri)",
           "image": "images/quickBites/frenchfries.jpg",
           "alt": "French Fries (Peri Peri)",
-          "price": 70
+          "price": 75
         }
       ]
     },
@@ -954,14 +954,14 @@ const fallbackMenuData = {
           "name": "Steamed Momo",
           "image": "images/momo/momo.jpg",
           "alt": "Steamed Momo",
-          "price": 60
+          "price": 65
         },
         {
           "id": "cheesy-momo",
           "name": "Cheesy Momo",
           "image": "images/momo/momo.jpg",
           "alt": "Cheesy Momo",
-          "price": 90
+          "price": 95
         }
       ]
     },
@@ -974,21 +974,21 @@ const fallbackMenuData = {
           "name": "Veg Fried",
           "image": "images/ricenoodles/vegfried.jpg",
           "alt": "Veg Fried",
-          "price": 60
+          "price": 65
         },
         {
           "id": "schezwan",
           "name": "Schezwan",
           "image": "images/ricenoodles/sehezwan.jpg",
           "alt": "Schezwan",
-          "price": 60
+          "price": 65
         },
         {
           "id": "special",
           "name": "Special",
           "image": "images/ricenoodles/spcl.jpg",
           "alt": "Special",
-          "price": 90
+          "price": 95
         }
       ]
     },
@@ -1002,8 +1002,14 @@ const fallbackMenuData = {
           "image": "images/pizza/margaretta.jpg",
           "alt": "Margherita",
           "sizes": [
-            { "label": "Small", "price": 99 },
-            { "label": "Medium", "price": 150 }
+            {
+              "label": "Small",
+              "price": 104
+            },
+            {
+              "label": "Medium",
+              "price": 155
+            }
           ]
         },
         {
@@ -1012,8 +1018,14 @@ const fallbackMenuData = {
           "image": "images/pizza/farmhouse.jpg",
           "alt": "Farmhouse & Cheese",
           "sizes": [
-            { "label": "Small", "price": 130 },
-            { "label": "Medium", "price": 180 }
+            {
+              "label": "Small",
+              "price": 135
+            },
+            {
+              "label": "Medium",
+              "price": 185
+            }
           ]
         },
         {
@@ -1022,8 +1034,14 @@ const fallbackMenuData = {
           "image": "images/pizza/paneertikka.jpg",
           "alt": "Paneer & Cheese",
           "sizes": [
-            { "label": "Small", "price": 130 },
-            { "label": "Medium", "price": 180 }
+            {
+              "label": "Small",
+              "price": 135
+            },
+            {
+              "label": "Medium",
+              "price": 185
+            }
           ]
         },
         {
@@ -1032,8 +1050,14 @@ const fallbackMenuData = {
           "image": "images/pizza/corncheese.jpg",
           "alt": "Corn & Cheese",
           "sizes": [
-            { "label": "Small", "price": 130 },
-            { "label": "Medium", "price": 180 }
+            {
+              "label": "Small",
+              "price": 135
+            },
+            {
+              "label": "Medium",
+              "price": 185
+            }
           ]
         },
         {
@@ -1042,8 +1066,14 @@ const fallbackMenuData = {
           "image": "images/pizza/gobimanchurianpizza.jpg",
           "alt": "Gobi manchuri pizza",
           "sizes": [
-            { "label": "Small", "price": 130 },
-            { "label": "Medium", "price": 180 }
+            {
+              "label": "Small",
+              "price": 135
+            },
+            {
+              "label": "Medium",
+              "price": 185
+            }
           ]
         }
       ]
@@ -1057,21 +1087,21 @@ const fallbackMenuData = {
           "name": "Manchow Soup",
           "image": "images/soup/classic-manchow.jpg",
           "alt": "Manchow Soup",
-          "price": 50
+          "price": 55
         },
         {
           "id": "roasted-garlic-soup",
           "name": "Roasted Garlic Soup",
           "image": "images/soup/garlic.jpg",
           "alt": "Roasted Garlic Soup",
-          "price": 50
+          "price": 55
         },
         {
           "id": "vegetable-soup",
           "name": "Vegetable Soup",
           "image": "images/soup/tomato.jpg",
           "alt": "Vegetable Soup",
-          "price": 50
+          "price": 55
         }
       ]
     },
@@ -1084,14 +1114,14 @@ const fallbackMenuData = {
           "name": "Vegetable Sandwich",
           "image": "images/sandwich/veggrill.jpg",
           "alt": "Vegetable Sandwich",
-          "price": 60
+          "price": 65
         },
         {
           "id": "paneer-sandwich",
           "name": "Paneer Sandwich",
           "image": "images/sandwich/paneertikaa.jpg",
           "alt": "Paneer Sandwich",
-          "price": 70
+          "price": 75
         }
       ]
     },
@@ -1104,14 +1134,14 @@ const fallbackMenuData = {
           "name": "Hot Coffee",
           "image": "images/brewerages/hotcoffe.jpg",
           "alt": "Hot Coffee",
-          "price": 15
+          "price": 20
         },
         {
           "id": "cold-coffee",
           "name": "Cold Coffee",
           "image": "images/brewerages/coldcoffe.jpg",
           "alt": "Cold Coffee",
-          "price": 50
+          "price": 55
         }
       ]
     },
@@ -1124,56 +1154,56 @@ const fallbackMenuData = {
           "name": "Bun Maska",
           "image": "images/sandwich/veggrill.jpg",
           "alt": "Bun Maska",
-          "price": 15
+          "price": 20
         },
         {
           "id": "bun-gulkan",
           "name": "Bun Gulkan",
           "image": "images/sandwich/veggrill.jpg",
           "alt": "Bun Gulkan",
-          "price": 15
+          "price": 20
         },
         {
           "id": "bun-jaam",
           "name": "Bun Jaam",
           "image": "images/sandwich/veggrill.jpg",
           "alt": "Bun Jaam",
-          "price": 15
+          "price": 20
         },
         {
           "id": "bun-maska-gulkan",
           "name": "Bun Maska Gulkan",
           "image": "images/sandwich/veggrill.jpg",
           "alt": "Bun Maska Gulkan",
-          "price": 30
+          "price": 35
         },
         {
           "id": "bun-maska-jaam",
           "name": "Bun Maska Jaam",
           "image": "images/sandwich/veggrill.jpg",
           "alt": "Bun Maska Jaam",
-          "price": 30
+          "price": 35
         },
         {
           "id": "bun-gobi",
           "name": "Bun Gobi",
           "image": "images/sandwich/veggrill.jpg",
           "alt": "Bun Gobi",
-          "price": 40
+          "price": 45
         },
         {
           "id": "bun-masala",
           "name": "Bun Masala",
           "image": "images/sandwich/veggrill.jpg",
           "alt": "Bun Masala",
-          "price": 40
+          "price": 45
         },
         {
           "id": "bun-cutlet",
           "name": "Bun Cutlet",
           "image": "images/sandwich/veggrill.jpg",
           "alt": "Bun Cutlet",
-          "price": 40
+          "price": 45
         }
       ]
     },
@@ -1186,42 +1216,42 @@ const fallbackMenuData = {
           "name": "Softy Ice Cream",
           "image": "images/esserts/softy.jpg",
           "alt": "Softy Ice Cream",
-          "price": 20
+          "price": 25
         },
         {
           "id": "masala-butter-milk",
           "name": "Masala Butter Milk",
           "image": "images/brewerages/masalacoldrinks.jpg",
           "alt": "Masala Butter Milk",
-          "price": 20
+          "price": 25
         },
         {
           "id": "lassi",
           "name": "Lassi",
           "image": "images/brewerages/masalacoldrinks.jpg",
           "alt": "Lassi",
-          "price": 30
+          "price": 35
         },
         {
           "id": "badam-milk",
           "name": "Badam Milk",
           "image": "images/brewerages/masalacoldrinks.jpg",
           "alt": "Badam Milk",
-          "price": 30
+          "price": 35
         },
         {
           "id": "masala-cold-drinks",
           "name": "Masala Cold Drinks",
           "image": "images/brewerages/masalacoldrinks.jpg",
           "alt": "Masala Cold Drinks",
-          "price": 40
+          "price": 45
         },
         {
           "id": "mint-mojito",
           "name": "Mint Mojito",
           "image": "images/brewerages/masalacoldrinks.jpg",
           "alt": "Mint Mojito",
-          "price": 40
+          "price": 45
         }
       ]
     }
@@ -1704,7 +1734,7 @@ function placeOrder() {
     message += `Thank you for ordering from Baloji's Cafe! 🎉`;
     
     // Open WhatsApp
-    const whatsappNumber = '916364065620';
+    const whatsappNumber = '919900582650';
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
     
