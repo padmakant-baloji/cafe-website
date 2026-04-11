@@ -8,13 +8,10 @@ const navMenu = document.getElementById('navMenu');
 let categoryTabs = null;
 let menuCategories = null;
 const categoryTabsContainer = document.getElementById('categoryTabs');
-const galleryItems = document.querySelectorAll('.gallery-item');
 const lightbox = document.getElementById('lightbox');
 const lightboxImage = document.getElementById('lightboxImage');
 const lightboxCaption = document.getElementById('lightboxCaption');
 const lightboxClose = document.querySelector('.lightbox-close');
-const testimonialSlides = document.querySelectorAll('.testimonial-slide');
-const testimonialDots = document.querySelectorAll('.dot');
 const navLinks = document.querySelectorAll('.nav-link');
 
 // ============================================
@@ -85,9 +82,15 @@ function initSmoothScroll() {
             const target = document.querySelector(href);
             
             if (target) {
-                const offsetTop = target.offsetTop - 80;
+                const navEl = document.getElementById('navbar');
+                const navH = navEl ? navEl.getBoundingClientRect().height : 80;
+                const y =
+                    target.getBoundingClientRect().top +
+                    (window.pageYOffset || document.documentElement.scrollTop) -
+                    navH -
+                    12;
                 window.scrollTo({
-                    top: offsetTop,
+                    top: Math.max(0, y),
                     behavior: 'auto'
                 });
             }
@@ -133,7 +136,7 @@ function initActiveNavLink() {
 }
 
 // ============================================
-// Menu Category Switching
+// Menu categories: continuous scroll + tab jump + scroll spy
 // ============================================
 let currentCategoryIndex = 0;
 let menuCategoriesCache = null;
@@ -142,11 +145,10 @@ let categoriesArrayCache = null;
 let isInitialized = false;
 let keyboardHandlerRef = null;
 let categoryClickHandler = null;
-let touchStartHandler = null;
-let touchEndHandler = null;
-let isSwitching = false; // Prevent rapid switching
-let cachedActiveCategory = null; // Cache active category element
-let cachedActiveTab = null; // Cache active tab element
+let menuCategoryScrollSpyHandler = null;
+let categoryMenuResizeHandler = null;
+/** After a tab tap, ignore scroll-spy briefly so the active pill does not flicker */
+let categoryTabProgrammaticUntil = 0;
 
 // Debounce function
 function debounce(func, wait) {
@@ -173,325 +175,142 @@ function throttle(func, limit) {
     };
 }
 
-function initMenuCategories() {
-    // Prevent multiple initializations
-    if (isInitialized) {
-        // Just update cache references
-        menuCategoriesCache = document.querySelectorAll('.menu-category');
-        categoriesArrayCache = Array.from(menuCategoriesCache);
-        categoryTabsCache = document.querySelectorAll('.category-tab');
-        return;
+function syncCategoryTabWithScrollPosition() {
+    if (Date.now() < categoryTabProgrammaticUntil) return;
+
+    const cats = document.querySelectorAll('#menuItemsContainer .menu-category');
+    if (!cats.length) return;
+
+    const navEl = document.getElementById('navbar');
+    const navH = navEl ? navEl.offsetHeight : 72;
+    const tabBar = categoryTabsContainer;
+    const tabH =
+        tabBar && tabBar.offsetParent !== null && tabBar.getClientRects().length
+            ? tabBar.offsetHeight
+            : 0;
+    const line = navH + tabH + 16;
+
+    let activeId = cats[0].id;
+    cats.forEach((cat) => {
+        if (cat.getBoundingClientRect().top <= line) {
+            activeId = cat.id;
+        }
+    });
+
+    const tabs = document.querySelectorAll('.category-tab');
+    if (!tabs.length) return;
+
+    let changed = false;
+    tabs.forEach((t) => {
+        const on = t.dataset.category === activeId;
+        if (on !== t.classList.contains('active')) changed = true;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-current', on ? 'true' : 'false');
+    });
+
+    if (changed) {
+        currentCategoryIndex = Array.from(cats).findIndex((c) => c.id === activeId);
+        if (currentCategoryIndex < 0) currentCategoryIndex = 0;
     }
-    
+}
+
+function setActiveCategoryTabAndScrollChip(categoryId) {
+    const tabs = document.querySelectorAll('.category-tab');
+    const categoryTabsList = document.getElementById('categoryTabsList');
+    tabs.forEach((t) => {
+        const on = t.dataset.category === categoryId;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-current', on ? 'true' : 'false');
+    });
+    const targetTab = Array.from(tabs).find((t) => t.dataset.category === categoryId);
+    if (targetTab && categoryTabsList) {
+        requestAnimationFrame(() => {
+            const tr = targetTab.getBoundingClientRect();
+            const lr = categoryTabsList.getBoundingClientRect();
+            if (tr.left < lr.left + 8 || tr.right > lr.right - 8) {
+                targetTab.scrollIntoView({
+                    inline: 'center',
+                    block: 'nearest',
+                    behavior: 'auto'
+                });
+            }
+        });
+    }
+    const cats = document.querySelectorAll('#menuItemsContainer .menu-category');
+    const idx = Array.from(cats).findIndex((c) => c.id === categoryId);
+    currentCategoryIndex = idx >= 0 ? idx : 0;
+}
+
+function scrollMenuToCategory(categoryId) {
+    const el = document.getElementById(categoryId);
+    if (!el) return;
+    categoryTabProgrammaticUntil = Date.now() + 750;
+    setActiveCategoryTabAndScrollChip(categoryId);
+    el.scrollIntoView({ behavior: 'auto', block: 'start' });
+}
+
+function initMenuCategories() {
     const menuCategories = document.querySelectorAll('.menu-category');
     const categoryTabsList = document.getElementById('categoryTabsList');
-    
-    if (menuCategories.length === 0 || !categoryTabsList) {
-        return; // Menu not loaded yet
-    }
-    
-    // Cache DOM references
+
     menuCategoriesCache = menuCategories;
-    categoryTabsCache = document.querySelectorAll('.category-tab');
     categoriesArrayCache = Array.from(menuCategories);
-    
-    function switchCategory(categoryId) {
-        // Prevent rapid switching - check FIRST before any DOM operations
-        if (isSwitching) {
-            return;
-        }
-        
-        // Set flags immediately to prevent concurrent calls
-        isSwitching = true;
-        isCategorySwitching = true;
-        
-        // Disable CSS transitions and hover effects to prevent performance issues
-        if (categoryTabsContainer) {
-            categoryTabsContainer.classList.add('no-transitions');
-            // Also add to tabs list to prevent hover during switch
-            if (categoryTabsList) {
-                categoryTabsList.classList.add('no-transitions');
-            }
-        }
-        
-        // Disable pointer events on category tabs to prevent clicks and hover during switch
-        if (categoryTabsList) {
-            categoryTabsList.style.pointerEvents = 'none';
-        }
-        
-        // Use cached references - avoid DOM queries if possible
-        const targetCategory = document.getElementById(categoryId);
-        if (!targetCategory) {
-            resetFlags();
-            return;
-        }
-        
-        // Find tab from cache
-        const allCategoryTabs = categoryTabsCache || document.querySelectorAll('.category-tab');
-        const targetTab = Array.from(allCategoryTabs).find(tab => tab.dataset.category === categoryId);
-        
-        if (!targetTab) {
-            resetFlags();
-            return;
-        }
-        
-        // Check if already active
-        if (targetCategory.classList.contains('active') && targetTab.classList.contains('active')) {
-            resetFlags();
-            return;
-        }
-        
-        // Remove active classes from cached elements (much faster than querySelectorAll)
-        if (cachedActiveCategory) {
-            cachedActiveCategory.classList.remove('active');
-        }
-        if (cachedActiveTab) {
-            cachedActiveTab.classList.remove('active');
-        }
-        
-        // Also check for any other active elements (fallback)
-        const activeCategories = document.querySelectorAll('.menu-category.active, .category-tab.active');
-        for (let i = 0; i < activeCategories.length; i++) {
-            activeCategories[i].classList.remove('active');
-        }
-        
-        // Add active classes
-        targetCategory.classList.add('active');
-        targetTab.classList.add('active');
-        
-        // Update cache
-        cachedActiveCategory = targetCategory;
-        cachedActiveTab = targetTab;
-        
-        // Update current index (use cached array)
-        const categories = categoriesArrayCache || Array.from(menuCategoriesCache || []);
-        currentCategoryIndex = categories.findIndex(cat => cat.id === categoryId);
-        
-        // Scroll to first menu item of the selected category
-        setTimeout(() => {
-            try {
-                // Find the first menu item in the active category
-                const firstMenuItem = targetCategory.querySelector('.menu-item');
-                if (firstMenuItem) {
-                    // Calculate offset for sticky header and category tabs
-                    const navbarHeight = 80; // Approximate navbar height
-                    const categoryTabsHeight = categoryTabsContainer ? categoryTabsContainer.offsetHeight : 100;
-                    const offset = navbarHeight + categoryTabsHeight + 20; // 20px extra spacing
-                    
-                    // Get the position of the first menu item
-                    const itemRect = firstMenuItem.getBoundingClientRect();
-                    const itemTop = itemRect.top + window.pageYOffset;
-                    const currentScrollY = window.pageYOffset;
-                    const targetScrollY = itemTop - offset;
-                    
-                    // Only scroll if the item is not already visible in the viewport
-                    // Check if item is above the viewport or too far below
-                    const isItemVisible = itemRect.top >= offset && itemRect.top <= (window.innerHeight - 100);
-                    
-                    if (!isItemVisible || Math.abs(currentScrollY - targetScrollY) > 100) {
-                        // Scroll to the item with offset
-                        window.scrollTo({
-                            top: targetScrollY,
-                            behavior: 'smooth'
-                        });
-                    }
-                }
-            } catch (e) {
-                console.warn('Error scrolling to menu item:', e);
-            }
-        }, 200); // Wait a bit for category to be visible
-        
-        // Re-enable transitions after a brief delay (long enough for fast transition to complete)
-        // Don't remove here - let resetFlags handle it to ensure consistency
-        
-        // Defer scroll operation completely - don't do it during rapid clicks
-        // Only scroll if tab is actually out of view (check after transitions complete)
-        if (categoryTabsList && targetTab) {
-            setTimeout(() => {
-                // Don't scroll if another switch happened or if we're still switching
-                if (isSwitching) return;
-                
-                try {
-                    // Use getBoundingClientRect for more accurate visibility check
-                    const tabRect = targetTab.getBoundingClientRect();
-                    const containerRect = categoryTabsList.getBoundingClientRect();
-                    
-                    // Check if tab is fully visible within container
-                    const isFullyVisible = tabRect.left >= containerRect.left && 
-                                          tabRect.right <= containerRect.right;
-                    
-                    if (!isFullyVisible) {
-                        // Only scroll if really needed, use instant scroll to avoid animation conflicts
-                        const tabLeft = targetTab.offsetLeft;
-                        const containerWidth = categoryTabsList.clientWidth;
-                        const tabWidth = targetTab.offsetWidth;
-                        const scrollLeft = tabLeft - (containerWidth / 2) + (tabWidth / 2);
-                        
-                        categoryTabsList.scrollTo({
-                            left: Math.max(0, scrollLeft),
-                            behavior: 'auto' // Use instant scroll to prevent movement
-                        });
-                    }
-                } catch (e) {
-                    console.warn('Error scrolling category tab:', e);
-                }
-            }, 150); // Wait for fast transition to complete
-        }
-        
-        // Reset flags after minimum delay
-        setTimeout(() => {
-            resetFlags();
-        }, 250);
+    categoryTabsCache = document.querySelectorAll('.category-tab');
+
+    if (menuCategories.length === 0 || !categoryTabsList) {
+        return;
     }
-    
-    function resetFlags() {
-        isSwitching = false;
-        isCategorySwitching = false;
-        if (categoryTabsList) {
-            categoryTabsList.style.pointerEvents = '';
-            categoryTabsList.classList.remove('no-transitions');
+
+    if (isInitialized) {
+        syncCategoryTabWithScrollPosition();
+        return;
+    }
+
+    categoryClickHandler = (e) => {
+        const tab = e.target.closest('.category-tab');
+        if (!tab) return;
+        const categoryId = tab.dataset.category;
+        if (!categoryId) return;
+        scrollMenuToCategory(categoryId);
+    };
+    categoryTabsList.addEventListener('click', categoryClickHandler);
+
+    menuCategoryScrollSpyHandler = throttle(syncCategoryTabWithScrollPosition, 80);
+    window.addEventListener('scroll', menuCategoryScrollSpyHandler, { passive: true });
+
+    if (!categoryMenuResizeHandler) {
+        categoryMenuResizeHandler = debounce(syncCategoryTabWithScrollPosition, 200);
+        window.addEventListener('resize', categoryMenuResizeHandler, { passive: true });
+    }
+
+    keyboardHandlerRef = (e) => {
+        if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        if (!['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+        const cats =
+            categoriesArrayCache.length > 0
+                ? categoriesArrayCache
+                : Array.from(document.querySelectorAll('#menuItemsContainer .menu-category'));
+        if (!cats.length) return;
+        let idx = currentCategoryIndex;
+        if (idx < 0 || idx >= cats.length) idx = 0;
+        if (e.key === 'ArrowLeft' && idx > 0) {
+            scrollMenuToCategory(cats[idx - 1].id);
+        } else if (e.key === 'ArrowRight' && idx < cats.length - 1) {
+            scrollMenuToCategory(cats[idx + 1].id);
         }
-        if (categoryTabsContainer) {
-            categoryTabsContainer.classList.remove('no-transitions');
-        }
-    }
-    
-    // Use event delegation - only add once
-    if (!categoryClickHandler) {
-        let lastClickTime = 0;
-        let clickBlocked = false;
-        let clickQueue = [];
-        let processingQueue = false;
-        
-        function processClickQueue() {
-            if (processingQueue || clickQueue.length === 0) return;
-            
-            processingQueue = true;
-            const categoryId = clickQueue[clickQueue.length - 1]; // Process only the latest
-            clickQueue = [];
-            
-            switchCategory(categoryId);
-            
-            setTimeout(() => {
-                processingQueue = false;
-                clickBlocked = false;
-                if (clickQueue.length > 0) {
-                    processClickQueue();
-                }
-            }, 250);
-        }
-        
-        categoryClickHandler = (e) => {
-            // Block all clicks if we're currently switching
-            if (isSwitching || clickBlocked || processingQueue) {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                return false;
-            }
-            
-            const tab = e.target.closest('.category-tab');
-            if (!tab) return;
-            
-            const categoryId = tab.dataset.category;
-            if (!categoryId) return;
-            
-            const currentTime = Date.now();
-            
-            // Very strict debounce - block ALL clicks within 250ms
-            if (currentTime - lastClickTime < 250) {
-                // Queue the click instead of blocking completely
-                clickQueue.push(categoryId);
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                
-                // Process queue after debounce
-                if (!processingQueue) {
-                    setTimeout(processClickQueue, 250 - (currentTime - lastClickTime));
-                }
-                return false;
-            }
-            
-            lastClickTime = currentTime;
-            clickBlocked = true;
-            
-            // Prevent event propagation
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            
-            // Switch category immediately
-            switchCategory(categoryId);
-            
-            // Unblock after debounce period
-            setTimeout(() => {
-                clickBlocked = false;
-            }, 250);
-            
-            return false;
-        };
-        categoryTabsList.addEventListener('click', categoryClickHandler, { capture: true, passive: false });
-    }
-    
-    // Touch swipe support for mobile - only add once
-    const menuContainer = document.querySelector('.menu-items-container');
-    let touchStartX = 0;
-    let touchEndX = 0;
-    
-    if (menuContainer && !touchStartHandler) {
-        touchStartHandler = (e) => {
-            touchStartX = e.changedTouches[0].screenX;
-        };
-        touchEndHandler = (e) => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-        };
-        
-        menuContainer.addEventListener('touchstart', touchStartHandler, { passive: true });
-        menuContainer.addEventListener('touchend', touchEndHandler, { passive: true });
-    }
-    
-    function handleSwipe() {
-        const swipeThreshold = 50;
-        const diff = touchStartX - touchEndX;
-        const categories = categoriesArrayCache || Array.from(menuCategoriesCache);
-        
-        if (Math.abs(diff) > swipeThreshold) {
-            if (diff > 0 && currentCategoryIndex < categories.length - 1) {
-                // Swipe left - next category
-                const nextCategory = categories[currentCategoryIndex + 1];
-                if (nextCategory) switchCategory(nextCategory.id);
-            } else if (diff < 0 && currentCategoryIndex > 0) {
-                // Swipe right - previous category
-                const prevCategory = categories[currentCategoryIndex - 1];
-                if (prevCategory) switchCategory(prevCategory.id);
-            }
-        }
-    }
-    
-    // Keyboard navigation - only add once
-    if (!keyboardHandlerRef) {
-        keyboardHandlerRef = (e) => {
-            const categories = categoriesArrayCache || Array.from(menuCategoriesCache);
-            if (e.key === 'ArrowLeft' && currentCategoryIndex > 0) {
-                const prevCategory = categories[currentCategoryIndex - 1];
-                if (prevCategory) switchCategory(prevCategory.id);
-            } else if (e.key === 'ArrowRight' && currentCategoryIndex < categories.length - 1) {
-                const nextCategory = categories[currentCategoryIndex + 1];
-                if (nextCategory) switchCategory(nextCategory.id);
-            }
-        };
-        document.addEventListener('keydown', keyboardHandlerRef);
-    }
-    
+    };
+    document.addEventListener('keydown', keyboardHandlerRef);
+
     isInitialized = true;
-    
-    // Initialize scroll indicators (only once)
-    if (!document.getElementById('categoryTabsList').dataset.indicatorsInitialized) {
+
+    if (!categoryTabsList.dataset.indicatorsInitialized) {
         initCategoryScrollIndicators();
-        document.getElementById('categoryTabsList').dataset.indicatorsInitialized = 'true';
+        categoryTabsList.dataset.indicatorsInitialized = 'true';
     }
+
+    requestAnimationFrame(() => {
+        syncCategoryTabWithScrollPosition();
+    });
 }
 
 // ============================================
@@ -564,7 +383,6 @@ function initCategoryScrollIndicators() {
 let stickyTabsInitialized = false;
 let stickyTabsScrollHandler = null;
 let cachedMenuTop = null;
-let isCategorySwitching = false; // Flag to prevent scroll handler during category switch
 
 function initStickyCategoryTabs() {
     if (stickyTabsInitialized) return;
@@ -585,9 +403,6 @@ function initStickyCategoryTabs() {
         let lastPosition = null;
         
         stickyTabsScrollHandler = throttle(() => {
-            // Skip if category is switching to avoid conflicts
-            if (isCategorySwitching) return;
-            
             // Ensure we have a cached value (calculate once if missing)
             if (cachedMenuTop === null) {
                 cachedMenuTop = menuSection.offsetTop;
@@ -623,28 +438,29 @@ function initStickyCategoryTabs() {
 // Gallery Lightbox
 // ============================================
 function initGallery() {
+    const galleryItems = document.querySelectorAll('.gallery-item');
+    if (!galleryItems.length || !lightbox || !lightboxClose || !lightboxImage) return;
+
     galleryItems.forEach(item => {
         item.addEventListener('click', () => {
             const img = item.querySelector('img');
             const caption = item.getAttribute('data-item');
-            
+
             lightboxImage.src = img.src;
             lightboxImage.alt = img.alt;
-            lightboxCaption.textContent = caption;
+            if (lightboxCaption) lightboxCaption.textContent = caption;
             lightbox.classList.add('active');
             document.body.style.overflow = 'hidden';
         });
     });
-    
-    // Close lightbox
+
     lightboxClose.addEventListener('click', closeLightbox);
     lightbox.addEventListener('click', (e) => {
         if (e.target === lightbox) {
             closeLightbox();
         }
     });
-    
-    // Close on Escape key
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && lightbox.classList.contains('active')) {
             closeLightbox();
@@ -653,57 +469,55 @@ function initGallery() {
 }
 
 function closeLightbox() {
+    if (!lightbox) return;
     lightbox.classList.remove('active');
     document.body.style.overflow = '';
 }
 
-// ============================================
-// Testimonials Carousel
-// ============================================
 function initTestimonials() {
+    const testimonialSlides = document.querySelectorAll('.testimonial-slide');
+    const testimonialDots = document.querySelectorAll('.testimonial-dots .dot');
+    if (!testimonialSlides.length) return;
+
     let currentSlide = 0;
     const totalSlides = testimonialSlides.length;
-    
+
     function showSlide(index) {
         testimonialSlides.forEach(slide => slide.classList.remove('active'));
         testimonialDots.forEach(dot => dot.classList.remove('active'));
-        
+
         testimonialSlides[index].classList.add('active');
-        testimonialDots[index].classList.add('active');
-        
+        if (testimonialDots[index]) testimonialDots[index].classList.add('active');
+
         currentSlide = index;
     }
-    
-    // Dot click handlers
+
     testimonialDots.forEach((dot, index) => {
         dot.addEventListener('click', () => {
             showSlide(index);
         });
     });
-    
-    // Auto-slide
+
     function nextSlide() {
         currentSlide = (currentSlide + 1) % totalSlides;
         showSlide(currentSlide);
     }
-    
-    // Auto-advance every 5 seconds
+
     setInterval(nextSlide, 5000);
-    
-    // Touch swipe support
+
     let touchStartX = 0;
     let touchEndX = 0;
     const carousel = document.querySelector('.testimonials-carousel');
-    
+
     if (carousel) {
         carousel.addEventListener('touchstart', (e) => {
             touchStartX = e.changedTouches[0].screenX;
         });
-        
+
         carousel.addEventListener('touchend', (e) => {
             touchEndX = e.changedTouches[0].screenX;
             const diff = touchStartX - touchEndX;
-            
+
             if (Math.abs(diff) > 50) {
                 if (diff > 0 && currentSlide < totalSlides - 1) {
                     showSlide(currentSlide + 1);
@@ -802,22 +616,13 @@ function updateCartUI() {
         navCartCount.textContent = totalItems;
     }
     
-    // Show/hide cart float
     if (cartFloat) {
-        if (totalItems > 0) {
-            cartFloat.style.display = 'flex';
-        } else {
-            cartFloat.style.display = 'none';
-        }
+        cartFloat.style.display = 'flex';
+        cartFloat.classList.toggle('cart-float-empty', totalItems === 0);
     }
     
-    // Show/hide nav cart
     if (navCart) {
-        if (totalItems > 0) {
-            navCart.classList.remove('hidden');
-        } else {
-            navCart.classList.add('hidden');
-        }
+        navCart.classList.toggle('nav-cart-empty', totalItems === 0);
     }
     
     // Update cart items display
@@ -947,20 +752,33 @@ const fallbackMenuData = {
     },
     {
       "id": "momo",
-      "name": "Momo (4pc)",
+      "name": "Momo (6 pc)",
       "items": [
         {
           "id": "steamed-momo",
-          "name": "Steamed Momo",
+          "name": "Steamed Momo (6 pc)",
           "image": "images/momo/momo.jpg",
-          "alt": "Steamed Momo",
+          "alt": "Steamed Momo — 6 pieces",
           "price": 65
         },
         {
           "id": "cheesy-momo",
-          "name": "Cheesy Momo",
+          "name": "Cheesy Momo (6 pc)",
           "image": "images/momo/momo.jpg",
-          "alt": "Cheesy Momo",
+          "alt": "Cheesy Momo — 6 pieces",
+          "price": 95
+        }
+      ]
+    },
+    {
+      "id": "burger",
+      "name": "Burger",
+      "items": [
+        {
+          "id": "burger",
+          "name": "Burger",
+          "image": "images/quickBites/burger.jpg",
+          "alt": "Burger",
           "price": 95
         }
       ]
@@ -968,27 +786,62 @@ const fallbackMenuData = {
     {
       "id": "rice-noodles",
       "name": "Rice & Noodles",
-      "items": [
+      "subsections": [
         {
-          "id": "veg-fried",
-          "name": "Veg Fried",
-          "image": "images/ricenoodles/vegfried.jpg",
-          "alt": "Veg Fried",
-          "price": 65
+          "id": "rice",
+          "title": "Rice",
+          "subtitle": "Fried rice",
+          "items": [
+            {
+              "id": "veg-fried",
+              "name": "Veg Fried Rice",
+              "image": "images/ricenoodles/vegfried.jpg",
+              "alt": "Veg fried rice",
+              "price": 65
+            },
+            {
+              "id": "schezwan",
+              "name": "Schezwan Fried Rice",
+              "image": "images/ricenoodles/sehezwan.jpg",
+              "alt": "Schezwan fried rice",
+              "price": 65
+            },
+            {
+              "id": "special",
+              "name": "Special Fried Rice",
+              "image": "images/ricenoodles/spcl.jpg",
+              "alt": "Special fried rice",
+              "price": 95
+            }
+          ]
         },
         {
-          "id": "schezwan",
-          "name": "Schezwan",
-          "image": "images/ricenoodles/sehezwan.jpg",
-          "alt": "Schezwan",
-          "price": 65
-        },
-        {
-          "id": "special",
-          "name": "Special",
-          "image": "images/ricenoodles/spcl.jpg",
-          "alt": "Special",
-          "price": 95
+          "id": "noodles",
+          "title": "Noodles",
+          "subtitle": "Stir-fried & hakka-style",
+          "items": [
+            {
+              "id": "veg-hakka-noodles",
+              "name": "Veg Hakka Noodles",
+              "image": "images/ricenoodles/vegfried.jpg",
+              "alt": "Veg hakka noodles",
+              "price": 65
+            },
+            {
+              "id": "schezwan-noodles",
+              "name": "Schezwan Noodles",
+              "image": "images/ricenoodles/sehezwan.jpg",
+              "alt": "Schezwan noodles",
+              "price": 65
+            },
+            {
+              "id": "special-noodles",
+              "name": "Special Noodles",
+              "image": "images/ricenoodles/spcl.jpg",
+              "alt": "Special noodles",
+              "price": 95
+            }
+          ]
         }
       ]
     },
@@ -1274,6 +1127,31 @@ async function loadMenu() {
     }
 }
 
+const CATEGORY_TAB_ICONS = {
+    starters: '🌱',
+    momo: '🥟',
+    burger: '🍔',
+    'rice-noodles': '🍚',
+    pizza: '🍕',
+    soups: '🍲',
+    sandwich: '🥪',
+    coffee: '☕',
+    'bun-special': '🥖',
+    'cold-special': '🧊'
+};
+
+function buildCategoryTabs() {
+    const list = document.getElementById('categoryTabsList');
+    if (!list || !menuData) return;
+    list.innerHTML = menuData.categories.map((cat, i) => {
+        const icon = CATEGORY_TAB_ICONS[cat.id] || '🍽';
+        return `<button type="button" class="category-tab${i === 0 ? ' active' : ''}" data-category="${cat.id}"${i === 0 ? ' aria-current="true"' : ''}>
+            <span class="category-icon" aria-hidden="true">${icon}</span>
+            <span class="category-text">${cat.name}</span>
+        </button>`;
+    }).join('');
+}
+
 function renderMenu(searchQuery = '') {
     if (!menuData) return;
     
@@ -1283,36 +1161,117 @@ function renderMenu(searchQuery = '') {
     let totalResults = 0;
     let hasResults = false;
     
-    menuData.categories.forEach((category, categoryIndex) => {
-        // Filter items based on search query
-        let filteredItems = category.items;
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase().trim();
-            filteredItems = category.items.filter(item => {
-                const nameMatch = item.name.toLowerCase().includes(query);
-                const categoryMatch = category.name.toLowerCase().includes(query);
-                const altMatch = item.alt && item.alt.toLowerCase().includes(query);
-                return nameMatch || categoryMatch || altMatch;
+    menuData.categories.forEach((category) => {
+        const query = searchQuery.trim();
+        const hasSubsections =
+            Array.isArray(category.subsections) && category.subsections.length > 0;
+
+        const itemMatchesQuery = (item) => {
+            if (!query) return true;
+            const q = query.toLowerCase();
+            const nameMatch = item.name.toLowerCase().includes(q);
+            const categoryMatch = category.name.toLowerCase().includes(q);
+            const altMatch = item.alt && item.alt.toLowerCase().includes(q);
+            return nameMatch || categoryMatch || altMatch;
+        };
+
+        if (hasSubsections) {
+            let subsectionsRender = category.subsections.map((sub) => ({
+                ...sub,
+                items: query ? sub.items.filter(itemMatchesQuery) : [...sub.items]
+            }));
+            if (query) {
+                subsectionsRender = subsectionsRender.filter((sub) => sub.items.length > 0);
+                if (subsectionsRender.length === 0) return;
+            }
+
+            const sellableCount = category.subsections.reduce(
+                (n, sub) => n + sub.items.length,
+                0
+            );
+            const matchedCount = subsectionsRender.reduce((n, sub) => n + sub.items.length, 0);
+            totalResults += query ? matchedCount : sellableCount;
+            hasResults = true;
+
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'menu-category';
+            categoryDiv.id = category.id;
+
+            const header = document.createElement('div');
+            header.className = 'menu-category-header';
+
+            const titleEl = document.createElement('h3');
+            titleEl.className = 'menu-category-title';
+            titleEl.textContent = category.name;
+
+            const countEl = document.createElement('span');
+            countEl.className = 'menu-category-count';
+            countEl.textContent = `${sellableCount} item${sellableCount !== 1 ? 's' : ''}`;
+
+            header.appendChild(titleEl);
+            header.appendChild(countEl);
+            categoryDiv.appendChild(header);
+
+            subsectionsRender.forEach((sub) => {
+                const subWrap = document.createElement('div');
+                subWrap.className = `menu-subsection menu-subsection--${sub.id}`;
+
+                const head = document.createElement('div');
+                head.className = 'menu-subsection-head';
+
+                const subTitle = document.createElement('h4');
+                subTitle.className = 'menu-subsection-title';
+                subTitle.textContent = sub.title;
+                head.appendChild(subTitle);
+
+                if (sub.subtitle) {
+                    const subLead = document.createElement('p');
+                    subLead.className = 'menu-subsection-subtitle';
+                    subLead.textContent = sub.subtitle;
+                    head.appendChild(subLead);
+                }
+
+                subWrap.appendChild(head);
+
+                if (sub.items.length === 0) {
+                    const empty = document.createElement('p');
+                    empty.className = 'menu-subsection-empty';
+                    empty.textContent =
+                        sub.emptyMessage ||
+                        'More dishes coming soon — ask when you order.';
+                    subWrap.appendChild(empty);
+                } else {
+                    const grid = document.createElement('div');
+                    grid.className = 'menu-grid menu-subsection-grid';
+                    sub.items.forEach((item) => {
+                        grid.appendChild(createMenuItem(item, category.id));
+                    });
+                    subWrap.appendChild(grid);
+                }
+
+                categoryDiv.appendChild(subWrap);
             });
-        }
-        
-        if (filteredItems.length === 0 && searchQuery.trim()) {
-            return; // Skip empty categories when searching
-        }
-        
-        totalResults += filteredItems.length;
-        hasResults = true;
-        
-        const categoryDiv = document.createElement('div');
-        categoryDiv.className = `menu-category ${categoryIndex === 0 && !searchQuery.trim() ? 'active' : ''}`;
-        categoryDiv.id = category.id;
-        
-        // Show category if searching or if it's the first category
-        if (searchQuery.trim() || categoryIndex === 0) {
-            categoryDiv.classList.add('active');
+
+            container.appendChild(categoryDiv);
+            return;
         }
 
-        // Category header for better usability
+        let filteredItems = category.items || [];
+        if (query) {
+            filteredItems = filteredItems.filter(itemMatchesQuery);
+        }
+
+        if (filteredItems.length === 0 && query) {
+            return;
+        }
+
+        totalResults += filteredItems.length;
+        hasResults = true;
+
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'menu-category';
+        categoryDiv.id = category.id;
+
         const header = document.createElement('div');
         header.className = 'menu-category-header';
 
@@ -1329,12 +1288,12 @@ function renderMenu(searchQuery = '') {
 
         const menuGrid = document.createElement('div');
         menuGrid.className = 'menu-grid';
-        
-        filteredItems.forEach(item => {
-            const menuItem = createMenuItem(item, category.id);
-            menuGrid.appendChild(menuItem);
+
+        filteredItems.forEach((item) => {
+            menuGrid.appendChild(createMenuItem(item, category.id));
         });
-        
+
+        categoryDiv.appendChild(header);
         categoryDiv.appendChild(menuGrid);
         container.appendChild(categoryDiv);
     });
@@ -1353,19 +1312,11 @@ function renderMenu(searchQuery = '') {
         searchResultsInfo.style.display = 'none';
     }
     
-    // Re-initialize order buttons after menu is rendered
-    initOrderButtons();
-    
     // Re-initialize menu categories for tab switching (after menu is loaded)
     // This will update cache references without re-adding event listeners
     if (!searchQuery.trim()) {
+        buildCategoryTabs();
         initMenuCategories();
-        
-        // Initialize cached active elements
-        const activeCategory = document.querySelector('.menu-category.active');
-        const activeTab = document.querySelector('.category-tab.active');
-        if (activeCategory) cachedActiveCategory = activeCategory;
-        if (activeTab) cachedActiveTab = activeTab;
     }
     
     // Update cached menu top position after menu is rendered (if sticky tabs initialized)
@@ -1378,82 +1329,62 @@ function renderMenu(searchQuery = '') {
         }, 100);
     }
     
-    // Re-observe menu items for scroll animations
-    if (scrollAnimationsObserver) {
-        setTimeout(() => {
-            document.querySelectorAll('.menu-item').forEach(item => {
-                if (item.style.opacity !== '1') {
-                    item.style.opacity = '0';
-                    item.style.transform = 'translateY(30px)';
-                    item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                    scrollAnimationsObserver.observe(item);
-                }
-            });
-        }, 100);
-    }
 }
 
 function createMenuItem(item, categoryId) {
     const menuItem = document.createElement('div');
     menuItem.className = 'menu-item';
     menuItem.dataset.itemId = item.id;
-    
+
     let priceHTML = '';
     let addonSelectorHTML = '';
-    
-    // Handle items with sizes (half/full or small/medium or momo options)
-    if (item.sizes && item.sizes.length > 0) {
-        // Show all prices
-        const prices = item.sizes.map(s => s.price);
-        const labels = item.sizes.map(s => s.label);
-        
-        const minPrice = Math.min(...prices);
-        if (prices.length === 2) {
-            // For items with 2 options (Half/Full or Small/Medium)
-            priceHTML = `
-                <p class="price">
-                    <span class="price-main">From ₹${minPrice}</span>
-                    <small>${labels[0]} / ${labels[1]}</small>
-                </p>
-            `;
-        } else {
-            // For items with multiple options (like momos with 4 options)
-            const labelRange = labels.join(' / ');
-            priceHTML = `
-                <p class="price">
-                    <span class="price-main">From ₹${minPrice}</span>
-                    <small>${labelRange}</small>
-                </p>
-            `;
-        }
+    const hasSizes = item.sizes && item.sizes.length > 0;
+
+    if (hasSizes) {
+        const minPrice = Math.min(...item.sizes.map(s => s.price));
+        priceHTML = `
+            <p class="price price--multi">
+                <span class="price-main">From ₹${minPrice}</span>
+            </p>
+        `;
     } else {
-        // Single price item
         priceHTML = `
             <p class="price">
                 <span class="price-main">₹${item.price}</span>
             </p>
         `;
     }
-    
-    // Handle addons (for rolls)
+
     if (item.addons && item.addons.length > 0) {
-        const addonOptions = item.addons.map((addon, index) => 
+        const addonOptions = item.addons.map((addon) =>
             `<label class="addon-option">
                 <input type="checkbox" value="${addon.price}" data-label="${addon.label}" data-item-id="${item.id}">
-                <span>${addon.label} ${addon.price > 0 ? `+₹${addon.price}` : ''}</span>
+                <span class="addon-option-text">${addon.label}${addon.price > 0 ? ` · +₹${addon.price}` : ''}</span>
             </label>`
         ).join('');
-        
+
         addonSelectorHTML = `
             <div class="addon-selector">
-                <p class="addons-label">Add-ons:</p>
+                <p class="addons-label">Extras <span class="addons-hint">(optional)</span></p>
                 <div class="addon-options">
                     ${addonOptions}
                 </div>
             </div>
         `;
     }
-    
+
+    const actionsBlock = hasSizes
+        ? `<div class="menu-item-actions">
+                <p class="menu-item-note" id="size-hint-${item.id}">Tap a size to add to cart</p>
+                <div class="size-chips" role="group" aria-labelledby="size-hint-${item.id}"></div>
+            </div>`
+        : `<div class="menu-item-actions">
+                <button type="button" class="order-btn" data-item-id="${item.id}">
+                    <span class="order-btn-label">Add to cart</span>
+                    <span class="order-btn-price">₹${item.price}</span>
+                </button>
+            </div>`;
+
     menuItem.innerHTML = `
         <div class="menu-item-image">
             <img src="${item.image}" alt="${item.alt}" loading="lazy" decoding="async" width="400" height="300" onerror="this.onerror=null; this.src='images/placeholder-icon.svg';">
@@ -1463,79 +1394,35 @@ function createMenuItem(item, categoryId) {
                 <h3 class="menu-item-name">${item.name}</h3>
                 ${priceHTML}
             </div>
-            ${item.sizes && item.sizes.length > 0 ? '<p class="menu-item-note">Tap “Add to Cart” to choose your preferred size.</p>' : ''}
             ${addonSelectorHTML}
-            <button class="order-btn" data-item-id="${item.id}">Add to Cart</button>
+            ${actionsBlock}
         </div>
     `;
-    
-    return menuItem;
-}
 
-// ============================================
-// Size Selection Modal
-// ============================================
-function showSizeSelectionModal(item) {
-    // Create modal overlay
-    const modal = document.createElement('div');
-    modal.className = 'size-selection-modal';
-    modal.id = 'sizeSelectionModal';
-    
-    // Create size buttons
-    const sizeButtons = item.sizes.map(size => 
-        `<button class="size-option-btn" data-label="${size.label}" data-price="${size.price}">
-            ${size.label} - ₹${size.price}
-        </button>`
-    ).join('');
-    
-    modal.innerHTML = `
-        <div class="size-modal-content">
-            <div class="size-modal-header">
-                <h3>Select Size for ${item.name}</h3>
-                <button class="size-modal-close">&times;</button>
-            </div>
-            <div class="size-options">
-                ${sizeButtons}
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    document.body.style.overflow = 'hidden';
-    
-    // Close modal handlers
-    const closeBtn = modal.querySelector('.size-modal-close');
-    const closeModal = () => {
-        modal.remove();
-        document.body.style.overflow = '';
-    };
-    
-    closeBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
-    
-    // Size button handlers
-    const sizeBtns = modal.querySelectorAll('.size-option-btn');
-    sizeBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const selectedSize = {
-                label: btn.dataset.label,
-                price: parseInt(btn.dataset.price)
-            };
-            closeModal();
-            handleAddToCart(item, selectedSize);
+    if (hasSizes) {
+        const chipsWrap = menuItem.querySelector('.size-chips');
+        item.sizes.forEach((size) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'size-chip';
+            btn.dataset.label = size.label;
+            btn.dataset.price = String(size.price);
+            btn.setAttribute(
+                'aria-label',
+                `Add ${item.name}, ${size.label} size, ${size.price} rupees`
+            );
+            const lab = document.createElement('span');
+            lab.className = 'size-chip-label';
+            lab.textContent = size.label;
+            const pr = document.createElement('span');
+            pr.className = 'size-chip-price';
+            pr.textContent = `₹${size.price}`;
+            btn.append(lab, pr);
+            chipsWrap.appendChild(btn);
         });
-    });
-    
-    // Close on Escape key
-    const escapeHandler = (e) => {
-        if (e.key === 'Escape') {
-            closeModal();
-            document.removeEventListener('keydown', escapeHandler);
-        }
-    };
-    document.addEventListener('keydown', escapeHandler);
+    }
+
+    return menuItem;
 }
 
 // ============================================
@@ -1575,32 +1462,56 @@ function handleAddToCart(item, selectedSize = null) {
 }
 
 // ============================================
-// Order Button Handlers
+// Menu item taps (delegation — one listener, no duplicate handlers on re-render)
 // ============================================
-function initOrderButtons() {
-    const orderButtons = document.querySelectorAll('.order-btn');
-    
-    orderButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const itemId = button.dataset.itemId;
-            
-            // Find the item in menuData
-            let item = null;
-            for (const category of menuData.categories) {
-                item = category.items.find(i => i.id === itemId);
-                if (item) break;
+let menuItemActionsInitialized = false;
+
+function findMenuItemById(itemId) {
+    if (!menuData || !itemId) return null;
+    for (const category of menuData.categories) {
+        if (Array.isArray(category.subsections) && category.subsections.length > 0) {
+            for (const sub of category.subsections) {
+                const found = sub.items.find((i) => i.id === itemId);
+                if (found) return found;
             }
-            
-            if (!item) return;
-            
-            // If item has sizes, show size selection modal
-            if (item.sizes && item.sizes.length > 0) {
-                showSizeSelectionModal(item);
-            } else {
-                // No size selection needed, add directly to cart
-                handleAddToCart(item);
-            }
-        });
+        } else if (Array.isArray(category.items)) {
+            const found = category.items.find((i) => i.id === itemId);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
+function initMenuItemActions() {
+    const container = document.getElementById('menuItemsContainer');
+    if (!container || menuItemActionsInitialized) return;
+    menuItemActionsInitialized = true;
+
+    container.addEventListener('click', (e) => {
+        const chip = e.target.closest('.size-chip');
+        const addBtn = e.target.closest('.order-btn');
+        const row = e.target.closest('.menu-item');
+        if (!row) return;
+        const itemId = row.dataset.itemId;
+        const item = findMenuItemById(itemId);
+        if (!item) return;
+
+        if (chip) {
+            e.preventDefault();
+            const selectedSize = {
+                label: chip.dataset.label,
+                price: parseInt(chip.dataset.price, 10)
+            };
+            if (Number.isNaN(selectedSize.price)) return;
+            handleAddToCart(item, selectedSize);
+            return;
+        }
+
+        if (addBtn) {
+            e.preventDefault();
+            if (item.sizes && item.sizes.length) return;
+            handleAddToCart(item);
+        }
     });
 }
 
@@ -1627,6 +1538,12 @@ function initCartModal() {
     // Nav cart button
     if (navCart) {
         navCart.addEventListener('click', openCartModal);
+        navCart.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openCartModal();
+            }
+        });
     }
     
     if (cartClose) {
@@ -1780,58 +1697,6 @@ function initLazyLoading() {
 }
 
 // ============================================
-// Scroll Animations
-// ============================================
-let scrollAnimationsObserver = null;
-let scrollAnimationsInitialized = false;
-
-function initScrollAnimations() {
-    if (scrollAnimationsInitialized && scrollAnimationsObserver) return;
-    
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-    
-    scrollAnimationsObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-                // Unobserve after animation to improve performance
-                scrollAnimationsObserver.unobserve(entry.target);
-            }
-        });
-    }, observerOptions);
-    
-    // Observe menu items (will be called after menu is rendered)
-    function observeMenuItems() {
-        document.querySelectorAll('.menu-item').forEach(item => {
-            // Only observe if not already animated
-            if (item.style.opacity !== '1') {
-                item.style.opacity = '0';
-                item.style.transform = 'translateY(30px)';
-                item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                scrollAnimationsObserver.observe(item);
-            }
-        });
-    }
-    
-    // Observe gallery items
-    document.querySelectorAll('.gallery-item').forEach(item => {
-        item.style.opacity = '0';
-        item.style.transform = 'translateY(30px)';
-        item.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        scrollAnimationsObserver.observe(item);
-    });
-    
-    // Observe menu items after menu is loaded
-    setTimeout(observeMenuItems, 100);
-    
-    scrollAnimationsInitialized = true;
-}
-
-// ============================================
 // Performance Optimization
 // ============================================
 function initPerformanceOptimizations() {
@@ -1850,14 +1715,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMenu(); // Load menu from JSON first
     initMenuCategories();
     initStickyCategoryTabs();
-    initMenuSearch(); // Initialize search functionality
+    initMenuSearch();
+    initMenuItemActions();
     initGallery();
     initTestimonials();
     loadCart();
     initCartModal();
     initCheckoutModal();
     initLazyLoading();
-    initScrollAnimations();
     initPerformanceOptimizations();
     
     // Add loaded class to body for CSS transitions
@@ -1870,9 +1735,12 @@ document.addEventListener('DOMContentLoaded', () => {
 function initMenuSearch() {
     const searchInput = document.getElementById('menuSearchInput');
     const searchClearBtn = document.getElementById('searchClearBtn');
-    const categoryTabs = document.querySelectorAll('.category-tab');
-    
+
     if (!searchInput) return;
+
+    function getCategoryTabs() {
+        return document.querySelectorAll('.category-tab');
+    }
     
     let searchTimeout;
     
@@ -1891,17 +1759,10 @@ function initMenuSearch() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             renderMenu(query);
-            
-            // Hide category tabs when searching
-            if (query) {
-                categoryTabs.forEach(tab => {
-                    tab.style.display = 'none';
-                });
-            } else {
-                categoryTabs.forEach(tab => {
-                    tab.style.display = 'flex';
-                });
-            }
+
+            getCategoryTabs().forEach((tab) => {
+                tab.style.display = query ? 'none' : '';
+            });
         }, 300);
     });
     
@@ -1911,22 +1772,18 @@ function initMenuSearch() {
             searchInput.value = '';
             searchClearBtn.style.display = 'none';
             renderMenu('');
-            
-            // Show category tabs again
-            categoryTabs.forEach(tab => {
-                tab.style.display = 'flex';
+
+            getCategoryTabs().forEach((tab) => {
+                tab.style.display = '';
             });
-            
-            // Reset to first category
-            const firstCategory = document.querySelector('.menu-category');
-            const firstTab = document.querySelector('.category-tab');
-            if (firstCategory && firstTab) {
-                document.querySelectorAll('.menu-category').forEach(cat => cat.classList.remove('active'));
-                document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
-                firstCategory.classList.add('active');
-                firstTab.classList.add('active');
+
+            const firstCat = document.querySelector('.menu-category');
+            if (firstCat) {
+                scrollMenuToCategory(firstCat.id);
+            } else {
+                syncCategoryTabWithScrollPosition();
             }
-            
+
             searchInput.focus();
         });
     }
@@ -1937,9 +1794,11 @@ function initMenuSearch() {
             searchInput.value = '';
             searchClearBtn.style.display = 'none';
             renderMenu('');
-            categoryTabs.forEach(tab => {
-                tab.style.display = 'flex';
+            getCategoryTabs().forEach((tab) => {
+                tab.style.display = '';
             });
+            const firstCat = document.querySelector('.menu-category');
+            if (firstCat) scrollMenuToCategory(firstCat.id);
         }
     });
 }

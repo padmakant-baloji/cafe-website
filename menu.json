@@ -71,20 +71,33 @@
     },
     {
       "id": "momo",
-      "name": "Momo (4pc)",
+      "name": "Momo (6 pc)",
       "items": [
         {
           "id": "steamed-momo",
-          "name": "Steamed Momo",
+          "name": "Steamed Momo (6 pc)",
           "image": "images/momo/momo.jpg",
-          "alt": "Steamed Momo",
+          "alt": "Steamed Momo — 6 pieces",
           "price": 65
         },
         {
           "id": "cheesy-momo",
-          "name": "Cheesy Momo",
+          "name": "Cheesy Momo (6 pc)",
           "image": "images/momo/momo.jpg",
-          "alt": "Cheesy Momo",
+          "alt": "Cheesy Momo — 6 pieces",
+          "price": 95
+        }
+      ]
+    },
+    {
+      "id": "burger",
+      "name": "Burger",
+      "items": [
+        {
+          "id": "burger",
+          "name": "Burger",
+          "image": "images/quickBites/burger.jpg",
+          "alt": "Burger",
           "price": 95
         }
       ]
@@ -92,27 +105,62 @@
     {
       "id": "rice-noodles",
       "name": "Rice & Noodles",
-      "items": [
+      "subsections": [
         {
-          "id": "veg-fried",
-          "name": "Veg Fried",
-          "image": "images/ricenoodles/vegfried.jpg",
-          "alt": "Veg Fried",
-          "price": 65
+          "id": "rice",
+          "title": "Rice",
+          "subtitle": "Fried rice",
+          "items": [
+            {
+              "id": "veg-fried",
+              "name": "Veg Fried Rice",
+              "image": "images/ricenoodles/vegfried.jpg",
+              "alt": "Veg fried rice",
+              "price": 65
+            },
+            {
+              "id": "schezwan",
+              "name": "Schezwan Fried Rice",
+              "image": "images/ricenoodles/sehezwan.jpg",
+              "alt": "Schezwan fried rice",
+              "price": 65
+            },
+            {
+              "id": "special",
+              "name": "Special Fried Rice",
+              "image": "images/ricenoodles/spcl.jpg",
+              "alt": "Special fried rice",
+              "price": 95
+            }
+          ]
         },
         {
-          "id": "schezwan",
-          "name": "Schezwan",
-          "image": "images/ricenoodles/sehezwan.jpg",
-          "alt": "Schezwan",
-          "price": 65
-        },
-        {
-          "id": "special",
-          "name": "Special",
-          "image": "images/ricenoodles/spcl.jpg",
-          "alt": "Special",
-          "price": 95
+          "id": "noodles",
+          "title": "Noodles",
+          "subtitle": "Stir-fried & hakka-style",
+          "items": [
+            {
+              "id": "veg-hakka-noodles",
+              "name": "Veg Hakka Noodles",
+              "image": "images/ricenoodles/vegfried.jpg",
+              "alt": "Veg hakka noodles",
+              "price": 65
+            },
+            {
+              "id": "schezwan-noodles",
+              "name": "Schezwan Noodles",
+              "image": "images/ricenoodles/sehezwan.jpg",
+              "alt": "Schezwan noodles",
+              "price": 65
+            },
+            {
+              "id": "special-noodles",
+              "name": "Special Noodles",
+              "image": "images/ricenoodles/spcl.jpg",
+              "alt": "Special noodles",
+              "price": 95
+            }
+          ]
         }
       ]
     },
