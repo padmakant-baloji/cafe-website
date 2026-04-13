@@ -4937,3 +4937,1106 @@ body.fast-scroll .video-background video {
         padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
     }
 }
+
+/* ============================================
+   Mobile food app — professional UI system
+   ============================================ */
+body.app-mobile {
+    --fo-max: 430px;
+    --fo-top: 56px;
+    --fo-nav: 64px;
+    --fo-space-1: 0.25rem;
+    --fo-space-2: 0.5rem;
+    --fo-space-3: 0.75rem;
+    --fo-space-4: 1rem;
+    --fo-space-5: 1.25rem;
+    --fo-space-6: 1.5rem;
+    --fo-space-8: 2rem;
+    --fo-canvas: #f4f4f5;
+    --fo-surface: #ffffff;
+    --fo-text: #18181b;
+    --fo-muted: #71717a;
+    --fo-border: #e4e4e7;
+    --fo-accent: #16a34a;
+    --fo-accent-dark: #15803d;
+    --fo-accent-soft: rgba(22, 163, 74, 0.1);
+    --fo-hero: #0f172a;
+    --fo-radius: 12px;
+    --fo-radius-sm: 10px;
+    --fo-btn-h: 48px;
+    --fo-btn-h-sm: 44px;
+    --fo-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --fo-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.07);
+
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: var(--fo-canvas);
+    color: var(--fo-text);
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.app-mobile .app-shell {
+    max-width: var(--fo-max);
+    margin: 0 auto;
+    min-height: 100dvh;
+    min-height: 100vh;
+    background: var(--fo-canvas);
+    box-shadow: 0 0 0 1px var(--fo-border);
+    padding-top: calc(var(--fo-top) + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(var(--fo-nav) + env(safe-area-inset-bottom, 0px) + var(--fo-space-3));
+}
+
+body.app-mobile.order-app {
+    background: var(--fo-canvas);
+}
+
+/* —— Top bar —— */
+body.app-mobile .app-topbar {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: var(--fo-max);
+    z-index: 1100;
+    padding: env(safe-area-inset-top, 0px) max(1rem, env(safe-area-inset-right, 0px)) 0 max(1rem, env(safe-area-inset-left, 0px));
+    background: var(--fo-surface);
+    border-bottom: 1px solid var(--fo-border);
+}
+
+body.app-mobile .app-topbar.scrolled {
+    box-shadow: var(--fo-shadow-md);
+}
+
+body.app-mobile .app-topbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--fo-space-3);
+    min-height: var(--fo-top);
+    padding-bottom: var(--fo-space-2);
+}
+
+body.app-mobile .app-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+    text-decoration: none;
+    color: inherit;
+}
+
+body.app-mobile .app-brand:focus-visible {
+    outline: 2px solid var(--fo-accent);
+    outline-offset: 3px;
+    border-radius: var(--fo-radius-sm);
+}
+
+body.app-mobile .app-brand-logo-wrap {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: var(--fo-radius-sm);
+    overflow: hidden;
+    background: var(--fo-surface);
+    border: 1px solid var(--fo-border);
+}
+
+body.app-mobile .app-brand-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+body.app-mobile .app-brand-name {
+    font-weight: 700;
+    font-size: 1.0625rem;
+    letter-spacing: -0.025em;
+    color: var(--fo-text);
+    line-height: 1.2;
+}
+
+body.app-mobile .app-brand-sub {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--fo-muted);
+    letter-spacing: 0.02em;
+}
+
+body.app-mobile .app-topbar .nav-cart,
+body.app-mobile .app-topbar .app-topbar-cart {
+    position: relative;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    border-radius: var(--fo-radius-sm);
+    border: 1px solid var(--fo-border);
+    background: var(--fo-surface);
+    color: var(--fo-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+body.app-mobile .app-topbar .nav-cart:hover,
+body.app-mobile .app-topbar .app-topbar-cart:hover {
+    background: #fafafa;
+}
+
+body.app-mobile .app-topbar .nav-cart:not(.nav-cart-empty),
+body.app-mobile .app-topbar .app-topbar-cart:not(.nav-cart-empty) {
+    border-color: var(--fo-accent);
+    background: var(--fo-accent-soft);
+    color: var(--fo-accent-dark);
+}
+
+body.app-mobile .app-topbar .nav-cart:active,
+body.app-mobile .app-topbar .app-topbar-cart:active {
+    transform: scale(0.97);
+}
+
+body.app-mobile .app-cart-svg {
+    display: block;
+}
+
+body.app-mobile .app-topbar .nav-cart-count {
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border: 2px solid var(--fo-surface);
+    background: var(--fo-accent);
+    color: #fff;
+}
+
+body.app-mobile .nav-cart.nav-cart-empty .nav-cart-count {
+    display: none;
+}
+
+/* —— Bottom navigation —— */
+body.app-mobile .app-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: var(--fo-max);
+    z-index: 1090;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-around;
+    min-height: var(--fo-nav);
+    padding: var(--fo-space-2) 0 env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    background: var(--fo-surface);
+    border-top: 1px solid var(--fo-border);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.04);
+}
+
+body.app-mobile .app-tab {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--fo-space-1);
+    padding: var(--fo-space-2) var(--fo-space-2) var(--fo-space-3);
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--fo-muted);
+    text-decoration: none;
+    border: none;
+    background: none;
+    cursor: pointer;
+    min-height: 52px;
+}
+
+body.app-mobile .app-tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 28px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--fo-accent);
+    transition: transform 0.2s ease;
+}
+
+body.app-mobile .app-tab.active {
+    color: var(--fo-accent-dark);
+}
+
+body.app-mobile .app-tab.active::before {
+    transform: translateX(-50%) scaleX(1);
+}
+
+body.app-mobile .app-tab-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    opacity: 0.72;
+    transition: opacity 0.15s ease;
+}
+
+body.app-mobile .app-tab.active .app-tab-icon {
+    opacity: 1;
+}
+
+body.app-mobile .app-tab-label {
+    line-height: 1;
+}
+
+/* —— Hero —— */
+body.app-mobile .order-header-inner {
+    max-width: 100%;
+    padding: 0;
+}
+
+body.app-mobile .order-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+body.app-mobile .app-home-hero.order-header {
+    margin: 0;
+    padding: var(--fo-space-6) var(--fo-space-5) var(--fo-space-8);
+    padding-left: max(var(--fo-space-5), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--fo-space-5), env(safe-area-inset-right, 0px));
+    background: linear-gradient(160deg, #0f172a 0%, #1e293b 48%, #0f172a 100%);
+    color: #fafafa;
+    border-radius: 0 0 var(--fo-radius) var(--fo-radius);
+    border: none;
+    box-shadow: var(--fo-shadow-md);
+}
+
+body.app-mobile .app-hero-eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0 0 var(--fo-space-3);
+}
+
+body.app-mobile .app-home-hero .order-header-title {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: clamp(1.5rem, 5.5vw, 1.875rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.25;
+    margin: 0 0 var(--fo-space-4);
+    color: #fff;
+}
+
+body.app-mobile .app-home-hero .order-header-lead {
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.78);
+    margin: 0 0 var(--fo-space-5);
+    max-width: 22rem;
+}
+
+body.app-mobile .app-home-hero .order-header-badges {
+    gap: var(--fo-space-2);
+    margin-bottom: var(--fo-space-5);
+}
+
+body.app-mobile .app-home-hero .order-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.92);
+}
+
+body.app-mobile .app-hero-primary,
+body.app-mobile .app-home-hero .btn-primary {
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    min-height: var(--fo-btn-h);
+    padding: 0 var(--fo-space-5);
+    border-radius: var(--fo-radius-sm);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    background: var(--fo-accent);
+    color: #fff;
+    border: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(22, 163, 74, 0.28);
+    text-decoration: none;
+    display: inline-flex;
+    gap: var(--fo-space-2);
+    position: relative;
+    overflow: hidden;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.app-mobile .app-home-hero .btn-primary::before {
+    display: none;
+}
+
+body.app-mobile .app-home-hero .btn-primary:hover {
+    background: var(--fo-accent-dark);
+    transform: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 6px 16px rgba(22, 163, 74, 0.32);
+}
+
+body.app-mobile .order-header-actions {
+    width: 100%;
+}
+
+/* —— Menu section —— */
+body.app-mobile .menu-section.order-menu {
+    padding: var(--fo-space-6) 0 var(--fo-space-8);
+    background: var(--fo-canvas);
+}
+
+body.app-mobile .menu-section::before {
+    display: none;
+}
+
+body.app-mobile .container {
+    max-width: 100%;
+    padding-left: max(var(--fo-space-5), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--fo-space-5), env(safe-area-inset-right, 0px));
+}
+
+body.app-mobile .section-title {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    text-align: left;
+    color: var(--fo-text);
+    margin-bottom: var(--fo-space-2);
+    margin-top: 0;
+}
+
+body.app-mobile .section-subtitle {
+    text-align: left;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--fo-muted);
+    margin-bottom: var(--fo-space-5);
+    margin-top: 0;
+}
+
+body.app-mobile .order-menu-title,
+body.app-mobile .order-menu-sub {
+    text-align: left;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+body.app-mobile .menu-search-container {
+    margin-bottom: var(--fo-space-5);
+}
+
+body.app-mobile .menu-search-wrapper {
+    border-radius: var(--fo-radius-sm);
+    border: 1px solid var(--fo-border);
+    background: var(--fo-surface);
+    box-shadow: var(--fo-shadow);
+    padding: var(--fo-space-3) var(--fo-space-4);
+}
+
+body.app-mobile .menu-search-wrapper:focus-within {
+    border-color: var(--fo-accent);
+    box-shadow: 0 0 0 3px var(--fo-accent-soft);
+    transform: none;
+}
+
+body.app-mobile .menu-search-input {
+    font-family: inherit;
+    font-size: 0.9375rem;
+}
+
+body.app-mobile .search-results-info {
+    border-radius: var(--fo-radius-sm);
+    border: 1px solid var(--fo-border);
+    background: var(--fo-surface);
+    font-size: 0.8125rem;
+    margin-top: var(--fo-space-3);
+    padding: var(--fo-space-3) var(--fo-space-4);
+}
+
+body.app-mobile .category-tabs-container {
+    top: calc(var(--fo-top) + env(safe-area-inset-top, 0px));
+    margin-left: calc(-1 * max(var(--fo-space-5), env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(var(--fo-space-5), env(safe-area-inset-right, 0px)));
+    padding: var(--fo-space-3) 0 var(--fo-space-4);
+    padding-left: max(var(--fo-space-3), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--fo-space-3), env(safe-area-inset-right, 0px));
+    background: rgba(244, 244, 245, 0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--fo-border);
+    box-shadow: none;
+}
+
+body.app-mobile .category-tab {
+    min-height: 40px;
+    padding: var(--fo-space-2) var(--fo-space-4);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border-radius: 999px;
+    border: 1px solid var(--fo-border);
+    background: var(--fo-surface);
+    color: var(--fo-text);
+    box-shadow: none;
+}
+
+body.app-mobile .category-tabs {
+    gap: var(--fo-space-2);
+    padding-left: max(var(--fo-space-5), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--fo-space-5), env(safe-area-inset-right, 0px));
+}
+
+body.app-mobile .category-tab:hover:not(.active) {
+    border-color: #d4d4d8;
+    color: var(--fo-text);
+}
+
+body.app-mobile .category-tab.active {
+    background: var(--fo-text);
+    color: #fff;
+    border-color: var(--fo-text);
+    box-shadow: none;
+}
+
+body.app-mobile .category-tab.active::before {
+    opacity: 0;
+}
+
+body.app-mobile .menu-category {
+    scroll-margin-top: calc(var(--fo-top) + env(safe-area-inset-top, 0px) + 112px);
+}
+
+body.app-mobile .menu-category-header {
+    margin-bottom: var(--fo-space-3);
+    padding-bottom: var(--fo-space-2);
+    gap: var(--fo-space-3);
+}
+
+body.app-mobile .menu-category:not(:first-of-type) .menu-category-header {
+    margin-top: var(--fo-space-8);
+}
+
+body.app-mobile .menu-subsection {
+    margin-top: var(--fo-space-5);
+}
+
+body.app-mobile .menu-subsection:first-of-type {
+    margin-top: var(--fo-space-4);
+}
+
+body.app-mobile .menu-category-title {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: var(--fo-text);
+}
+
+body.app-mobile .menu-category-count {
+    font-size: 0.8125rem;
+    color: var(--fo-muted);
+}
+
+body.app-mobile .menu-subsection-head {
+    margin-bottom: var(--fo-space-3);
+    padding: var(--fo-space-3) var(--fo-space-4);
+    border-radius: var(--fo-radius-sm);
+    border: 1px solid var(--fo-border);
+    background: var(--fo-surface);
+}
+
+body.app-mobile .menu-subsection--rice .menu-subsection-head,
+body.app-mobile .menu-subsection--noodles .menu-subsection-head {
+    border-left-width: 3px;
+}
+
+body.app-mobile .menu-grid {
+    grid-template-columns: 1fr;
+    gap: var(--fo-space-3);
+    margin-top: var(--fo-space-2);
+}
+
+body.app-mobile .menu-item {
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 112px;
+    border-radius: var(--fo-radius);
+    border: 1px solid var(--fo-border);
+    background: var(--fo-surface);
+    box-shadow: var(--fo-shadow);
+    overflow: hidden;
+}
+
+body.app-mobile .menu-item::after {
+    display: none;
+}
+
+body.app-mobile .menu-item-image {
+    width: 104px;
+    min-width: 104px;
+    height: auto;
+    min-height: 100%;
+    border-radius: 0;
+    background: #f4f4f5;
+}
+
+body.app-mobile .menu-item-image img {
+    min-height: 112px;
+    height: 100%;
+    object-fit: cover;
+}
+
+body.app-mobile .menu-item-content {
+    flex: 1;
+    min-width: 0;
+    padding: var(--fo-space-4) var(--fo-space-4) var(--fo-space-4) var(--fo-space-3);
+    gap: var(--fo-space-2);
+    justify-content: space-between;
+}
+
+body.app-mobile .menu-item-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--fo-space-1);
+}
+
+body.app-mobile .menu-item-content h3,
+body.app-mobile .menu-item-name {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--fo-text);
+    -webkit-text-fill-color: var(--fo-text);
+    background: none;
+    background-clip: unset;
+    -webkit-background-clip: unset;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+body.app-mobile .menu-item-content .price,
+body.app-mobile .menu-item-content .price .price-main {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--fo-text);
+    -webkit-text-fill-color: var(--fo-text);
+    background: none;
+    background-clip: unset;
+}
+
+body.app-mobile .menu-item-content .price small {
+    -webkit-text-fill-color: var(--fo-muted);
+}
+
+body.app-mobile .menu-item-actions {
+    width: 100%;
+    margin-top: var(--fo-space-2);
+    gap: var(--fo-space-2);
+}
+
+body.app-mobile .order-btn {
+    width: 100%;
+    min-height: var(--fo-btn-h-sm);
+    padding: var(--fo-space-3) var(--fo-space-4);
+    border-radius: var(--fo-radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.2;
+    background: var(--fo-accent);
+    color: #fff;
+    border: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--fo-space-3);
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.app-mobile .order-btn::before {
+    display: none !important;
+}
+
+body.app-mobile .order-btn:hover {
+    background: var(--fo-accent-dark);
+    transform: none;
+    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+}
+
+body.app-mobile .order-btn:active {
+    transform: scale(0.99);
+    box-shadow: none;
+}
+
+body.app-mobile .order-btn-label {
+    font-weight: 600;
+}
+
+body.app-mobile .order-btn-price {
+    font-size: 0.875rem;
+    font-weight: 700;
+    opacity: 1;
+}
+
+body.app-mobile .size-chips {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--fo-space-2);
+}
+
+body.app-mobile .size-chip {
+    min-height: var(--fo-btn-h-sm);
+    padding: var(--fo-space-2) var(--fo-space-3);
+    border-radius: var(--fo-radius-sm);
+    border: 1px solid var(--fo-border);
+    background: var(--fo-surface);
+    font-weight: 600;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+body.app-mobile .size-chip-price {
+    color: var(--fo-accent-dark);
+}
+
+body.app-mobile .size-chip:hover {
+    border-color: var(--fo-accent);
+    background: var(--fo-accent-soft);
+}
+
+body.app-mobile .addon-option-text {
+    border-radius: var(--fo-radius-sm);
+    border-color: var(--fo-border);
+    font-size: 0.8125rem;
+}
+
+body.app-mobile .menu-item-note {
+    font-size: 0.75rem;
+    color: var(--fo-muted);
+}
+
+/* —— Help & contact —— */
+body.app-mobile .order-help {
+    padding: var(--fo-space-8) 0 var(--fo-space-8);
+    background: var(--fo-surface);
+    border-top: 1px solid var(--fo-border);
+}
+
+body.app-mobile .order-help .section-title {
+    margin-bottom: var(--fo-space-2);
+}
+
+body.app-mobile .order-help .section-subtitle {
+    margin-bottom: var(--fo-space-5);
+}
+
+body.app-mobile .order-help-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--fo-space-3);
+    margin: 0 0 var(--fo-space-5);
+}
+
+body.app-mobile .order-help-card {
+    border: 1px solid var(--fo-border);
+    border-radius: var(--fo-radius);
+    box-shadow: var(--fo-shadow);
+    background: var(--fo-canvas);
+    padding: var(--fo-space-5);
+}
+
+body.app-mobile .order-help-card h3 {
+    color: var(--fo-text);
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+body.app-mobile .order-help-step {
+    background: var(--fo-text);
+    font-size: 0.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+body.app-mobile .order-help-notes {
+    margin: 0;
+    padding: var(--fo-space-5);
+    border-radius: var(--fo-radius);
+    border: 1px solid var(--fo-border);
+    background: var(--fo-canvas);
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+body.app-mobile .order-help-notes a {
+    color: var(--fo-accent-dark);
+}
+
+body.app-mobile .contact-section.order-contact {
+    padding: var(--fo-space-8) 0 var(--fo-space-8);
+    background: var(--fo-canvas);
+}
+
+body.app-mobile .order-contact .section-title {
+    margin-bottom: var(--fo-space-2);
+}
+
+body.app-mobile .order-contact .section-subtitle {
+    margin-bottom: var(--fo-space-5);
+}
+
+body.app-mobile .contact-item {
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+    gap: var(--fo-space-4);
+    padding: var(--fo-space-5);
+    background: var(--fo-surface);
+    border: 1px solid var(--fo-border);
+    border-radius: var(--fo-radius);
+    box-shadow: var(--fo-shadow);
+}
+
+body.app-mobile .contact-icon {
+    margin: 0;
+    background: var(--fo-text);
+    font-size: 1.25rem;
+}
+
+body.app-mobile .contact-details h3 {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--fo-text);
+}
+
+body.app-mobile .contact-phone-list a,
+body.app-mobile .contact-map-link {
+    color: var(--fo-accent-dark);
+}
+
+body.app-mobile .contact-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--fo-space-3);
+    margin-top: var(--fo-space-2);
+}
+
+body.app-mobile .btn-whatsapp,
+body.app-mobile .btn-call {
+    width: 100%;
+    min-height: var(--fo-btn-h);
+    padding: 0 var(--fo-space-5);
+    border-radius: var(--fo-radius-sm);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+body.app-mobile .btn-whatsapp {
+    transform: none;
+}
+
+body.app-mobile .btn-whatsapp:hover {
+    transform: none;
+    opacity: 0.92;
+}
+
+body.app-mobile .btn-call {
+    background: var(--fo-text);
+    transform: none;
+}
+
+body.app-mobile .btn-call:hover {
+    transform: none;
+    opacity: 0.9;
+}
+
+body.app-mobile .map-container.order-map iframe {
+    border-radius: var(--fo-radius) !important;
+    border: 1px solid var(--fo-border);
+}
+
+/* —— Footer —— */
+body.app-mobile .footer.order-footer {
+    background: var(--fo-hero);
+    color: #e4e4e7;
+    padding: var(--fo-space-8) 0 var(--fo-space-5);
+}
+
+body.app-mobile .order-footer .footer-section h3,
+body.app-mobile .order-footer .footer-section h4 {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    color: #fff;
+    font-weight: 600;
+}
+
+body.app-mobile .order-footer-tagline {
+    color: #a1a1aa;
+}
+
+body.app-mobile .order-footer .footer-bottom {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+body.app-mobile .order-footer .footer-bottom p {
+    color: #71717a;
+    font-size: 0.8125rem;
+}
+
+body.app-mobile .order-footer .order-footer-grid {
+    grid-template-columns: 1fr;
+    text-align: left;
+    gap: var(--fo-space-5);
+}
+
+body.app-mobile .order-footer .footer-section ul {
+    padding: 0;
+}
+
+body.app-mobile .order-footer .footer-section a {
+    color: rgba(255, 255, 255, 0.88);
+    font-weight: 500;
+}
+
+body.app-mobile .order-footer .footer-section a:hover {
+    color: #fff;
+}
+
+/* —— Modals & shared buttons —— */
+body.app-mobile .btn {
+    min-height: var(--fo-btn-h);
+    padding: 0 var(--fo-space-5);
+    border-radius: var(--fo-radius-sm);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--fo-space-2);
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.app-mobile .btn::before {
+    display: none !important;
+}
+
+body.app-mobile .btn-primary {
+    background: var(--fo-accent) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+    transform: none !important;
+}
+
+body.app-mobile .btn-primary:hover {
+    background: var(--fo-accent-dark) !important;
+    transform: none !important;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.28) !important;
+}
+
+body.app-mobile .btn-secondary {
+    background: var(--fo-surface) !important;
+    color: var(--fo-text) !important;
+    border: 1px solid var(--fo-border) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+body.app-mobile .btn-secondary:hover {
+    background: var(--fo-canvas) !important;
+    transform: none !important;
+}
+
+body.app-mobile .cart-modal-content,
+body.app-mobile .checkout-modal-content {
+    border-radius: var(--fo-radius) var(--fo-radius) 0 0;
+    border: 1px solid var(--fo-border);
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.12);
+}
+
+body.app-mobile .cart-modal-header,
+body.app-mobile .checkout-modal-header {
+    padding: var(--fo-space-5) var(--fo-space-4);
+}
+
+body.app-mobile .cart-modal-header h2,
+body.app-mobile .checkout-modal-header h2 {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--fo-text);
+    margin: 0;
+}
+
+body.app-mobile .cart-items {
+    padding: var(--fo-space-3) var(--fo-space-4);
+}
+
+body.app-mobile .cart-item {
+    border: 1px solid var(--fo-border);
+    border-radius: var(--fo-radius-sm);
+    box-shadow: none;
+    padding: var(--fo-space-4);
+    margin-bottom: var(--fo-space-3);
+    gap: var(--fo-space-3);
+}
+
+body.app-mobile .cart-footer {
+    padding: var(--fo-space-5) var(--fo-space-4);
+    padding-bottom: calc(var(--fo-space-5) + env(safe-area-inset-bottom, 0px));
+}
+
+body.app-mobile .cart-total {
+    margin-bottom: var(--fo-space-4);
+    font-size: 1.125rem;
+}
+
+body.app-mobile .btn-checkout {
+    min-height: var(--fo-btn-h);
+    padding: 0 var(--fo-space-5);
+    border-radius: var(--fo-radius-sm);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    background: var(--fo-accent);
+    border: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    transform: none;
+}
+
+body.app-mobile .btn-checkout:hover {
+    background: var(--fo-accent-dark);
+    transform: none;
+}
+
+body.app-mobile .checkout-form {
+    padding: var(--fo-space-4) var(--fo-space-4) var(--fo-space-6);
+}
+
+body.app-mobile .form-group {
+    margin-bottom: var(--fo-space-5);
+}
+
+body.app-mobile .form-group label {
+    margin-bottom: var(--fo-space-2);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--fo-text);
+}
+
+body.app-mobile .form-actions {
+    flex-direction: column;
+    gap: var(--fo-space-3);
+    margin-top: var(--fo-space-6);
+    margin-bottom: var(--fo-space-5);
+    padding-top: var(--fo-space-4);
+}
+
+body.app-mobile .form-actions .btn {
+    width: 100%;
+    min-height: var(--fo-btn-h);
+}
+
+body.app-mobile .form-actions .btn-primary {
+    background: var(--fo-accent);
+    border-radius: var(--fo-radius-sm);
+    font-weight: 600;
+    border: none;
+    transform: none;
+}
+
+body.app-mobile .form-actions .btn-secondary {
+    border-radius: var(--fo-radius-sm);
+    border: 1px solid var(--fo-border);
+}
+
+body.app-mobile .form-group input[type="text"],
+body.app-mobile .form-group input[type="tel"] {
+    padding: var(--fo-space-3) var(--fo-space-4);
+    border-color: var(--fo-border);
+    border-radius: var(--fo-radius-sm);
+    font-family: inherit;
+    min-height: var(--fo-btn-h-sm);
+}
+
+body.app-mobile .total-amount {
+    border-radius: var(--fo-radius-sm);
+    background: var(--fo-canvas);
+    color: var(--fo-text);
+    padding: var(--fo-space-4);
+}
+
+body.app-mobile .order-summary {
+    border-radius: var(--fo-radius-sm);
+    border: 1px solid var(--fo-border);
+    padding: var(--fo-space-3);
+}
+
+body.app-mobile .cart-modal .cart-close,
+body.app-mobile .checkout-modal .checkout-close {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: var(--fo-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.app-mobile .qty-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: var(--fo-radius-sm);
+    font-weight: 700;
+}
+
+body.app-mobile .addon-option input[type="checkbox"]:checked + .addon-option-text {
+    background: var(--fo-accent);
+    border-color: var(--fo-accent);
+    color: #fff;
+    box-shadow: none;
+}
+
+body.app-mobile .cart-float,
+body.app-mobile .whatsapp-float {
+    display: none !important;
+}
+
+@media (min-width: 431px) {
+    body.app-mobile {
+        padding: 1.25rem 0 2rem;
+    }
+}
