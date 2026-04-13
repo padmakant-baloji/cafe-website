@@ -679,169 +679,73 @@ function showCartNotification() {
 let menuData = null;
 
 // Fallback menu data (embedded in script for file:// protocol support)
-const fallbackMenuData = {
+const FALLBACK_MENU_JSON = `{
   "categories": [
     {
-      "id": "starters",
-      "name": "Starters",
+      "id": "coffee-tea",
+      "name": "Coffee & Tea",
       "items": [
         {
-          "id": "gobi-manchurian",
-          "name": "Gobi Manchurian",
-          "image": "images/quickBites/gobimanchurian.jpg",
-          "alt": "Gobi Manchurian",
-          "price": 65
+          "id": "tea",
+          "name": "Tea",
+          "image": "images/tea.jpg",
+          "alt": "Tea",
+          "price": 10
         },
         {
-          "id": "gobi-chilly",
-          "name": "Gobi Chilly",
-          "image": "images/quickBites/gobiChilly.jpg",
-          "alt": "Gobi Chilly",
-          "price": 65
+          "id": "coffee",
+          "name": "Coffee",
+          "image": "images/cofee.jpg",
+          "alt": "Coffee",
+          "price": 15
         },
         {
-          "id": "gobi-65",
-          "name": "Gobi 65",
-          "image": "images/quickBites/gobi65.jpg",
-          "alt": "Gobi 65",
-          "price": 65
+          "id": "badam-milk",
+          "name": "Badam Milk",
+          "image": "images/Badam%20Milk.jpg",
+          "alt": "Badam Milk",
+          "price": 20
         },
         {
-          "id": "paneer-manchurian",
-          "name": "Paneer Manchurian",
-          "image": "images/quickBites/paneerManchuri.jpg",
-          "alt": "Paneer Manchurian",
-          "price": 75
-        },
-        {
-          "id": "paneer-chilly",
-          "name": "Paneer Chilly",
-          "image": "images/quickBites/paneerchilly.jpg",
-          "alt": "Paneer Chilly",
-          "price": 75
-        },
-        {
-          "id": "paneer-65",
-          "name": "Paneer 65",
-          "image": "images/quickBites/paneer65.jpg",
-          "alt": "Paneer 65",
-          "price": 75
-        },
-        {
-          "id": "crispy-corn",
-          "name": "Crispy corn",
-          "image": "images/quickBites/americanbuttercorn.jpg",
-          "alt": "Crispy corn",
-          "price": 65
-        },
-        {
-          "id": "french-fries-salted",
-          "name": "French Fries (salted)",
-          "image": "images/quickBites/frenchfries.jpg",
-          "alt": "French Fries (salted)",
-          "price": 65
-        },
-        {
-          "id": "french-fries-peri-peri",
-          "name": "French Fries (Peri Peri)",
-          "image": "images/quickBites/frenchfries.jpg",
-          "alt": "French Fries (Peri Peri)",
-          "price": 75
+          "id": "boost",
+          "name": "Boost",
+          "image": "images/Boost.jpg",
+          "alt": "Boost",
+          "price": 20
         }
       ]
     },
     {
-      "id": "momo",
-      "name": "Momo (6 pc)",
+      "id": "quick-bites",
+      "name": "Quick Bites",
       "items": [
         {
-          "id": "steamed-momo",
-          "name": "Steamed Momo (6 pc)",
-          "image": "images/momo/momo.jpg",
-          "alt": "Steamed Momo — 6 pieces",
-          "price": 65
+          "id": "samosa",
+          "name": "Samosa",
+          "image": "images/Samosa.jpg",
+          "alt": "Samosa",
+          "price": 15
         },
         {
-          "id": "cheesy-momo",
-          "name": "Cheesy Momo (6 pc)",
-          "image": "images/momo/momo.jpg",
-          "alt": "Cheesy Momo — 6 pieces",
-          "price": 95
-        }
-      ]
-    },
-    {
-      "id": "burger",
-      "name": "Burger",
-      "items": [
-        {
-          "id": "burger",
-          "name": "Burger",
-          "image": "images/quickBites/burger.jpg",
-          "alt": "Burger",
-          "price": 95
-        }
-      ]
-    },
-    {
-      "id": "rice-noodles",
-      "name": "Rice & Noodles",
-      "subsections": [
-        {
-          "id": "rice",
-          "title": "Rice",
-          "subtitle": "Fried rice",
-          "items": [
-            {
-              "id": "veg-fried",
-              "name": "Veg Fried Rice",
-              "image": "images/ricenoodles/vegfried.jpg",
-              "alt": "Veg fried rice",
-              "price": 65
-            },
-            {
-              "id": "schezwan",
-              "name": "Schezwan Fried Rice",
-              "image": "images/ricenoodles/sehezwan.jpg",
-              "alt": "Schezwan fried rice",
-              "price": 65
-            },
-            {
-              "id": "special",
-              "name": "Special Fried Rice",
-              "image": "images/ricenoodles/spcl.jpg",
-              "alt": "Special fried rice",
-              "price": 95
-            }
-          ]
+          "id": "crispy-vada-pav",
+          "name": "Crispy Vada Pav",
+          "image": "images/Crispy%20Vada%20Pav.jpg",
+          "alt": "Crispy Vada Pav",
+          "price": 15
         },
         {
-          "id": "noodles",
-          "title": "Noodles",
-          "subtitle": "Stir-fried & hakka-style",
-          "items": [
-            {
-              "id": "veg-hakka-noodles",
-              "name": "Veg Hakka Noodles",
-              "image": "images/ricenoodles/vegfried.jpg",
-              "alt": "Veg hakka noodles",
-              "price": 65
-            },
-            {
-              "id": "schezwan-noodles",
-              "name": "Schezwan Noodles",
-              "image": "images/ricenoodles/sehezwan.jpg",
-              "alt": "Schezwan noodles",
-              "price": 65
-            },
-            {
-              "id": "special-noodles",
-              "name": "Special Noodles",
-              "image": "images/ricenoodles/spcl.jpg",
-              "alt": "Special noodles",
-              "price": 95
-            }
-          ]
+          "id": "bread-cheesy-pakoda",
+          "name": "Bread Cheesy Pakoda",
+          "image": "images/Bread%20Cheesy%20Pakoda.jpg",
+          "alt": "Bread Cheesy Pakoda",
+          "price": 20
+        },
+        {
+          "id": "ulta-vada-pav",
+          "name": "Ulta Vada Pav",
+          "image": "images/Ulta%20Vada%20Pav.jpg",
+          "alt": "Ulta Vada Pav",
+          "price": 20
         }
       ]
     },
@@ -852,82 +756,235 @@ const fallbackMenuData = {
         {
           "id": "margherita",
           "name": "Margherita",
-          "image": "images/pizza/margaretta.jpg",
+          "image": "images/Margherita%20pizza.jpg",
           "alt": "Margherita",
           "sizes": [
             {
               "label": "Small",
-              "price": 104
+              "price": 100
             },
             {
-              "label": "Medium",
-              "price": 155
+              "label": "Regular",
+              "price": 150
             }
           ]
         },
         {
           "id": "farmhouse-cheese",
           "name": "Farmhouse & Cheese",
-          "image": "images/pizza/farmhouse.jpg",
+          "image": "images/Farmhouse%20%26%20Cheese%20pizza.jpg",
           "alt": "Farmhouse & Cheese",
           "sizes": [
             {
               "label": "Small",
-              "price": 135
+              "price": 130
             },
             {
-              "label": "Medium",
-              "price": 185
+              "label": "Regular",
+              "price": 180
             }
           ]
         },
         {
           "id": "paneer-cheese",
           "name": "Paneer & Cheese",
-          "image": "images/pizza/paneertikka.jpg",
+          "image": "images/Paneer%20%26%20Cheese%20pizza.jpg",
           "alt": "Paneer & Cheese",
           "sizes": [
             {
               "label": "Small",
-              "price": 135
+              "price": 130
             },
             {
-              "label": "Medium",
-              "price": 185
+              "label": "Regular",
+              "price": 180
             }
           ]
         },
         {
           "id": "corn-cheese",
           "name": "Corn & Cheese",
-          "image": "images/pizza/corncheese.jpg",
+          "image": "images/Corn%20%26%20Cheese%20pizza.jpg",
           "alt": "Corn & Cheese",
           "sizes": [
             {
               "label": "Small",
-              "price": 135
+              "price": 130
             },
             {
-              "label": "Medium",
-              "price": 185
+              "label": "Regular",
+              "price": 180
             }
           ]
         },
         {
           "id": "gobi-manchuri-pizza",
           "name": "Gobi manchuri pizza",
-          "image": "images/pizza/gobimanchurianpizza.jpg",
+          "image": "images/Gobi%20Manchuri%20Pizza.jpg",
           "alt": "Gobi manchuri pizza",
           "sizes": [
             {
               "label": "Small",
-              "price": 135
+              "price": 130
             },
             {
-              "label": "Medium",
-              "price": 185
+              "label": "Regular",
+              "price": 180
             }
           ]
+        },
+        {
+          "id": "special-pizza",
+          "name": "Special Pizza",
+          "image": "images/Special%20Pizza.jpg",
+          "alt": "Special Pizza",
+          "price": 200
+        }
+      ]
+    },
+    {
+      "id": "starters",
+      "name": "Starters",
+      "items": [
+        {
+          "id": "gobi-manchuri",
+          "name": "Gobi Manchuri",
+          "image": "images/Gobi%20Manchuri.jpg",
+          "alt": "Gobi Manchuri",
+          "price": 60
+        },
+        {
+          "id": "gobi-chilly",
+          "name": "Gobi Chilly",
+          "image": "images/Gobi%20Chilly.jpg",
+          "alt": "Gobi Chilly",
+          "price": 60
+        },
+        {
+          "id": "gobi-65",
+          "name": "Gobi 65",
+          "image": "images/Gobi%2065.jpg",
+          "alt": "Gobi 65",
+          "price": 60
+        },
+        {
+          "id": "gobi-schezwan",
+          "name": "Gobi Schezwan",
+          "image": "images/Gobi%20Schezwan.jpg",
+          "alt": "Gobi Schezwan",
+          "price": 60
+        },
+        {
+          "id": "paneer-manchuri",
+          "name": "Paneer Manchuri",
+          "image": "images/Paneer%20Manchuri.jpg",
+          "alt": "Paneer Manchuri",
+          "price": 80
+        },
+        {
+          "id": "paneer-chilly",
+          "name": "Paneer Chilly",
+          "image": "images/Paneer%20Chilly.jpg",
+          "alt": "Paneer Chilly",
+          "price": 80
+        },
+        {
+          "id": "paneer-65",
+          "name": "Paneer 65",
+          "image": "images/Paneer%2065.jpg",
+          "alt": "Paneer 65",
+          "price": 80
+        },
+        {
+          "id": "paneer-schezwan",
+          "name": "Paneer Schezwan",
+          "image": "images/Paneer%20Schezwan.jpg",
+          "alt": "Paneer Schezwan",
+          "price": 80
+        },
+        {
+          "id": "baby-corn-manchuri",
+          "name": "Baby Corn Manchuri",
+          "image": "images/Baby%20Corn%20Manchuri.jpg",
+          "alt": "Baby Corn Manchuri",
+          "price": 80
+        },
+        {
+          "id": "baby-corn-chilly",
+          "name": "Baby Corn Chilly",
+          "image": "images/Baby%20Corn%20Chilly.jpg",
+          "alt": "Baby Corn Chilly",
+          "price": 80
+        },
+        {
+          "id": "baby-corn-65",
+          "name": "Baby Corn 65",
+          "image": "images/Baby%20Corn%2065.jpg",
+          "alt": "Baby Corn 65",
+          "price": 80
+        },
+        {
+          "id": "baby-corn-schezwan",
+          "name": "Baby Corn Schezwan",
+          "image": "images/Baby%20Corn%20Schezwan.jpg",
+          "alt": "Baby Corn Schezwan",
+          "price": 80
+        },
+        {
+          "id": "baby-corn-crispy",
+          "name": "Baby Corn Crispy",
+          "image": "images/Baby%20Corn%20Crispy.jpg",
+          "alt": "Baby Corn Crispy",
+          "price": 80
+        },
+        {
+          "id": "mushroom-manchuri",
+          "name": "Mushroom Manchuri",
+          "image": "images/Mushroom%20Manchuri.jpg",
+          "alt": "Mushroom Manchuri",
+          "price": 80
+        },
+        {
+          "id": "mushroom-chilly",
+          "name": "Mushroom Chilly",
+          "image": "images/Mushroom%20Chilly.jpg",
+          "alt": "Mushroom Chilly",
+          "price": 80
+        },
+        {
+          "id": "mushroom-65",
+          "name": "Mushroom 65",
+          "image": "images/Mushroom%2065.jpg",
+          "alt": "Mushroom 65",
+          "price": 80
+        },
+        {
+          "id": "mushroom-schezwan",
+          "name": "Mushroom Schezwan",
+          "image": "images/Mushroom%20Schezwan.jpg",
+          "alt": "Mushroom Schezwan",
+          "price": 80
+        },
+        {
+          "id": "crispy-corn",
+          "name": "Crispy Corn",
+          "image": "images/Crispy%20Corn.jpg",
+          "alt": "Crispy Corn",
+          "price": 70
+        },
+        {
+          "id": "french-fries-salted",
+          "name": "French Fries Salted",
+          "image": "images/French%20Fries%20Salted.jpg",
+          "alt": "French Fries Salted",
+          "price": 60
+        },
+        {
+          "id": "peri-peri-french-fries",
+          "name": "Peri Peri French Fries",
+          "image": "images/Peri%20Peri%20French%20Fries.jpg",
+          "alt": "Peri Peri French Fries",
+          "price": 70
         }
       ]
     },
@@ -938,63 +995,202 @@ const fallbackMenuData = {
         {
           "id": "manchow-soup",
           "name": "Manchow Soup",
-          "image": "images/soup/classic-manchow.jpg",
+          "image": "images/Manchow%20Soup.jpg",
           "alt": "Manchow Soup",
-          "price": 55
+          "price": 50
         },
         {
           "id": "roasted-garlic-soup",
           "name": "Roasted Garlic Soup",
-          "image": "images/soup/garlic.jpg",
+          "image": "images/Roasted%20Garlic%20Soup.jpg",
           "alt": "Roasted Garlic Soup",
-          "price": 55
+          "price": 50
         },
         {
           "id": "vegetable-soup",
           "name": "Vegetable Soup",
-          "image": "images/soup/tomato.jpg",
+          "image": "images/Vegetable%20Soup.jpg",
           "alt": "Vegetable Soup",
-          "price": 55
+          "price": 50
         }
       ]
     },
     {
-      "id": "sandwich",
-      "name": "Sandwich",
+      "id": "rice-noodles",
+      "name": "Rice & Noodles",
+      "subsections": [
+        {
+          "id": "rice",
+          "title": "Rice",
+          "subtitle": "Fried rice & combos",
+          "items": [
+            {
+              "id": "veg-fried-rice",
+              "name": "Veg Fried Rice",
+              "image": "images/Veg%20Fried%20Rice.jpg",
+              "alt": "Veg Fried Rice",
+              "price": 60
+            },
+            {
+              "id": "schezwan-rice",
+              "name": "Schezwan Rice",
+              "image": "images/Schezwan%20Rice.jpg",
+              "alt": "Schezwan Rice",
+              "price": 60
+            },
+            {
+              "id": "butter-garlic-rice",
+              "name": "Butter Garlic Rice",
+              "image": "images/Butter%20Garlic%20Rice.jpg",
+              "alt": "Butter Garlic Rice",
+              "price": 80
+            },
+            {
+              "id": "paneer-fried-rice",
+              "name": "Paneer Fried Rice",
+              "image": "images/Paneer%20Fried%20Rice.jpg",
+              "alt": "Paneer Fried Rice",
+              "price": 80
+            },
+            {
+              "id": "manchurian-rice",
+              "name": "Manchurian Rice",
+              "image": "images/Manchurian%20Rice.jpg",
+              "alt": "Manchurian Rice",
+              "price": 80
+            },
+            {
+              "id": "triple-fried-rice",
+              "name": "Triple Fried Rice",
+              "image": "images/Triple%20Fried%20Rice.jpg",
+              "alt": "Triple Fried Rice",
+              "price": 100
+            },
+            {
+              "id": "special-rice",
+              "name": "Special Rice",
+              "image": "images/Special%20Rice.jpg",
+              "alt": "Special Rice",
+              "price": 90
+            }
+          ]
+        },
+        {
+          "id": "noodles",
+          "title": "Noodles",
+          "subtitle": "Hakka & stir-fried",
+          "items": [
+            {
+              "id": "veg-fried-noodles",
+              "name": "Veg Fried Noodles",
+              "image": "images/Veg%20Fried%20Noodles.jpg",
+              "alt": "Veg Fried Noodles",
+              "price": 60
+            },
+            {
+              "id": "schezwan-noodles",
+              "name": "Schezwan Noodles",
+              "image": "images/Schezwan%20Noodles.jpg",
+              "alt": "Schezwan Noodles",
+              "price": 60
+            },
+            {
+              "id": "butter-garlic-noodles",
+              "name": "Butter Garlic Noodles",
+              "image": "images/Butter%20Garlic%20Noodles.jpg",
+              "alt": "Butter Garlic Noodles",
+              "price": 80
+            },
+            {
+              "id": "paneer-fried-noodles",
+              "name": "Paneer Fried Noodles",
+              "image": "images/Paneer%20Fried%20Noodles.jpg",
+              "alt": "Paneer Fried Noodles",
+              "price": 80
+            },
+            {
+              "id": "manchurian-noodles",
+              "name": "Manchurian Noodles",
+              "image": "images/Manchurian%20Noodles.jpg",
+              "alt": "Manchurian Noodles",
+              "price": 80
+            },
+            {
+              "id": "rice-noodles-combo",
+              "name": "Rice Noodles Combo",
+              "image": "images/Rice%20Noodles%20Combo.jpg",
+              "alt": "Rice Noodles Combo",
+              "price": 80
+            },
+            {
+              "id": "special-noodles",
+              "name": "Special Noodles",
+              "image": "images/Special%20Noodles.jpg",
+              "alt": "Special Noodles",
+              "price": 90
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sandwich-burger",
+      "name": "Sandwich & Burger",
       "items": [
         {
           "id": "vegetable-sandwich",
           "name": "Vegetable Sandwich",
-          "image": "images/sandwich/veggrill.jpg",
+          "image": "images/Vegetable%20Sandwich.jpg",
           "alt": "Vegetable Sandwich",
-          "price": 65
+          "price": 60
         },
         {
           "id": "paneer-sandwich",
           "name": "Paneer Sandwich",
-          "image": "images/sandwich/paneertikaa.jpg",
+          "image": "images/Paneer%20Sandwich.jpg",
           "alt": "Paneer Sandwich",
-          "price": 75
+          "price": 70
+        },
+        {
+          "id": "veg-burger",
+          "name": "Veg Burger",
+          "image": "images/Veg%20Burger.jpg",
+          "alt": "Veg Burger",
+          "price": 90
+        },
+        {
+          "id": "paneer-burger",
+          "name": "Paneer Burger",
+          "image": "images/Paneer%20Burger.jpg",
+          "alt": "Paneer Burger",
+          "price": 100
         }
       ]
     },
     {
-      "id": "coffee",
-      "name": "Coffee",
+      "id": "momo",
+      "name": "Momo",
       "items": [
         {
-          "id": "hot-coffee",
-          "name": "Hot Coffee",
-          "image": "images/brewerages/hotcoffe.jpg",
-          "alt": "Hot Coffee",
-          "price": 20
+          "id": "steamed-momo",
+          "name": "Steamed Momo",
+          "image": "images/Steamed%20Momo.jpg",
+          "alt": "Steamed Momo",
+          "price": 60
         },
         {
-          "id": "cold-coffee",
-          "name": "Cold Coffee",
-          "image": "images/brewerages/coldcoffe.jpg",
-          "alt": "Cold Coffee",
-          "price": 55
+          "id": "crispy-momo",
+          "name": "Crispy Momo",
+          "image": "images/Crispy%20Momo.jpg",
+          "alt": "Crispy Momo",
+          "price": 80
+        },
+        {
+          "id": "cheesy-momo",
+          "name": "Cheesy Momo",
+          "image": "images/Cheesy%20Momo.jpg",
+          "alt": "Cheesy Momo",
+          "price": 90
         }
       ]
     },
@@ -1005,58 +1201,58 @@ const fallbackMenuData = {
         {
           "id": "bun-maska",
           "name": "Bun Maska",
-          "image": "images/sandwich/veggrill.jpg",
+          "image": "images/Bun%20Maska.jpg",
           "alt": "Bun Maska",
-          "price": 20
+          "price": 15
         },
         {
           "id": "bun-gulkan",
           "name": "Bun Gulkan",
-          "image": "images/sandwich/veggrill.jpg",
+          "image": "images/Bun%20Gulkan.jpg",
           "alt": "Bun Gulkan",
-          "price": 20
+          "price": 15
         },
         {
           "id": "bun-jaam",
           "name": "Bun Jaam",
-          "image": "images/sandwich/veggrill.jpg",
+          "image": "images/Bun%20Jaam.jpg",
           "alt": "Bun Jaam",
-          "price": 20
+          "price": 15
         },
         {
           "id": "bun-maska-gulkan",
           "name": "Bun Maska Gulkan",
-          "image": "images/sandwich/veggrill.jpg",
+          "image": "images/Bun%20Maska%20Gulkan.jpg",
           "alt": "Bun Maska Gulkan",
-          "price": 35
+          "price": 30
         },
         {
           "id": "bun-maska-jaam",
           "name": "Bun Maska Jaam",
-          "image": "images/sandwich/veggrill.jpg",
+          "image": "images/Bun%20Maska%20Jaam.jpg",
           "alt": "Bun Maska Jaam",
-          "price": 35
+          "price": 30
         },
         {
           "id": "bun-gobi",
           "name": "Bun Gobi",
-          "image": "images/sandwich/veggrill.jpg",
+          "image": "images/Bun%20Gobi.jpg",
           "alt": "Bun Gobi",
-          "price": 45
+          "price": 40
         },
         {
           "id": "bun-masala",
           "name": "Bun Masala",
-          "image": "images/sandwich/veggrill.jpg",
+          "image": "images/Bun%20Masala.jpg",
           "alt": "Bun Masala",
-          "price": 45
+          "price": 40
         },
         {
           "id": "bun-cutlet",
           "name": "Bun Cutlet",
-          "image": "images/sandwich/veggrill.jpg",
+          "image": "images/Bun%20Cutlet.jpeg",
           "alt": "Bun Cutlet",
-          "price": 45
+          "price": 40
         }
       ]
     },
@@ -1067,49 +1263,93 @@ const fallbackMenuData = {
         {
           "id": "softy-ice-cream",
           "name": "Softy Ice Cream",
-          "image": "images/esserts/softy.jpg",
+          "image": "images/Softy%20Ice%20Cream.jpg",
           "alt": "Softy Ice Cream",
-          "price": 25
-        },
-        {
-          "id": "masala-butter-milk",
-          "name": "Masala Butter Milk",
-          "image": "images/brewerages/masalacoldrinks.jpg",
-          "alt": "Masala Butter Milk",
-          "price": 25
+          "price": 20
         },
         {
           "id": "lassi",
           "name": "Lassi",
-          "image": "images/brewerages/masalacoldrinks.jpg",
+          "image": "images/Lassi.jpg",
           "alt": "Lassi",
-          "price": 35
-        },
-        {
-          "id": "badam-milk",
-          "name": "Badam Milk",
-          "image": "images/brewerages/masalacoldrinks.jpg",
-          "alt": "Badam Milk",
-          "price": 35
+          "price": 30
         },
         {
           "id": "masala-cold-drinks",
           "name": "Masala Cold Drinks",
-          "image": "images/brewerages/masalacoldrinks.jpg",
+          "image": "images/Masala%20Cold%20Drinks.jpg",
           "alt": "Masala Cold Drinks",
-          "price": 45
+          "price": 40
         },
         {
           "id": "mint-mojito",
           "name": "Mint Mojito",
-          "image": "images/brewerages/masalacoldrinks.jpg",
+          "image": "images/Mint%20Mojito.jpg",
           "alt": "Mint Mojito",
-          "price": 45
+          "price": 40
+        },
+        {
+          "id": "special-mojito",
+          "name": "Special Mojito",
+          "image": "images/Special%20Mojito.jpg",
+          "alt": "Special Mojito",
+          "price": 50
+        }
+      ]
+    },
+    {
+      "id": "cafe-special",
+      "name": "Cafe Special",
+      "items": [
+        {
+          "id": "crispy-paneer",
+          "name": "Crispy Paneer",
+          "image": "images/Crispy%20Paneer.jpg",
+          "alt": "Crispy Paneer",
+          "price": 100
+        },
+        {
+          "id": "paneer-finger",
+          "name": "Paneer Finger",
+          "image": "images/Paneer%20Finger.jpg",
+          "alt": "Paneer Finger",
+          "price": 100
+        },
+        {
+          "id": "paneer-saute",
+          "name": "Paneer Saute",
+          "image": "images/Paneer%20Saute.jpg",
+          "alt": "Paneer Saute",
+          "price": 100
+        },
+        {
+          "id": "honey-chilly-potato",
+          "name": "Honey Chilly Potato",
+          "image": "images/Honey%20Chilly%20Potato.jpg",
+          "alt": "Honey Chilly Potato",
+          "price": 100
+        },
+        {
+          "id": "crispy-chilly-potato",
+          "name": "Crispy Chilly Potato",
+          "image": "images/Crispy%20Chilly%20Potato.jpg",
+          "alt": "Crispy Chilly Potato",
+          "price": 100
+        },
+        {
+          "id": "stuffing-mushroom",
+          "name": "Stuffing Mushroom",
+          "image": "images/Stuffing%20Mushroom.jpg",
+          "alt": "Stuffing Mushroom",
+          "price": 100
         }
       ]
     }
   ]
-};
+}
+`;
+const fallbackMenuData = JSON.parse(FALLBACK_MENU_JSON);
+
 
 async function loadMenu() {
     try {
@@ -1128,17 +1368,19 @@ async function loadMenu() {
 }
 
 const CATEGORY_TAB_ICONS = {
-    starters: '🌱',
-    momo: '🥟',
-    burger: '🍔',
-    'rice-noodles': '🍚',
-    pizza: '🍕',
-    soups: '🍲',
-    sandwich: '🥪',
-    coffee: '☕',
-    'bun-special': '🥖',
-    'cold-special': '🧊'
+    'coffee-tea': '\u2615',
+    'quick-bites': '\u{1F950}',
+    pizza: '\u{1F355}',
+    starters: '\u{1F331}',
+    soups: '\u{1F372}',
+    'rice-noodles': '\u{1F35A}',
+    'sandwich-burger': '\u{1F96A}',
+    momo: '\u{1F95F}',
+    'bun-special': '\u{1F956}',
+    'cold-special': '\u{1F9CA}',
+    'cafe-special': '\u2B50'
 };
+
 
 function buildCategoryTabs() {
     const list = document.getElementById('categoryTabsList');
