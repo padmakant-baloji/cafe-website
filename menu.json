@@ -19,6 +19,13 @@
           "price": 15
         },
         {
+          "id": "cold-coffee",
+          "name": "Cold Coffee",
+          "image": "images/cold coffee.jpg",
+          "alt": "Cold Coffee",
+          "price": 50
+        },
+        {
           "id": "badam-milk",
           "name": "Badam Milk",
           "image": "images/Badam%20Milk.jpg",
