@@ -1945,7 +1945,7 @@ function initCheckoutModal() {
 // ============================================
 // Place Order
 // ============================================
-function placeOrder() {
+async function placeOrder() {
     const customerName = document.getElementById('customerName').value;
     const mobileNumber = document.getElementById('mobileNumber').value;
     const customerCity = document.getElementById('customerCity').value;
@@ -1954,41 +1954,66 @@ function placeOrder() {
         alert('Please fill in all required fields');
         return;
     }
-    
-    // Build order message
-    let message = `🍽️ *Order from Baloji's Cafe*\n\n`;
-    message += `👤 *Name:* ${customerName}\n`;
-    message += `📱 *Mobile Number:* ${mobileNumber}\n`;
-    message += `🏙️ *City:* ${customerCity}\n`;
-    
-    message += `\n📋 *Order Details:*\n`;
-    cart.forEach((item, index) => {
-        message += `${index + 1}. ${item.name} × ${item.quantity} = ₹${item.price * item.quantity}\n`;
-    });
-    
-    message += `\n💰 *Total Amount: ₹${getCartTotal()}*\n\n`;
-    message += `Thank you for ordering from Baloji's Cafe! 🎉`;
-    
-    // Open WhatsApp
-    const whatsappNumber = '916364065620';
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-    
-    // Clear cart
-    cart = [];
-    saveCart();
-    updateCartUI();
-    
-    // Close modals
-    document.getElementById('checkoutModal').classList.remove('active');
-    document.getElementById('cartModal').classList.remove('active');
-    document.body.style.overflow = '';
-    
-    // Reset form
-    document.getElementById('checkoutForm').reset();
-    
-    // Show success message
-    alert('Order placed! Opening WhatsApp...');
+
+    if (!cart.length) {
+        alert('Your cart is empty.');
+        return;
+    }
+
+    const total = getCartTotal();
+    const payload = {
+        customerName: customerName.trim(),
+        mobileNumber: mobileNumber.trim(),
+        customerCity: customerCity.trim(),
+        items: cart.map((item) => ({
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity
+        })),
+        total
+    };
+
+    const submitBtn = document.querySelector('#checkoutForm button[type="submit"]');
+    const prevLabel = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending…';
+    }
+
+    try {
+        const res = await fetch('/api/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            throw new Error(data.error || `Could not send order (${res.status})`);
+        }
+
+        cart = [];
+        saveCart();
+        updateCartUI();
+
+        document.getElementById('checkoutModal').classList.remove('active');
+        document.getElementById('cartModal').classList.remove('active');
+        document.body.style.overflow = '';
+
+        document.getElementById('checkoutForm').reset();
+
+        alert('Order sent! We will contact you soon.');
+    } catch (err) {
+        const hint =
+            window.location.protocol === 'file:'
+                ? ' Open this site using the local server: run `yarn install` then `yarn start` in the project folder.'
+                : '';
+        alert((err.message || 'Could not send order.') + hint);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = prevLabel;
+        }
+    }
 }
 
 // ============================================
