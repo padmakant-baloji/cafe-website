@@ -20,6 +20,7 @@ const {
 } = require('./lib/order-service');
 const { placeOrderForCustomer } = require('./lib/place-order');
 const { upsertPushSubscription, notifyCustomerOfOrderStatus } = require('./lib/push-service');
+const { validateCoupon } = require('./lib/coupon-service');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -236,6 +237,31 @@ app.post('/api/order', requireCustomer, async (req, res) => {
         return res.status(code).json({
             error: err.message || 'Could not place order.'
         });
+    }
+});
+
+app.post('/api/coupons/validate', requireCustomer, async (req, res) => {
+    try {
+        await ensureSchema();
+        const body = req.body || {};
+        const code = typeof body.code === 'string' ? body.code : '';
+        const subtotal =
+            typeof body.subtotal === 'number' && Number.isFinite(body.subtotal)
+                ? body.subtotal
+                : parseInt(String(body.subtotal || 0), 10);
+
+        const result = await validateCoupon(code, subtotal);
+        if (!result.ok) {
+            return res.status(400).json({ ok: false, error: result.message, code: result.code || '' });
+        }
+        return res.json({ ok: true, code: result.code, discount: result.discount, message: result.message });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) {
+            console.error('coupons/validate:', err.message);
+        }
+        return res.status(code).json({ ok: false, error: err.message || 'Could not validate coupon.' });
     }
 });
 

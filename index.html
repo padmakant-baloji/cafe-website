@@ -483,6 +483,16 @@
                 <button class="checkout-close" id="checkoutClose">&times;</button>
             </div>
             <form class="checkout-form" id="checkoutForm">
+                <div class="form-group">
+                    <label for="couponCode">Coupon</label>
+                    <div class="coupon-row">
+                        <div class="coupon-input-wrap">
+                            <input type="text" id="couponCode" name="couponCode" maxlength="64" placeholder="Have a coupon? Enter code" autocomplete="off" inputmode="text">
+                            <button type="button" class="coupon-action-btn" id="applyCouponBtn" hidden>Apply</button>
+                        </div>
+                    </div>
+                    <p class="coupon-feedback" id="couponFeedback" hidden></p>
+                </div>
                 <div class="checkout-profile-summary" id="checkoutProfileSummary" hidden>
                     <p class="checkout-profile-label">Delivering to</p>
                     <p class="checkout-profile-line" id="checkoutProfileLine"></p>
@@ -515,9 +525,8 @@
                     <div class="checkout-address-section-head">
                         <div>
                             <label class="checkout-address-title">Delivery address</label>
-                            <p class="checkout-address-copy">Select a saved address or type one address line for this order.</p>
                         </div>
-                        <button type="button" class="btn btn-secondary btn-address-toggle" id="checkoutAddAddressBtn">Add new address</button>
+                        <button type="button" class="btn btn-secondary btn-address-toggle" id="checkoutAddAddressBtn" hidden>Add new address</button>
                     </div>
                     <div class="checkout-saved-addresses" id="checkoutSavedAddresses"></div>
                     <div class="checkout-new-address-fields" id="checkoutNewAddressFields" hidden>
@@ -540,6 +549,10 @@
                             <span>Items total</span>
                             <span>₹<span id="checkoutSubtotal">0</span></span>
                         </div>
+                        <div class="summary-item checkout-discount-row" id="checkoutDiscountRow" hidden>
+                            <span>Discount</span>
+                            <span>-₹<span id="checkoutDiscountAmount">0</span></span>
+                        </div>
                         <div class="summary-item">
                             <span>Delivery</span>
                             <span>₹<span id="checkoutDeliveryFee">0</span></span>
@@ -550,8 +563,15 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="backToCartBtn">Back to Cart</button>
+                    <div class="checkout-payable-pill" aria-live="polite">
+                        <span class="checkout-payable-label">Payable</span>
+                        <span class="checkout-payable-amount">₹<span id="checkoutActionPayable">0</span></span>
+                    </div>
                     <button type="submit" class="btn btn-primary">Place order</button>
+                </div>
+                <div class="checkout-sticky-total" id="checkoutStickyTotalBar" hidden>
+                    <span class="checkout-sticky-label">Payable</span>
+                    <span class="checkout-sticky-amount">₹<span id="checkoutStickyTotal">0</span></span>
                 </div>
             </form>
         </div>
