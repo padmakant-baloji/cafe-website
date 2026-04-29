@@ -6098,3 +6098,247 @@ body.app-mobile .whatsapp-float {
         padding: 1.25rem 0 2rem;
     }
 }
+
+/* —— Session gate (mobile welcome) —— */
+.session-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+    color: #f8fafc;
+}
+
+.session-gate--hidden {
+    display: none !important;
+}
+
+body.session-gate-open {
+    overflow: hidden;
+}
+
+.session-gate-card {
+    width: 100%;
+    max-width: 22rem;
+    background: rgba(30, 41, 59, 0.92);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 1.5rem 1.25rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+.session-gate-title {
+    font-family: 'Plus Jakarta Sans', 'Poppins', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 0.35rem;
+}
+
+.session-gate-lead {
+    font-size: 0.9rem;
+    color: #94a3b8;
+    margin: 0 0 1.25rem;
+    line-height: 1.45;
+}
+
+.session-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    margin-bottom: 0.35rem;
+}
+
+.session-input,
+.session-select {
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid #475569;
+    background: #0f172a;
+    color: #f1f5f9;
+    font: inherit;
+    font-size: 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.session-btn {
+    width: 100%;
+    margin-top: 0.35rem;
+}
+
+.session-gate-error {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: #fca5a5;
+}
+
+/* —— My orders —— */
+.order-my-orders {
+    padding-bottom: calc(var(--fo-nav, 56px) + 1.5rem);
+}
+
+.my-orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--fo-space-4, 1rem);
+}
+
+.my-orders-placeholder {
+    text-align: center;
+    color: var(--fo-muted, #64748b);
+    padding: var(--fo-space-6, 2rem) var(--fo-space-4, 1rem);
+    font-size: 0.9375rem;
+}
+
+.my-order-card {
+    background: var(--fo-surface, #fff);
+    border: 1px solid var(--fo-border, #e5e7eb);
+    border-radius: var(--fo-radius, 14px);
+    padding: var(--fo-space-4, 1rem);
+    box-shadow: var(--fo-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.04));
+}
+.my-order-card--pending {
+    background: #fff7ed;
+    border-color: #fdba74;
+}
+.my-order-card--accepted {
+    background: #ecfdf5;
+    border-color: #86efac;
+}
+.my-order-card--rejected {
+    background: #fef2f2;
+    border-color: #fca5a5;
+}
+.my-order-card--preparing {
+    background: #eff6ff;
+    border-color: #93c5fd;
+}
+.my-order-card--out_for_delivery {
+    background: #f5f3ff;
+    border-color: #c4b5fd;
+}
+.my-order-card--completed {
+    background: #f0fdf4;
+    border-color: #86efac;
+}
+
+.my-order-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+}
+
+.my-order-id {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.my-order-status {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    text-align: right;
+    line-height: 1.2;
+    max-width: 60%;
+}
+
+.my-order-status--pending {
+    background: #fff7ed;
+    color: #9a3412;
+}
+.my-order-status--accepted {
+    background: #ecfdf5;
+    color: #166534;
+}
+.my-order-status--rejected {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+.my-order-status--preparing {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+.my-order-status--out_for_delivery {
+    background: #f5f3ff;
+    color: #5b21b6;
+}
+.my-order-status--completed {
+    background: #ecfdf5;
+    color: #166534;
+}
+
+.my-order-meta {
+    font-size: 0.75rem;
+    color: var(--fo-muted, #64748b);
+    margin-bottom: 0.65rem;
+}
+
+.my-order-line {
+    font-size: 0.8125rem;
+    color: var(--fo-text, #334155);
+    line-height: 1.45;
+}
+
+.my-order-total {
+    margin-top: 0.65rem;
+    font-weight: 700;
+    color: var(--fo-accent-dark, #15803d);
+}
+
+.checkout-profile-summary {
+    padding: var(--fo-space-4, 1rem);
+    border-radius: var(--fo-radius-sm, 10px);
+    background: var(--fo-canvas, #f8fafc);
+    border: 1px solid var(--fo-border, #e5e7eb);
+    margin-bottom: var(--fo-space-4, 1rem);
+}
+
+.checkout-profile-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fo-muted, #64748b);
+    margin: 0 0 0.35rem;
+}
+
+.checkout-profile-line {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--fo-text, #0f172a);
+    line-height: 1.4;
+}
+
+/* —— Five bottom tabs: slightly tighter —— */
+body.app-five-tabs .app-tab {
+    font-size: 0.55rem;
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
+}
+
+body.app-five-tabs .app-tab-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Hide menu content on /menu until auth is verified. */
+html.route-menu-auth-pending .app-shell,
+html.route-menu-auth-pending .app-bottom-nav {
+    visibility: hidden;
+}
+
+html.route-menu-auth-pending .session-gate {
+    display: none !important;
+}

@@ -15,6 +15,299 @@ const lightboxClose = document.querySelector('.lightbox-close');
 const navLinks = document.querySelectorAll('a.app-tab[href^="#"], a.nav-link[href^="#"]');
 
 // ============================================
+// Session & My orders (Neon backend)
+// ============================================
+const SESSION_STORAGE_KEY = 'balojiCustomerToken';
+const CUSTOMER_PROFILE_KEY = 'balojiCustomerProfile';
+
+function getCustomerToken() {
+    return localStorage.getItem(SESSION_STORAGE_KEY);
+}
+
+function setCustomerToken(token) {
+    if (token) localStorage.setItem(SESSION_STORAGE_KEY, token);
+    else localStorage.removeItem(SESSION_STORAGE_KEY);
+}
+
+function setCustomerProfile(profile) {
+    if (profile && typeof profile === 'object') {
+        localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(profile));
+    } else {
+        localStorage.removeItem(CUSTOMER_PROFILE_KEY);
+    }
+}
+
+function getCustomerProfile() {
+    try {
+        const raw = localStorage.getItem(CUSTOMER_PROFILE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        return parsed;
+    } catch {
+        return null;
+    }
+}
+
+function getAuthHeaders() {
+    const t = getCustomerToken();
+    const h = { 'Content-Type': 'application/json' };
+    if (t) h.Authorization = `Bearer ${t}`;
+    const profile = currentCustomer || getCustomerProfile();
+    if (profile && profile.mobile) h['x-customer-mobile'] = String(profile.mobile);
+    return h;
+}
+
+/** @type {{ customerId?: string, name: string, city: string, mobile: string } | null} */
+let currentCustomer = null;
+
+function hideSessionGate() {
+    const gate = document.getElementById('sessionGate');
+    if (gate) gate.classList.add('session-gate--hidden');
+    document.body.classList.remove('session-gate-open');
+}
+
+function goToMenuScreen() {
+    if (window.location.pathname !== '/menu') {
+        window.location.assign('/menu');
+    }
+}
+
+function showGateError(msg) {
+    const el = document.getElementById('gateError');
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = false;
+}
+
+function clearGateError() {
+    const el = document.getElementById('gateError');
+    if (el) {
+        el.textContent = '';
+        el.hidden = true;
+    }
+}
+
+async function restoreSession() {
+    const token = getCustomerToken();
+    if (!token) return false;
+    currentCustomer = getCustomerProfile();
+    updateCheckoutProfileUI();
+    try {
+        const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) {
+            setCustomerToken(null);
+            setCustomerProfile(null);
+            return false;
+        }
+        const data = await res.json();
+        currentCustomer = data.customer;
+        setCustomerProfile(currentCustomer);
+        hideSessionGate();
+        updateCheckoutProfileUI();
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function updateCheckoutProfileUI() {
+    const summary = document.getElementById('checkoutProfileSummary');
+    const line = document.getElementById('checkoutProfileLine');
+    const fallback = document.getElementById('checkoutFieldsFallback');
+    const nameInput = document.getElementById('customerName');
+    const mobileInput = document.getElementById('mobileNumber');
+    const citySelect = document.getElementById('customerCity');
+    if (!summary || !line || !fallback) return;
+
+    const lockFields = (locked) => {
+        if (nameInput) nameInput.readOnly = locked;
+        if (mobileInput) mobileInput.readOnly = locked;
+        if (citySelect) citySelect.disabled = locked;
+    };
+
+    if (currentCustomer) {
+        summary.hidden = false;
+        fallback.hidden = false;
+        line.textContent = `${currentCustomer.name} · ${currentCustomer.mobile} · ${currentCustomer.city}`;
+        if (nameInput) nameInput.value = currentCustomer.name || '';
+        if (mobileInput) mobileInput.value = currentCustomer.mobile || '';
+        if (citySelect) citySelect.value = currentCustomer.city || '';
+        lockFields(true);
+    } else {
+        summary.hidden = true;
+        fallback.hidden = false;
+        lockFields(false);
+    }
+}
+
+function initSessionGate() {
+    const gateMobileBtn = document.getElementById('gateContinueMobile');
+    const gateRegisterBtn = document.getElementById('gateRegister');
+    const stepMobile = document.getElementById('gateStepMobile');
+    const stepProfile = document.getElementById('gateStepProfile');
+
+    gateMobileBtn?.addEventListener('click', async () => {
+        clearGateError();
+        const mobile = (document.getElementById('gateMobile')?.value || '')
+            .replace(/\D/g, '')
+            .slice(-10);
+        if (mobile.length !== 10) {
+            showGateError('Enter a valid 10-digit mobile number.');
+            return;
+        }
+        gateMobileBtn.disabled = true;
+        try {
+            const res = await fetch('/api/auth/lookup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mobile })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Could not continue');
+            if (data.exists && data.token) {
+                setCustomerToken(data.token);
+                currentCustomer = data.customer;
+                hideSessionGate();
+                updateCheckoutProfileUI();
+                startMyOrdersPoll();
+                goToMenuScreen();
+                return;
+            }
+            stepMobile.hidden = true;
+            stepProfile.hidden = false;
+        } catch (e) {
+            showGateError(e.message || 'Something went wrong.');
+        } finally {
+            gateMobileBtn.disabled = false;
+        }
+    });
+
+    gateRegisterBtn?.addEventListener('click', async () => {
+        clearGateError();
+        const mobile = (document.getElementById('gateMobile')?.value || '')
+            .replace(/\D/g, '')
+            .slice(-10);
+        const name = (document.getElementById('gateName')?.value || '').trim();
+        const city = document.getElementById('gateCity')?.value || '';
+        if (mobile.length !== 10) {
+            showGateError('Invalid mobile number.');
+            return;
+        }
+        if (!name || !city) {
+            showGateError('Please enter your name and select a city.');
+            return;
+        }
+        gateRegisterBtn.disabled = true;
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mobile, name, city })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Could not register');
+            setCustomerToken(data.token);
+            currentCustomer = data.customer;
+            hideSessionGate();
+            updateCheckoutProfileUI();
+            startMyOrdersPoll();
+            goToMenuScreen();
+        } catch (e) {
+            showGateError(e.message || 'Registration failed.');
+        } finally {
+            gateRegisterBtn.disabled = false;
+        }
+    });
+}
+
+let myOrdersPollTimer = null;
+
+function formatOrderStatus(status) {
+    const map = {
+        pending: 'Waiting for restaurant',
+        accepted: 'Order accepted',
+        rejected: 'Order declined',
+        preparing: 'Preparing your order',
+        out_for_delivery: 'Out for delivery',
+        completed: 'Order completed'
+    };
+    return map[status] || status;
+}
+
+function normalizeOrderItems(raw) {
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return [];
+        }
+    }
+    return [];
+}
+
+function escapeHtmlAttr(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+function renderMyOrders(orders) {
+    const list = document.getElementById('ordersList');
+    if (!list) return;
+    if (!orders || orders.length === 0) {
+        list.innerHTML =
+            '<p class="my-orders-placeholder">Your orders will appear here after you place one.</p>';
+        return;
+    }
+    list.innerHTML = orders
+        .map((o) => {
+            const items = normalizeOrderItems(o.items);
+            const lines = items
+                .map(
+                    (row) =>
+                        `<div class="my-order-line">${escapeHtmlAttr(row.name)} × ${row.quantity} · ₹${row.price * row.quantity}</div>`
+                )
+                .join('');
+            const when = o.created_at ? new Date(o.created_at).toLocaleString() : '';
+            const id = o.id;
+            const st = o.status || '';
+            return `
+        <div class="my-order-card my-order-card--${escapeHtmlAttr(st)}">
+          <div class="my-order-top">
+            <span class="my-order-id">#${escapeHtmlAttr(String(id))}</span>
+            <span class="my-order-status my-order-status--${escapeHtmlAttr(st)}">${escapeHtmlAttr(formatOrderStatus(st))}</span>
+          </div>
+          <div class="my-order-meta">${escapeHtmlAttr(when)}</div>
+          <div class="my-order-items">${lines}</div>
+          <div class="my-order-total">₹${Number(o.total) || 0}</div>
+        </div>
+      `;
+        })
+        .join('');
+}
+
+async function fetchMyOrders() {
+    const token = getCustomerToken();
+    if (!token) return;
+    try {
+        const res = await fetch('/api/orders/my', { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        renderMyOrders(data.orders || []);
+    } catch {
+        /* ignore */
+    }
+}
+
+function startMyOrdersPoll() {
+    if (myOrdersPollTimer) clearInterval(myOrdersPollTimer);
+    fetchMyOrders();
+    myOrdersPollTimer = setInterval(fetchMyOrders, 3000);
+}
+
+// ============================================
 // Sticky Navigation
 // ============================================
 let stickyNavInitialized = false;
@@ -1910,7 +2203,9 @@ function openCheckoutModal() {
     const checkoutModal = document.getElementById('checkoutModal');
     const orderSummary = document.getElementById('orderSummary');
     const checkoutTotal = document.getElementById('checkoutTotal');
-    
+
+    updateCheckoutProfileUI();
+
     // Update order summary
     orderSummary.innerHTML = cart.map(item => `
         <div class="summary-item">
@@ -1958,12 +2253,9 @@ function initCheckoutModal() {
 // Place Order
 // ============================================
 async function placeOrder() {
-    const customerName = document.getElementById('customerName').value;
-    const mobileNumber = document.getElementById('mobileNumber').value;
-    const customerCity = document.getElementById('customerCity').value;
-    
-    if (!customerName || !mobileNumber || !customerCity) {
-        alert('Please fill in all required fields');
+    const token = getCustomerToken();
+    if (!token) {
+        alert('Please sign in with your mobile number on the welcome screen first.');
         return;
     }
 
@@ -1974,9 +2266,6 @@ async function placeOrder() {
 
     const total = getCartTotal();
     const payload = {
-        customerName: customerName.trim(),
-        mobileNumber: mobileNumber.trim(),
-        customerCity: customerCity.trim(),
         items: cart.map((item) => ({
             name: item.name,
             price: item.price,
@@ -1989,18 +2278,18 @@ async function placeOrder() {
     const prevLabel = submitBtn ? submitBtn.textContent : '';
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Sending…';
+        submitBtn.textContent = 'Placing…';
     }
 
     try {
         const res = await fetch(getOrderApiUrl(), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify(payload)
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-            throw new Error(data.error || `Could not send order (${res.status})`);
+            throw new Error(data.error || `Could not place order (${res.status})`);
         }
 
         cart = [];
@@ -2012,14 +2301,16 @@ async function placeOrder() {
         document.body.style.overflow = '';
 
         document.getElementById('checkoutForm').reset();
+        updateCheckoutProfileUI();
 
-        alert('Order sent! We will contact you soon.');
+        fetchMyOrders();
+        alert('Order placed! Track status under My orders.');
     } catch (err) {
         const hint =
             window.location.protocol === 'file:'
                 ? ' Open this site using the local server: run `yarn install` then `yarn start` in the project folder.'
                 : '';
-        alert((err.message || 'Could not send order.') + hint);
+        alert((err.message || 'Could not place order.') + hint);
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -2063,7 +2354,19 @@ function initPerformanceOptimizations() {
 // ============================================
 // Initialize Everything
 // ============================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    currentCustomer = getCustomerProfile();
+    updateCheckoutProfileUI();
+
+    const restored = await restoreSession();
+    if (!restored) {
+        window.location.replace('/');
+        return;
+    }
+    document.documentElement.classList.remove('route-menu-auth-pending');
+    startMyOrdersPoll();
+    updateCheckoutProfileUI();
+
     initStickyNav();
     initMobileMenu();
     initSmoothScroll();
@@ -2081,7 +2384,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCheckoutModal();
     initLazyLoading();
     initPerformanceOptimizations();
-    
+
     // Add loaded class to body for CSS transitions
     document.body.classList.add('loaded');
 });

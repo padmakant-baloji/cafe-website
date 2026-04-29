@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <title>Login — Baloji's Cafe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .login-card {
+            width: min(100%, 24rem);
+            background: rgba(30, 41, 59, 0.92);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 1.5rem 1.25rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+        }
+        h1 {
+            margin: 0 0 0.35rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .lead {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin: 0 0 1.25rem;
+            line-height: 1.45;
+        }
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #94a3b8;
+            margin-bottom: 0.35rem;
+        }
+        input, select {
+            width: 100%;
+            padding: 0.65rem 0.75rem;
+            border-radius: 10px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #f1f5f9;
+            font: inherit;
+            font-size: 1rem;
+            margin-bottom: 0.85rem;
+        }
+        button {
+            width: 100%;
+            margin-top: 0.35rem;
+            border: none;
+            border-radius: 10px;
+            background: #16a34a;
+            color: #fff;
+            min-height: 44px;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:disabled { opacity: 0.65; cursor: not-allowed; }
+        .error {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: #fca5a5;
+        }
+    </style>
+</head>
+<body>
+    <main class="login-card">
+        <h1>Baloji's Cafe</h1>
+        <p class="lead">Enter your mobile number to continue.</p>
+
+        <section id="gateStepMobile">
+            <label for="gateMobile">Mobile number</label>
+            <input type="tel" id="gateMobile" inputmode="numeric" autocomplete="tel" maxlength="10" placeholder="10-digit mobile" pattern="[0-9]{10}">
+            <button type="button" id="gateContinueMobile">Continue</button>
+        </section>
+
+        <section id="gateStepProfile" hidden>
+            <p class="lead">New customer: enter name and city.</p>
+            <label for="gateName">Name</label>
+            <input type="text" id="gateName" autocomplete="name" maxlength="200" placeholder="Your name">
+            <label for="gateCity">City</label>
+            <select id="gateCity">
+                <option value="">Select your city</option>
+                <option value="Kudachi">Kudachi</option>
+                <option value="Ugar">Ugar</option>
+                <option value="Chinchali">Chinchali</option>
+                <option value="Ainapur">Ainapur</option>
+                <option value="Gundawad">Gundawad</option>
+            </select>
+            <button type="button" id="gateRegister">Start ordering</button>
+        </section>
+
+        <p class="error" id="gateError" hidden></p>
+    </main>
+
+    <script src="login.js"></script>
+</body>
+</html>

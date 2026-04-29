@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Orders — Baloji's Cafe Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --accent: #22c55e;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 1.25rem;
+            padding-bottom: 2rem;
+        }
+        .admin-header {
+            max-width: 720px;
+            margin: 0 auto 1.25rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .admin-header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        .admin-header p {
+            width: 100%;
+            font-size: 0.8125rem;
+            color: var(--muted);
+        }
+        .admin-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .admin-toolbar button {
+            font: inherit;
+            font-weight: 600;
+            font-size: 0.8125rem;
+            padding: 0.45rem 0.85rem;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #334155;
+            color: var(--text);
+            cursor: pointer;
+        }
+        .admin-toolbar button:active { transform: scale(0.98); }
+        #adminNotifyBanner {
+            max-width: 720px;
+            margin: 0 auto 1rem;
+            padding: 0.75rem 1rem;
+            background: #1e3a2f;
+            border: 1px solid #166534;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        #adminNotifyBanner button {
+            font: inherit;
+            font-weight: 600;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            border: none;
+            background: var(--accent);
+            color: #052e16;
+            cursor: pointer;
+        }
+        #adminOrderList {
+            max-width: 720px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .admin-empty, .admin-error {
+            text-align: center;
+            color: var(--muted);
+            padding: 2rem;
+        }
+        .admin-error { color: #fca5a5; }
+        .admin-order {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+            border: 1px solid #334155;
+        }
+        .admin-order--pending { background: #2b190b; border-color: #7c2d12; }
+        .admin-order--accepted { background: #0f2418; border-color: #166534; }
+        .admin-order--rejected { background: #2a1212; border-color: #991b1b; }
+        .admin-order--preparing { background: #122236; border-color: #1d4ed8; }
+        .admin-order--out_for_delivery { background: #1d1638; border-color: #6d28d9; }
+        .admin-order--completed { background: #0c1f16; border-color: #15803d; }
+        .admin-order-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.65rem;
+        }
+        .admin-order-id {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .admin-order-status {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            background: #334155;
+        }
+        .admin-order-status--pending { background: #422006; color: #fde68a; }
+        .admin-order-status--accepted { background: #14532d; color: #bbf7d0; }
+        .admin-order-status--rejected { background: #450a0a; color: #fecaca; }
+        .admin-order-status--preparing { background: #1e3a5f; color: #bfdbfe; }
+        .admin-order-status--out_for_delivery { background: #312e81; color: #e0e7ff; }
+        .admin-order-status--completed { background: #052e16; color: #bbf7d0; }
+        .admin-order-meta {
+            display: grid;
+            gap: 0.2rem;
+            font-size: 0.875rem;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+        }
+        .admin-order-meta strong { color: var(--text); }
+        .admin-order-time { font-size: 0.75rem; }
+        .admin-order-items {
+            font-size: 0.8125rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+        }
+        .admin-order-line + .admin-order-line { margin-top: 0.15rem; }
+        .admin-order-total {
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--accent);
+        }
+        .admin-order-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .admin-btn {
+            font: inherit;
+            font-weight: 600;
+            font-size: 0.8125rem;
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+        }
+        .admin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .admin-btn--accept { background: var(--accent); color: #052e16; }
+        .admin-btn--reject { background: var(--danger); color: #fff; }
+        .admin-btn--prep { background: #2563eb; color: #fff; }
+        .admin-btn--out { background: #7c3aed; color: #fff; }
+        .admin-btn--complete { background: #15803d; color: #fff; }
+        .admin-toast {
+            position: fixed;
+            bottom: 1.25rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(120%);
+            max-width: min(90vw, 400px);
+            padding: 0.75rem 1.25rem;
+            background: #14532d;
+            color: #ecfccb;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+            transition: transform 0.35s ease;
+            z-index: 1000;
+        }
+        .admin-toast.admin-toast--show {
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <header class="admin-header">
+        <div>
+            <h1>Baloji's Cafe — Orders</h1>
+            <p>Live list refreshes every few seconds. Use Accept → Preparing → Out for delivery.</p>
+        </div>
+        <div class="admin-toolbar">
+            <button type="button" id="adminRefreshBtn">Refresh now</button>
+        </div>
+    </header>
+
+    <div id="adminNotifyBanner" hidden>
+        <span>Enable browser notifications for instant alerts when customers place orders.</span>
+        <button type="button">Enable notifications</button>
+    </div>
+
+    <div id="adminOrderList">
+        <p class="admin-empty">Loading…</p>
+    </div>
+
+    <script src="/admin.js"></script>
+</body>
+</html>
