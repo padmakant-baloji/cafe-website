@@ -2252,11 +2252,23 @@ function initCheckoutModal() {
     });
 }
 
+function getOrderSuccessMessage() {
+    const city = String(currentCustomer?.city || getCustomerProfile()?.city || '').trim().toLowerCase();
+    if (city === 'kudachi') {
+        return 'Your order is confirmed and our kitchen has started preparing it. Delivery in Kudachi usually takes about 15 to 20 minutes. You can track every update live on the My orders page.';
+    }
+    return 'Your order is confirmed and our kitchen has started preparing it. Delivery to your area usually takes about 30 to 40 minutes. You can track every update live on the My orders page.';
+}
+
 function showOrderSuccessModal() {
     const successModal = document.getElementById('orderSuccessModal');
+    const successCopy = document.getElementById('orderSuccessCopy');
     if (!successModal) {
         window.location.assign('/orders');
         return;
+    }
+    if (successCopy) {
+        successCopy.textContent = getOrderSuccessMessage();
     }
     successModal.classList.add('active');
     successModal.setAttribute('aria-hidden', 'false');
