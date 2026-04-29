@@ -145,7 +145,7 @@ async function fetchMyOrders() {
 document.addEventListener('DOMContentLoaded', async () => {
     const restored = await restoreSession();
     if (!restored) {
-        window.location.replace('/');
+        window.location.replace('/login');
         return;
     }
 

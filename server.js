@@ -248,6 +248,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(ROOT, 'login.html'));
 });
 
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(ROOT, 'login.html'));
+});
+
 app.get('/menu', (req, res) => {
     res.sendFile(path.join(ROOT, 'index.html'));
 });
