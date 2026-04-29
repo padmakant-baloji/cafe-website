@@ -19,6 +19,7 @@ const {
     applyAdminOrderAction
 } = require('./lib/order-service');
 const { placeOrderForCustomer } = require('./lib/place-order');
+const { upsertPushSubscription, notifyCustomerOfOrderStatus } = require('./lib/push-service');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -224,6 +225,7 @@ app.post('/api/order', requireCustomer, async (req, res) => {
         await ensureSchema();
         const order = await placeOrderForCustomer(req.customerSession.mobile, req.body || {});
         const id = typeof order.id === 'string' ? parseInt(order.id, 10) : Number(order.id);
+        await notifyCustomerOfOrderStatus({ customerMobile: req.customerSession.mobile, order });
         return res.json({ ok: true, orderId: id, status: order.status });
     } catch (err) {
         const code =
@@ -260,6 +262,9 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
             return res.status(400).json({ error: 'Missing action.' });
         }
         const updated = await applyAdminOrderAction(orderId, action);
+        if (updated && updated.customer_mobile) {
+            await notifyCustomerOfOrderStatus({ customerMobile: updated.customer_mobile, order: updated });
+        }
         return res.json({ ok: true, order: updated });
     } catch (err) {
         const code =
@@ -273,6 +278,26 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
 
 app.get('/api/admin/session', requireAdmin, (req, res) => {
     return res.json({ ok: true });
+});
+
+app.get('/api/push/vapid-public-key', async (req, res) => {
+    const publicKey = process.env.VAPID_PUBLIC_KEY;
+    if (!publicKey) return res.status(501).json({ error: 'Push is not configured (VAPID_PUBLIC_KEY missing).' });
+    return res.json({ publicKey });
+});
+
+app.post('/api/push/subscribe', requireCustomer, async (req, res) => {
+    try {
+        await ensureSchema();
+        const body = req.body || {};
+        const subscription = body.subscription;
+        await upsertPushSubscription(req.customerSession.mobile, subscription);
+        return res.json({ ok: true });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        return res.status(code).json({ error: err.message || 'Could not save subscription.' });
+    }
 });
 
 app.get('/admin', (req, res) => {

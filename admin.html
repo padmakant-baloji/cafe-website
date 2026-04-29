@@ -158,6 +158,120 @@
             color: #052e16;
             cursor: pointer;
         }
+        .admin-tabs {
+            max-width: 720px;
+            margin: 0 auto 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: flex-start;
+        }
+        .admin-tab-btn {
+            font: inherit;
+            font-weight: 700;
+            font-size: 0.8125rem;
+            padding: 0.45rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid #334155;
+            background: #334155;
+            color: var(--text);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .admin-tab-btn[aria-selected="true"] {
+            background: var(--accent);
+            border-color: rgba(34, 197, 94, 0.55);
+            color: #052e16;
+        }
+        .admin-tab-count {
+            display: inline-flex;
+            min-width: 1.75rem;
+            height: 1.5rem;
+            padding: 0 0.4rem;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+        }
+        .admin-tab-btn[aria-selected="true"] .admin-tab-count {
+            background: rgba(5, 46, 22, 0.12);
+            border-color: rgba(5, 46, 22, 0.25);
+        }
+        .admin-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1500;
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .admin-modal[hidden] {
+            display: none !important;
+        }
+        .admin-modal-card {
+            width: min(100%, 26rem);
+            background: #111c31;
+            border: 1px solid #334155;
+            border-radius: 18px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+            padding: 1.05rem 1.1rem;
+        }
+        .admin-modal-head {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+        .admin-modal-title {
+            font-weight: 800;
+            font-size: 1.05rem;
+        }
+        .admin-modal-sub {
+            color: var(--muted);
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+        .admin-popup-actions {
+            display: flex;
+            gap: 0.6rem;
+            margin-top: 1rem;
+        }
+        .admin-popup-actions button {
+            flex: 1;
+            font: inherit;
+            font-weight: 800;
+            font-size: 0.875rem;
+            padding: 0.75rem 0.9rem;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+        }
+        .admin-popup-actions .admin-btn--accept {
+            background: var(--accent);
+            color: #052e16;
+        }
+        .admin-popup-actions .admin-btn--reject {
+            background: var(--danger);
+            color: #fff;
+        }
+        .admin-popup-close {
+            background: transparent;
+            border: 1px solid #334155;
+            color: var(--muted);
+            border-radius: 10px;
+            padding: 0.4rem 0.6rem;
+            cursor: pointer;
+            font-weight: 800;
+        }
         #adminOrderList {
             max-width: 720px;
             margin: 0 auto;
@@ -268,6 +382,56 @@
         .admin-toast.admin-toast--show {
             transform: translateX(-50%) translateY(0);
         }
+
+        /* Mobile tweaks */
+        @media (max-width: 640px) {
+            body {
+                padding: 0.75rem;
+                padding-bottom: 1.25rem;
+            }
+            .admin-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .admin-toolbar {
+                width: 100%;
+            }
+            .admin-toolbar button {
+                width: 100%;
+                text-align: center;
+            }
+            #adminOrderList {
+                gap: 0.85rem;
+            }
+            .admin-order {
+                padding: 0.9rem 0.95rem;
+            }
+            .admin-order-items {
+                font-size: 0.78rem;
+            }
+            .admin-popup-actions {
+                flex-direction: column;
+            }
+            .admin-popup-actions button {
+                width: 100%;
+                flex: 0 0 auto;
+            }
+            .admin-modal-card {
+                padding: 0.9rem 0.95rem;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .admin-tabs {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 0.25rem;
+            }
+            .admin-tab-btn {
+                white-space: nowrap;
+            }
+        }
     </style>
 </head>
 <body>
@@ -292,6 +456,7 @@
         </div>
         <div class="admin-toolbar">
             <button type="button" id="adminRefreshBtn">Refresh now</button>
+            <button type="button" id="adminEnableSoundBtn">Enable sound</button>
             <button type="button" id="adminLogoutBtn">Logout</button>
         </div>
     </header>
@@ -301,8 +466,27 @@
         <button type="button">Enable notifications</button>
     </div>
 
+    <div id="adminTabs" class="admin-tabs" role="tablist" aria-label="Order status"></div>
+
     <div id="adminOrderList">
         <p class="admin-empty">Loading…</p>
+    </div>
+
+    <div id="adminNewOrderModal" class="admin-modal" hidden>
+        <div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminNewOrderTitle">
+            <div class="admin-modal-head">
+                <div>
+                    <div class="admin-modal-title" id="adminNewOrderTitle">New pending order</div>
+                    <div class="admin-modal-sub" id="adminNewOrderSubtitle">—</div>
+                </div>
+                <button type="button" id="adminNewOrderCloseBtn" class="admin-popup-close" aria-label="Close">Close</button>
+            </div>
+            <div class="admin-modal-sub" id="adminNewOrderDetails"></div>
+            <div class="admin-popup-actions">
+                <button type="button" id="adminNewOrderRejectBtn" class="admin-btn admin-btn--reject">Reject</button>
+                <button type="button" id="adminNewOrderAcceptBtn" class="admin-btn admin-btn--accept">Accept</button>
+            </div>
+        </div>
     </div>
 
     <script src="/admin.js"></script>

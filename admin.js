@@ -12,6 +12,25 @@ let audioUnlocked = false;
 let refreshTimer = null;
 let currentAdminCredentials = null;
 
+const ORDER_STATUS_TABS = [
+    { key: 'all', label: 'All Orders', emptyText: 'orders' },
+    { key: 'pending', label: 'New Orders', emptyText: 'pending orders' },
+    { key: 'accepted', label: 'Accepted', emptyText: 'accepted orders' },
+    { key: 'preparing', label: 'Preparing', emptyText: 'preparing orders' },
+    { key: 'out_for_delivery', label: 'Out for delivery', emptyText: 'out for delivery orders' },
+    { key: 'completed', label: 'Completed', emptyText: 'completed orders' },
+    { key: 'rejected', label: 'Rejected', emptyText: 'rejected orders' }
+];
+
+let activeOrderTab = 'all';
+let lastOrders = [];
+
+// New pending orders are queued and shown one-by-one in a popup.
+let pendingPopupQueue = [];
+let pendingPopupQueueIds = new Set();
+let newOrderPopupOpen = false;
+let newOrderPopupOrderId = null;
+
 function loadAdminCredentials() {
     try {
         const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
@@ -179,9 +198,9 @@ function formatDeliveryAddress(address) {
     return String(parsed.addressLine || parsed.address_line || '').trim();
 }
 
-function renderOrders(orders, container) {
+function renderOrders(orders, container, emptyText = 'orders') {
     if (!orders.length) {
-        container.innerHTML = '<p class="admin-empty">No orders yet.</p>';
+        container.innerHTML = `<p class="admin-empty">No ${escapeHtml(emptyText)} yet.</p>`;
         return;
     }
 
@@ -236,6 +255,49 @@ function renderOrders(orders, container) {
             `;
         })
         .join('');
+}
+
+function renderOrderTabs(tabsEl, countsByStatus, activeKey) {
+    if (!tabsEl) return;
+    tabsEl.innerHTML = '';
+
+    for (const tab of ORDER_STATUS_TABS) {
+        const count = countsByStatus && typeof countsByStatus === 'object' ? countsByStatus[tab.key] : 0;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'admin-tab-btn';
+        btn.setAttribute('role', 'tab');
+        btn.dataset.status = tab.key;
+        btn.setAttribute('aria-selected', tab.key === activeKey ? 'true' : 'false');
+
+        const label = document.createElement('span');
+        label.textContent = tab.label;
+
+        const countSpan = document.createElement('span');
+        countSpan.className = 'admin-tab-count';
+        countSpan.textContent = String(count || 0);
+
+        btn.appendChild(label);
+        btn.appendChild(countSpan);
+        tabsEl.appendChild(btn);
+    }
+}
+
+function buildNewOrderPopupDetails(order) {
+    const deliveryAddress = formatDeliveryAddress(order.delivery_address);
+    const items = formatItems(order.items)
+        .split('\n')
+        .filter(Boolean)
+        .slice(0, 5)
+        .map((line) => `<div>${escapeHtml(line)}</div>`)
+        .join('');
+
+    const addressHtml = deliveryAddress ? `<div style="color: var(--muted);">${escapeHtml(deliveryAddress)}</div>` : '';
+    const when = order.created_at ? new Date(order.created_at).toLocaleString() : '';
+    const timeHtml = when ? `<div style="color: var(--muted); font-size: 0.8rem; margin-top: 0.25rem;">${escapeHtml(when)}</div>` : '';
+    const itemsHtml = items ? `<div style="margin-top: 0.6rem;">${items}</div>` : '';
+    return `${addressHtml}${itemsHtml}${timeHtml}`;
 }
 
 function escapeHtml(s) {
@@ -295,10 +357,22 @@ async function unlockAudio() {
     }
 }
 
-function playNewOrderAlert() {
+async function playNewOrderAlert() {
     try {
         const ctx = getAudioContext();
-        if (!ctx || !audioUnlocked || ctx.state !== 'running') return;
+        if (!ctx || !audioUnlocked) return;
+
+        // Some browsers suspend audio in background tabs. If the user already
+        // enabled sound once, resuming often succeeds without a new click.
+        if (ctx.state !== 'running') {
+            try {
+                await ctx.resume();
+            } catch {
+                /* ignore resume errors */
+            }
+        }
+
+        if (ctx.state !== 'running') return;
         const master = ctx.createGain();
         master.gain.setValueAtTime(0.0001, ctx.currentTime);
         master.gain.exponentialRampToValueAtTime(0.9, ctx.currentTime + 0.02);
@@ -368,15 +442,79 @@ function updateSoundButtonState() {
 
 document.addEventListener('DOMContentLoaded', () => {
     const listEl = document.getElementById('adminOrderList');
+    const tabsEl = document.getElementById('adminTabs');
     const banner = document.getElementById('adminNotifyBanner');
     const refreshBtn = document.getElementById('adminRefreshBtn');
+    const enableSoundBtn = document.getElementById('adminEnableSoundBtn');
     const logoutBtn = document.getElementById('adminLogoutBtn');
     const authForm = document.getElementById('adminAuthForm');
     const authSubmit = document.getElementById('adminAuthSubmit');
     const authUser = document.getElementById('adminUsername');
     const authPass = document.getElementById('adminPassword');
+    const modalEl = document.getElementById('adminNewOrderModal');
+    const popupTitleEl = document.getElementById('adminNewOrderTitle');
+    const popupSubtitleEl = document.getElementById('adminNewOrderSubtitle');
+    const popupDetailsEl = document.getElementById('adminNewOrderDetails');
+    const popupCloseBtn = document.getElementById('adminNewOrderCloseBtn');
+    const popupAcceptBtn = document.getElementById('adminNewOrderAcceptBtn');
+    const popupRejectBtn = document.getElementById('adminNewOrderRejectBtn');
 
     fillAdminDefaults();
+
+    const hashKey = String(window.location.hash || '').replace(/^#/, '').trim();
+    if (ORDER_STATUS_TABS.some((t) => t.key === hashKey)) {
+        activeOrderTab = hashKey;
+    }
+    if (!window.location.hash) {
+        window.location.hash = `#${activeOrderTab}`;
+    }
+
+    function hideNewOrderPopup() {
+        if (modalEl) modalEl.hidden = true;
+        newOrderPopupOpen = false;
+        newOrderPopupOrderId = null;
+    }
+
+    function showNewOrderPopup(order) {
+        if (!modalEl) return;
+        const id = String(order.id);
+        popupTitleEl.textContent = `New order #${id}`;
+        popupSubtitleEl.textContent = `${order.name || ''} · ₹${Number(order.total) || 0}`;
+        popupDetailsEl.innerHTML = buildNewOrderPopupDetails(order);
+        modalEl.hidden = false;
+        newOrderPopupOpen = true;
+        newOrderPopupOrderId = id;
+    }
+
+    function getCountsByStatus(orders) {
+        const counts = {};
+        for (const tab of ORDER_STATUS_TABS) counts[tab.key] = 0;
+        counts.all = 0;
+        for (const o of orders) {
+            if (counts[o.status] !== undefined) counts[o.status] += 1;
+            counts.all += 1;
+        }
+        return counts;
+    }
+
+    function renderTabsAndActiveList(orders) {
+        const countsByStatus = getCountsByStatus(orders);
+        renderOrderTabs(tabsEl, countsByStatus, activeOrderTab);
+        const tab = ORDER_STATUS_TABS.find((t) => t.key === activeOrderTab) || ORDER_STATUS_TABS[0];
+        const filtered = activeOrderTab === 'all' ? orders : orders.filter((o) => o.status === activeOrderTab);
+        renderOrders(filtered, listEl, tab.emptyText || 'orders');
+    }
+
+    tabsEl?.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-status]');
+        if (!btn) return;
+        const nextKey = String(btn.getAttribute('data-status') || '');
+        if (!ORDER_STATUS_TABS.some((t) => t.key === nextKey)) return;
+        if (nextKey === activeOrderTab) return;
+        activeOrderTab = nextKey;
+        window.location.hash = `#${activeOrderTab}`;
+        renderTabsAndActiveList(lastOrders);
+    });
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'default' && banner) {
         banner.hidden = false;
@@ -386,6 +524,62 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    popupCloseBtn?.addEventListener('click', () => {
+        if (!newOrderPopupOpen) {
+            hideNewOrderPopup();
+            return;
+        }
+
+        const currentId = newOrderPopupOrderId;
+        if (pendingPopupQueue.length) {
+            const idx = pendingPopupQueue.findIndex((o) => String(o.id) === currentId);
+            if (idx >= 0) {
+                const [item] = pendingPopupQueue.splice(idx, 1);
+                pendingPopupQueue.push(item);
+            } else {
+                const first = pendingPopupQueue.shift();
+                if (first) pendingPopupQueue.push(first);
+            }
+        }
+
+        hideNewOrderPopup();
+
+        const pendingSet = new Set(
+            (lastOrders || []).filter((o) => o.status === 'pending').map((o) => String(o.id))
+        );
+        const next = pendingPopupQueue[0];
+        if (next && pendingSet.has(String(next.id))) {
+            showNewOrderPopup(next);
+        }
+    });
+
+    async function handleNewOrderPopupAction(action) {
+        const id = newOrderPopupOrderId;
+        if (!id) return;
+
+        if (popupAcceptBtn) popupAcceptBtn.disabled = true;
+        if (popupRejectBtn) popupRejectBtn.disabled = true;
+
+        try {
+            await patchOrder(id, action);
+            hideNewOrderPopup();
+            await refresh();
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired. Enter admin credentials again.');
+            } else {
+                alert(err && err.message ? err.message : 'Update failed');
+            }
+        } finally {
+            if (popupAcceptBtn) popupAcceptBtn.disabled = false;
+            if (popupRejectBtn) popupRejectBtn.disabled = false;
+        }
+    }
+
+    popupAcceptBtn?.addEventListener('click', () => handleNewOrderPopupAction('accept'));
+    popupRejectBtn?.addEventListener('click', () => handleNewOrderPopupAction('reject'));
 
     const seenPending = loadSeenIds();
     let lastOrderId = loadLastOrderId();
@@ -402,15 +596,53 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', unlockHandler);
     document.addEventListener('touchstart', unlockHandler, { passive: true });
 
+    enableSoundBtn?.addEventListener('click', async () => {
+        const ok = await unlockAudio();
+        updateSoundButtonState();
+        if (ok && ringingOrderIds.size > 0) {
+            playNewOrderAlert();
+        }
+    });
+
+    document.addEventListener('visibilitychange', async () => {
+        // After you previously tapped/clicked this page, some browsers suspend audio in background tabs.
+        // When the tab becomes visible again, try resuming (no-op if the browser still blocks it).
+        if (!document.hidden) {
+            const ok = await unlockAudio();
+            updateSoundButtonState();
+            if (ok && ringingOrderIds.size > 0) {
+                playNewOrderAlert();
+            }
+        }
+    });
+
     updateSoundButtonState();
 
     async function refresh() {
         try {
             const orders = await fetchOrders();
-            renderOrders(orders, listEl);
+            lastOrders = orders;
+            renderTabsAndActiveList(orders);
             const pendingSet = new Set(
                 orders.filter((o) => o.status === 'pending').map((o) => String(o.id))
             );
+
+            // Drop handled/obsolete items from the popup queue.
+            pendingPopupQueue = pendingPopupQueue.filter((o) => pendingSet.has(String(o.id)));
+            pendingPopupQueueIds = new Set(pendingPopupQueue.map((o) => String(o.id)));
+
+            // If the popup was open, ensure it still corresponds to a pending order.
+            if (newOrderPopupOpen && newOrderPopupOrderId && !pendingSet.has(newOrderPopupOrderId)) {
+                hideNewOrderPopup();
+            }
+
+            // Show the next queued pending order (one-at-a-time).
+            if (!newOrderPopupOpen) {
+                const next = pendingPopupQueue[0];
+                if (next && pendingSet.has(String(next.id))) {
+                    showNewOrderPopup(next);
+                }
+            }
 
             // Stop ringing for orders that were handled.
             for (const id of [...ringingOrderIds]) {
@@ -448,6 +680,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     maybeNotifyNewOrder(o);
                     ringingOrderIds.add(sid);
                     startRingingUntilHandled();
+
+                    if (!pendingPopupQueueIds.has(sid)) {
+                        pendingPopupQueue.push(o);
+                        pendingPopupQueueIds.add(sid);
+                    }
+
+                    if (!newOrderPopupOpen) {
+                        const next = pendingPopupQueue[0];
+                        if (next) showNewOrderPopup(next);
+                    }
                 }
             }
         } catch (e) {
@@ -457,6 +699,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     refreshTimer = null;
                 }
                 clearAdminCredentials();
+                hideNewOrderPopup();
+                pendingPopupQueue = [];
+                pendingPopupQueueIds = new Set();
                 showAdminGate('Enter valid admin credentials to continue.');
                 listEl.innerHTML = '<p class="admin-empty">Admin login required.</p>';
                 return;
@@ -478,6 +723,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             if (err && err.code === 401) {
                 clearAdminCredentials();
+                hideNewOrderPopup();
                 showAdminGate('Session expired. Enter admin credentials again.');
             } else {
                 alert(err.message || 'Update failed');
@@ -490,6 +736,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (refreshBtn) refreshBtn.addEventListener('click', () => refresh());
     logoutBtn?.addEventListener('click', () => {
         clearAdminCredentials();
+        hideNewOrderPopup();
+        pendingPopupQueue = [];
+        pendingPopupQueueIds = new Set();
         if (refreshTimer) {
             clearInterval(refreshTimer);
             refreshTimer = null;
@@ -533,6 +782,9 @@ document.addEventListener('DOMContentLoaded', () => {
         currentAdminCredentials = savedCreds;
         if (!savedCreds) {
             showAdminGate();
+            hideNewOrderPopup();
+            pendingPopupQueue = [];
+            pendingPopupQueueIds = new Set();
             listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
             return;
         }
@@ -541,6 +793,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ok) {
             clearAdminCredentials();
             showAdminGate('Invalid saved admin credentials. Please log in again.');
+            hideNewOrderPopup();
+            pendingPopupQueue = [];
+            pendingPopupQueueIds = new Set();
             listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
             return;
         }

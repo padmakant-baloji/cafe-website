@@ -1,0 +1,29 @@
+{
+  "name": "Baloji's Cafe",
+  "short_name": "Baloji's Cafe",
+  "description": "Order online and get live order status updates.",
+  "start_url": "/menu",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#22c55e",
+  "icons": [
+    {
+      "src": "/images/cold coffee.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/cold coffee.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/images/cold coffee.jpg",
+      "sizes": "144x144",
+      "type": "image/jpeg"
+    }
+  ]
+}
+
