@@ -2252,6 +2252,46 @@ function initCheckoutModal() {
     });
 }
 
+function showOrderSuccessModal() {
+    const successModal = document.getElementById('orderSuccessModal');
+    if (!successModal) {
+        window.location.assign('/orders');
+        return;
+    }
+    successModal.classList.add('active');
+    successModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeOrderSuccessModal() {
+    const successModal = document.getElementById('orderSuccessModal');
+    if (!successModal) return;
+    successModal.classList.remove('active');
+    successModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+}
+
+function initOrderSuccessModal() {
+    const successModal = document.getElementById('orderSuccessModal');
+    const closeBtn = document.getElementById('orderSuccessCloseBtn');
+    const trackBtn = document.getElementById('trackOrderBtn');
+    if (!successModal) return;
+
+    closeBtn?.addEventListener('click', () => {
+        closeOrderSuccessModal();
+    });
+
+    trackBtn?.addEventListener('click', () => {
+        window.location.assign('/orders');
+    });
+
+    successModal.addEventListener('click', (e) => {
+        if (e.target === successModal) {
+            closeOrderSuccessModal();
+        }
+    });
+}
+
 // ============================================
 // Place Order
 // ============================================
@@ -2306,8 +2346,7 @@ async function placeOrder() {
         document.getElementById('checkoutForm').reset();
         updateCheckoutProfileUI();
 
-        alert('Order placed! Opening your My orders page.');
-        window.location.assign('/orders');
+        showOrderSuccessModal();
     } catch (err) {
         const hint =
             window.location.protocol === 'file:'
@@ -2385,6 +2424,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadCart();
     initCartModal();
     initCheckoutModal();
+    initOrderSuccessModal();
     initLazyLoading();
     initPerformanceOptimizations();
 

@@ -6304,6 +6304,40 @@ body.session-gate-open {
     margin-bottom: var(--fo-space-4, 1rem);
 }
 
+.order-success-modal-content {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    align-items: center;
+}
+
+.order-success-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 700;
+    box-shadow: 0 12px 28px rgba(34, 197, 94, 0.28);
+}
+
+.order-success-copy {
+    margin: 0;
+    color: var(--fo-muted, #64748b);
+    line-height: 1.6;
+    max-width: 28rem;
+}
+
+.order-success-actions {
+    width: 100%;
+    justify-content: center;
+}
+
 .checkout-profile-label {
     font-size: 0.6875rem;
     font-weight: 600;
