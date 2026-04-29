@@ -1,5 +1,7 @@
 'use strict';
 
+const DEFAULT_ADMIN_USER = 'balojicafe';
+const DEFAULT_ADMIN_PASS = 'admin';
 const ADMIN_STORAGE_KEY = 'balojiAdminCredentials';
 const SESSION_STORAGE_SEEN = 'balojiAdminSeenPendingIds';
 const SESSION_STORAGE_LAST_ORDER = 'balojiAdminLastOrderId';
@@ -42,10 +44,18 @@ function adminHeaders() {
     };
 }
 
+function fillAdminDefaults() {
+    const userInput = document.getElementById('adminUsername');
+    const passInput = document.getElementById('adminPassword');
+    if (userInput && !userInput.value) userInput.value = DEFAULT_ADMIN_USER;
+    if (passInput && !passInput.value) passInput.value = DEFAULT_ADMIN_PASS;
+}
+
 function showAdminGate(message = '') {
     const gate = document.getElementById('adminAuthGate');
     const error = document.getElementById('adminAuthError');
     if (gate) gate.hidden = false;
+    fillAdminDefaults();
     if (error) {
         error.textContent = message;
         error.hidden = !message;
@@ -339,6 +349,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const authUser = document.getElementById('adminUsername');
     const authPass = document.getElementById('adminPassword');
 
+    fillAdminDefaults();
+
     if (typeof Notification !== 'undefined' && Notification.permission === 'default' && banner) {
         banner.hidden = false;
         banner.querySelector('button')?.addEventListener('click', () => {
@@ -461,8 +473,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     authForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const user = (authUser?.value || '').trim();
-        const pass = authPass?.value || '';
+        const user = ((authUser?.value || '').trim() || DEFAULT_ADMIN_USER);
+        const pass = (authPass?.value || DEFAULT_ADMIN_PASS);
         if (!user || !pass) {
             showAdminGate('Enter both username and password.');
             return;
