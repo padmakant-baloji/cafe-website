@@ -3,8 +3,16 @@
     { "source": "/", "destination": "/login.html" },
     { "source": "/login", "destination": "/login.html" },
     { "source": "/menu", "destination": "/index.html" },
+    { "source": "/menu/", "destination": "/index.html" },
+
     { "source": "/admin", "destination": "/api/admin/page" },
+    { "source": "/admin/", "destination": "/api/admin/page" },
+
     { "source": "/admin.html", "destination": "/api/admin/page" },
-    { "source": "/orders", "destination": "/orders.html" }
+    { "source": "/orders", "destination": "/orders.html" },
+    { "source": "/orders/", "destination": "/orders.html" },
+
+    { "source": "/profile", "destination": "/profile.html" },
+    { "source": "/profile/", "destination": "/profile.html" }
   ]
 }

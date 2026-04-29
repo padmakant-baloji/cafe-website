@@ -79,6 +79,8 @@ async function initPushNotifications() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    initPushNotifications().catch(() => ({}));
+    initPushNotifications().catch((err) => {
+        console.error('[push] initPushNotifications failed', err);
+    });
 });
 

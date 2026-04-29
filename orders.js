@@ -209,7 +209,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    await initPushNotifications();
+    try {
+        await initPushNotifications();
+    } catch (err) {
+        console.error('[push] initPushNotifications failed', err);
+    }
     fetchMyOrders();
     setInterval(fetchMyOrders, 3000);
 });
