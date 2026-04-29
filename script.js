@@ -546,6 +546,8 @@ function initTestimonials() {
 // ============================================
 let cart = [];
 const ORDERING_START_HOUR = 13;
+/** Set to `true` to block add-to-cart before 1 PM (India time). */
+const ENFORCE_ORDERING_START_TIME = false;
 
 function getCafeHour() {
     try {
@@ -561,6 +563,7 @@ function getCafeHour() {
 }
 
 function isOrderingAvailable() {
+    if (!ENFORCE_ORDERING_START_TIME) return true;
     return getCafeHour() >= ORDERING_START_HOUR;
 }
 
@@ -598,6 +601,7 @@ function updateOrderingAvailability() {
 
 function initOrderingAvailability() {
     updateOrderingAvailability();
+    if (!ENFORCE_ORDERING_START_TIME) return;
     setInterval(updateOrderingAvailability, 60000);
 }
 
