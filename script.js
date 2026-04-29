@@ -619,6 +619,14 @@ function saveCart() {
     localStorage.setItem('balojiCart', JSON.stringify(cart));
 }
 
+/** Override with absolute URL if the order API is hosted separately (set on window before script.js). */
+function getOrderApiUrl() {
+    if (typeof window !== 'undefined' && window.ORDER_API_URL) {
+        return window.ORDER_API_URL;
+    }
+    return '/api/order';
+}
+
 // Add item to cart
 function addToCart(itemName, price) {
     if (!isOrderingAvailable()) {
@@ -1985,7 +1993,7 @@ async function placeOrder() {
     }
 
     try {
-        const res = await fetch('/api/order', {
+        const res = await fetch(getOrderApiUrl(), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
