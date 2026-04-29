@@ -1844,6 +1844,21 @@ button {
     transform: scale(0.97);
 }
 
+.size-chip:disabled {
+    border-color: rgba(0, 0, 0, 0.12);
+    background: var(--beige-bg);
+    color: var(--text-light);
+    cursor: not-allowed;
+    opacity: 0.75;
+}
+
+.size-chip:disabled:hover,
+.size-chip:disabled:active {
+    border-color: rgba(0, 0, 0, 0.12);
+    background: var(--beige-bg);
+    transform: none;
+}
+
 .size-chip-label {
     font-size: 0.95rem;
     line-height: 1.2;
@@ -2100,6 +2115,24 @@ button {
 .order-btn:active {
     transform: translateY(0);
     box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
+}
+
+.order-btn:disabled {
+    background: var(--text-light);
+    cursor: not-allowed;
+    opacity: 0.75;
+    box-shadow: none;
+}
+
+.order-btn:disabled:hover,
+.order-btn:disabled:active {
+    background: var(--text-light);
+    transform: none;
+    box-shadow: none;
+}
+
+.order-btn:disabled::before {
+    display: none;
 }
 
 /* Size Selection Modal */
@@ -2957,7 +2990,8 @@ button {
 }
 
 .form-group input[type="text"],
-.form-group input[type="tel"] {
+.form-group input[type="tel"],
+.form-group select {
     width: 100%;
     padding: 0.8rem;
     border: 2px solid var(--beige-bg);
@@ -2967,7 +3001,8 @@ button {
     transition: all var(--transition-normal);
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
     outline: none;
     border-color: var(--logo-green);
     box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
@@ -3876,7 +3911,8 @@ button {
     }
     
     .form-group input[type="text"],
-    .form-group input[type="tel"] {
+    .form-group input[type="tel"],
+    .form-group select {
         padding: 1rem;
         font-size: 1rem;
         min-height: 48px;
@@ -5592,6 +5628,16 @@ body.app-mobile .order-btn:active {
     box-shadow: none;
 }
 
+body.app-mobile .order-btn:disabled,
+body.app-mobile .order-btn:disabled:hover,
+body.app-mobile .order-btn:disabled:active {
+    background: var(--fo-muted);
+    cursor: not-allowed;
+    opacity: 0.75;
+    transform: none;
+    box-shadow: none;
+}
+
 body.app-mobile .order-btn-label {
     font-weight: 600;
 }
@@ -5624,6 +5670,17 @@ body.app-mobile .size-chip-price {
 body.app-mobile .size-chip:hover {
     border-color: var(--fo-accent);
     background: var(--fo-accent-soft);
+}
+
+body.app-mobile .size-chip:disabled,
+body.app-mobile .size-chip:disabled:hover,
+body.app-mobile .size-chip:disabled:active {
+    border-color: var(--fo-border);
+    background: var(--fo-canvas);
+    color: var(--fo-muted);
+    cursor: not-allowed;
+    opacity: 0.75;
+    transform: none;
 }
 
 body.app-mobile .addon-option-text {
@@ -5981,7 +6038,8 @@ body.app-mobile .form-actions .btn-secondary {
 }
 
 body.app-mobile .form-group input[type="text"],
-body.app-mobile .form-group input[type="tel"] {
+body.app-mobile .form-group input[type="tel"],
+body.app-mobile .form-group select {
     padding: var(--fo-space-3) var(--fo-space-4);
     border-color: var(--fo-border);
     border-radius: var(--fo-radius-sm);

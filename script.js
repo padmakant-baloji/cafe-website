@@ -545,6 +545,61 @@ function initTestimonials() {
 // Cart System
 // ============================================
 let cart = [];
+const ORDERING_START_HOUR = 13;
+
+function getCafeHour() {
+    try {
+        const hour = new Intl.DateTimeFormat('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: 'numeric',
+            hourCycle: 'h23'
+        }).format(new Date());
+        return parseInt(hour, 10);
+    } catch (error) {
+        return new Date().getHours();
+    }
+}
+
+function isOrderingAvailable() {
+    return getCafeHour() >= ORDERING_START_HOUR;
+}
+
+function showOrderingClosedMessage() {
+    alert('Online ordering starts at 1 PM. Please try again after 1 PM.');
+}
+
+function updateOrderingAvailability() {
+    const orderingDisabled = !isOrderingAvailable();
+    const orderButtons = document.querySelectorAll('.order-btn');
+    const sizeButtons = document.querySelectorAll('.size-chip');
+    const sizeHints = document.querySelectorAll('.menu-item-note');
+
+    orderButtons.forEach((button) => {
+        button.disabled = orderingDisabled;
+        button.setAttribute('aria-disabled', String(orderingDisabled));
+        button.title = orderingDisabled ? 'Online ordering starts at 1 PM' : '';
+
+        const label = button.querySelector('.order-btn-label');
+        if (label) {
+            label.textContent = orderingDisabled ? 'Starts at 1 PM' : 'Add to cart';
+        }
+    });
+
+    sizeButtons.forEach((button) => {
+        button.disabled = orderingDisabled;
+        button.setAttribute('aria-disabled', String(orderingDisabled));
+        button.title = orderingDisabled ? 'Online ordering starts at 1 PM' : '';
+    });
+
+    sizeHints.forEach((hint) => {
+        hint.textContent = orderingDisabled ? 'Ordering starts at 1 PM' : 'Tap a size to add to cart';
+    });
+}
+
+function initOrderingAvailability() {
+    updateOrderingAvailability();
+    setInterval(updateOrderingAvailability, 60000);
+}
 
 // Load cart from localStorage
 function loadCart() {
@@ -562,6 +617,12 @@ function saveCart() {
 
 // Add item to cart
 function addToCart(itemName, price) {
+    if (!isOrderingAvailable()) {
+        updateOrderingAvailability();
+        showOrderingClosedMessage();
+        return;
+    }
+
     // Price can be a number or string - handle both
     const itemPrice = typeof price === 'number' ? price : (parseInt(price) || 0);
     
@@ -1582,6 +1643,8 @@ function renderMenu(searchQuery = '') {
             }
         }, 100);
     }
+
+    updateOrderingAvailability();
     
 }
 
@@ -1885,8 +1948,9 @@ function initCheckoutModal() {
 function placeOrder() {
     const customerName = document.getElementById('customerName').value;
     const mobileNumber = document.getElementById('mobileNumber').value;
+    const customerCity = document.getElementById('customerCity').value;
     
-    if (!customerName || !mobileNumber) {
+    if (!customerName || !mobileNumber || !customerCity) {
         alert('Please fill in all required fields');
         return;
     }
@@ -1895,6 +1959,7 @@ function placeOrder() {
     let message = `🍽️ *Order from Baloji's Cafe*\n\n`;
     message += `👤 *Name:* ${customerName}\n`;
     message += `📱 *Mobile Number:* ${mobileNumber}\n`;
+    message += `🏙️ *City:* ${customerCity}\n`;
     
     message += `\n📋 *Order Details:*\n`;
     cart.forEach((item, index) => {
@@ -1905,7 +1970,7 @@ function placeOrder() {
     message += `Thank you for ordering from Baloji's Cafe! 🎉`;
     
     // Open WhatsApp
-    const whatsappNumber = '919900582650';
+    const whatsappNumber = '916364065620';
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
     
@@ -1971,6 +2036,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initStickyCategoryTabs();
     initMenuSearch();
     initMenuItemActions();
+    initOrderingAvailability();
     initGallery();
     initTestimonials();
     loadCart();
