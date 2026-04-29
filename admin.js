@@ -1,20 +1,65 @@
 'use strict';
 
+const ADMIN_STORAGE_KEY = 'balojiAdminCredentials';
 const SESSION_STORAGE_SEEN = 'balojiAdminSeenPendingIds';
 const SESSION_STORAGE_LAST_ORDER = 'balojiAdminLastOrderId';
 const ringingOrderIds = new Set();
 let ringingTimer = null;
 let audioCtx = null;
 let audioUnlocked = false;
+let refreshTimer = null;
+
+function loadAdminCredentials() {
+    try {
+        const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        if (!parsed.user || !parsed.pass) return null;
+        return parsed;
+    } catch {
+        return null;
+    }
+}
+
+function saveAdminCredentials(user, pass) {
+    localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({ user, pass }));
+}
+
+function clearAdminCredentials() {
+    localStorage.removeItem(ADMIN_STORAGE_KEY);
+}
 
 function adminHeaders() {
-    const user = 'balojicafe';
-    const pass = 'admin';
+    const creds = loadAdminCredentials();
+    if (!creds) return { Accept: 'application/json' };
+    const user = creds.user;
+    const pass = creds.pass;
     const token = btoa(`${user}:${pass}`);
     return {
         Authorization: `Basic ${token}`,
         Accept: 'application/json'
     };
+}
+
+function showAdminGate(message = '') {
+    const gate = document.getElementById('adminAuthGate');
+    const error = document.getElementById('adminAuthError');
+    if (gate) gate.hidden = false;
+    if (error) {
+        error.textContent = message;
+        error.hidden = !message;
+    }
+}
+
+function hideAdminGate() {
+    const gate = document.getElementById('adminAuthGate');
+    const error = document.getElementById('adminAuthError');
+    if (gate) gate.hidden = true;
+    if (error) {
+        error.textContent = '';
+        error.hidden = true;
+    }
 }
 
 function statusLabel(status) {
@@ -56,6 +101,7 @@ function saveLastOrderId(id) {
 
 async function fetchOrders() {
     const res = await fetch('/api/admin/orders', { headers: adminHeaders() });
+    if (res.status === 401) throw Object.assign(new Error('Authentication required'), { code: 401 });
     if (!res.ok) throw new Error(`Could not load orders (${res.status})`);
     const data = await res.json();
     return data.orders || [];
@@ -71,8 +117,15 @@ async function patchOrder(orderId, action) {
         body: JSON.stringify({ action })
     });
     const data = await res.json().catch(() => ({}));
+    if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
     if (!res.ok) throw new Error(data.error || res.statusText);
     return data.order;
+}
+
+async function verifyAdminCredentials() {
+    const res = await fetch('/api/admin/orders', { headers: adminHeaders() });
+    if (res.status === 401) return false;
+    return res.ok;
 }
 
 function formatItems(items) {
@@ -280,6 +333,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const listEl = document.getElementById('adminOrderList');
     const banner = document.getElementById('adminNotifyBanner');
     const refreshBtn = document.getElementById('adminRefreshBtn');
+    const logoutBtn = document.getElementById('adminLogoutBtn');
+    const authForm = document.getElementById('adminAuthForm');
+    const authSubmit = document.getElementById('adminAuthSubmit');
+    const authUser = document.getElementById('adminUsername');
+    const authPass = document.getElementById('adminPassword');
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'default' && banner) {
         banner.hidden = false;
@@ -354,6 +412,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } catch (e) {
+            if (e && e.code === 401) {
+                if (refreshTimer) {
+                    clearInterval(refreshTimer);
+                    refreshTimer = null;
+                }
+                clearAdminCredentials();
+                showAdminGate('Enter valid admin credentials to continue.');
+                listEl.innerHTML = '<p class="admin-empty">Admin login required.</p>';
+                return;
+            }
             listEl.innerHTML = `<p class="admin-error">${escapeHtml(e.message)}</p>`;
         }
     }
@@ -369,14 +437,64 @@ document.addEventListener('DOMContentLoaded', () => {
             await patchOrder(id, action);
             await refresh();
         } catch (err) {
-            alert(err.message || 'Update failed');
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired. Enter admin credentials again.');
+            } else {
+                alert(err.message || 'Update failed');
+            }
         } finally {
             btn.disabled = false;
         }
     });
 
     if (refreshBtn) refreshBtn.addEventListener('click', () => refresh());
+    logoutBtn?.addEventListener('click', () => {
+        clearAdminCredentials();
+        if (refreshTimer) {
+            clearInterval(refreshTimer);
+            refreshTimer = null;
+        }
+        showAdminGate('Admin credentials removed from this browser.');
+        listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
+    });
 
-    refresh();
-    setInterval(refresh, 2500);
+    authForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const user = (authUser?.value || '').trim();
+        const pass = authPass?.value || '';
+        if (!user || !pass) {
+            showAdminGate('Enter both username and password.');
+            return;
+        }
+        if (authSubmit) {
+            authSubmit.disabled = true;
+            authSubmit.textContent = 'Checking...';
+        }
+        saveAdminCredentials(user, pass);
+        const ok = await verifyAdminCredentials().catch(() => false);
+        if (!ok) {
+            clearAdminCredentials();
+            showAdminGate('Invalid admin credentials. Please try again.');
+        } else {
+            hideAdminGate();
+            await refresh();
+            if (!refreshTimer) {
+                refreshTimer = setInterval(refresh, 2500);
+            }
+        }
+        if (authSubmit) {
+            authSubmit.disabled = false;
+            authSubmit.textContent = 'Continue';
+        }
+    });
+
+    if (loadAdminCredentials()) {
+        hideAdminGate();
+        refresh();
+        refreshTimer = setInterval(refresh, 2500);
+    } else {
+        showAdminGate();
+        listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
+    }
 });

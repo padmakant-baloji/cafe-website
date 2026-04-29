@@ -3,7 +3,8 @@
     { "source": "/", "destination": "/login.html" },
     { "source": "/login", "destination": "/login.html" },
     { "source": "/menu", "destination": "/index.html" },
-    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/admin", "destination": "/api/admin/page" },
+    { "source": "/admin.html", "destination": "/api/admin/page" },
     { "source": "/orders", "destination": "/orders.html" }
   ]
 }

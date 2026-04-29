@@ -62,6 +62,76 @@
             cursor: pointer;
         }
         .admin-toolbar button:active { transform: scale(0.98); }
+        .admin-auth-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 1200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(8px);
+        }
+        .admin-auth-card {
+            width: min(100%, 24rem);
+            background: #111c31;
+            border: 1px solid #334155;
+            border-radius: 18px;
+            padding: 1.25rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+        }
+        .admin-auth-card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 0.35rem;
+        }
+        .admin-auth-card p {
+            font-size: 0.875rem;
+            color: var(--muted);
+            line-height: 1.55;
+            margin-bottom: 1rem;
+        }
+        .admin-auth-card label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .admin-auth-card input {
+            width: 100%;
+            margin-bottom: 0.85rem;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: var(--text);
+            padding: 0.75rem 0.85rem;
+            font: inherit;
+        }
+        .admin-auth-actions {
+            display: flex;
+            gap: 0.65rem;
+            align-items: center;
+        }
+        .admin-auth-actions button {
+            flex: 1;
+            font: inherit;
+            font-weight: 700;
+            padding: 0.75rem 0.9rem;
+            border-radius: 10px;
+            border: none;
+            background: var(--accent);
+            color: #052e16;
+            cursor: pointer;
+        }
+        .admin-auth-error {
+            margin-top: 0.85rem;
+            color: #fca5a5;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
         #adminNotifyBanner {
             max-width: 720px;
             margin: 0 auto 1rem;
@@ -198,6 +268,21 @@
     </style>
 </head>
 <body>
+    <div class="admin-auth-gate" id="adminAuthGate" hidden>
+        <form class="admin-auth-card" id="adminAuthForm">
+            <h2>Admin access</h2>
+            <p>Enter your admin username and password. If credentials are saved in this browser, you will not be asked again.</p>
+            <label for="adminUsername">Username</label>
+            <input type="text" id="adminUsername" autocomplete="username" required>
+            <label for="adminPassword">Password</label>
+            <input type="password" id="adminPassword" autocomplete="current-password" required>
+            <div class="admin-auth-actions">
+                <button type="submit" id="adminAuthSubmit">Continue</button>
+            </div>
+            <p class="admin-auth-error" id="adminAuthError" hidden></p>
+        </form>
+    </div>
+
     <header class="admin-header">
         <div>
             <h1>Baloji's Cafe — Orders</h1>
@@ -205,6 +290,7 @@
         </div>
         <div class="admin-toolbar">
             <button type="button" id="adminRefreshBtn">Refresh now</button>
+            <button type="button" id="adminLogoutBtn">Logout</button>
         </div>
     </header>
 

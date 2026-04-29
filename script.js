@@ -841,9 +841,9 @@ function initTestimonials() {
 // Cart System
 // ============================================
 let cart = [];
-const ORDERING_START_HOUR = 13;
-/** Set to `true` to block add-to-cart before 1 PM (India time). */
-const ENFORCE_ORDERING_START_TIME = false;
+const ORDERING_START_HOUR = 14;
+/** Set to `true` to block add-to-cart before 2 PM (India time). */
+const ENFORCE_ORDERING_START_TIME = true;
 
 function getCafeHour() {
     try {
@@ -864,7 +864,7 @@ function isOrderingAvailable() {
 }
 
 function showOrderingClosedMessage() {
-    alert('Online ordering starts at 1 PM. Please try again after 1 PM.');
+    alert('Online ordering starts at 2 PM. Please try again after 2 PM.');
 }
 
 function updateOrderingAvailability() {
@@ -876,22 +876,22 @@ function updateOrderingAvailability() {
     orderButtons.forEach((button) => {
         button.disabled = orderingDisabled;
         button.setAttribute('aria-disabled', String(orderingDisabled));
-        button.title = orderingDisabled ? 'Online ordering starts at 1 PM' : '';
+        button.title = orderingDisabled ? 'Online ordering starts at 2 PM' : '';
 
         const label = button.querySelector('.order-btn-label');
         if (label) {
-            label.textContent = orderingDisabled ? 'Starts at 1 PM' : 'Add to cart';
+            label.textContent = orderingDisabled ? 'Starts at 2 PM' : 'Add to cart';
         }
     });
 
     sizeButtons.forEach((button) => {
         button.disabled = orderingDisabled;
         button.setAttribute('aria-disabled', String(orderingDisabled));
-        button.title = orderingDisabled ? 'Online ordering starts at 1 PM' : '';
+        button.title = orderingDisabled ? 'Online ordering starts at 2 PM' : '';
     });
 
     sizeHints.forEach((hint) => {
-        hint.textContent = orderingDisabled ? 'Ordering starts at 1 PM' : 'Tap a size to add to cart';
+        hint.textContent = orderingDisabled ? 'Ordering starts at 2 PM' : 'Tap a size to add to cart';
     });
 }
 
