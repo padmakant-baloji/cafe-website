@@ -30,21 +30,18 @@ app.use(express.json({ limit: '256kb' }));
 function requireAdmin(req, res, next) {
     const auth = req.headers.authorization;
     if (!auth || !auth.startsWith('Basic ')) {
-        res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
         return res.status(401).send('Authentication required');
     }
     let decoded;
     try {
         decoded = Buffer.from(auth.slice(6), 'base64').toString('utf8');
     } catch {
-        res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
         return res.status(401).send('Invalid credentials');
     }
     const colon = decoded.indexOf(':');
     const u = colon >= 0 ? decoded.slice(0, colon) : decoded;
     const p = colon >= 0 ? decoded.slice(colon + 1) : '';
     if (u === ADMIN_USER && p === ADMIN_PASS) return next();
-    res.setHeader('WWW-Authenticate', 'Basic realm="Admin"');
     return res.status(401).send('Invalid credentials');
 }
 
@@ -264,11 +261,11 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
     }
 });
 
-app.get('/admin', requireAdmin, (req, res) => {
+app.get('/admin', (req, res) => {
     res.sendFile(path.join(ROOT, 'admin.html'));
 });
 
-app.get('/admin.html', requireAdmin, (req, res) => {
+app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(ROOT, 'admin.html'));
 });
 
