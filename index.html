@@ -507,6 +507,23 @@
                 </div>
                 </div>
 
+                <div class="checkout-address-section" id="checkoutAddressSection">
+                    <div class="checkout-address-section-head">
+                        <div>
+                            <label class="checkout-address-title">Delivery address</label>
+                            <p class="checkout-address-copy">Select a saved address or type one address line for this order.</p>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-address-toggle" id="checkoutAddAddressBtn">Add new address</button>
+                    </div>
+                    <div class="checkout-saved-addresses" id="checkoutSavedAddresses"></div>
+                    <div class="checkout-new-address-fields" id="checkoutNewAddressFields" hidden>
+                        <div class="form-group">
+                            <label for="addressLine">Address *</label>
+                            <input type="text" id="addressLine" name="addressLine" maxlength="300" placeholder="House no, street, area">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Order Summary</label>
                     <div class="order-summary" id="orderSummary"></div>

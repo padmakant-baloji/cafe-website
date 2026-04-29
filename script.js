@@ -61,6 +61,95 @@ function getAuthHeaders() {
 /** @type {{ customerId?: string, name: string, city: string, mobile: string } | null} */
 let currentCustomer = null;
 
+function getCustomerAddresses() {
+    return Array.isArray(currentCustomer?.addresses) ? currentCustomer.addresses : [];
+}
+
+function getDefaultCustomerAddress() {
+    const addresses = getCustomerAddresses();
+    return addresses.find((address) => address && address.isDefault) || addresses[0] || null;
+}
+
+function formatSavedAddress(address) {
+    if (!address || typeof address !== 'object') return '';
+    return String(address.addressLine || address.address_line || '').trim();
+}
+
+function prefillNewAddressForm() {
+    return;
+}
+
+function setCheckoutAddressMode(mode) {
+    const savedWrap = document.getElementById('checkoutSavedAddresses');
+    const newFields = document.getElementById('checkoutNewAddressFields');
+    const toggleBtn = document.getElementById('checkoutAddAddressBtn');
+    const hasSavedAddresses = getCustomerAddresses().length > 0;
+    const normalizedMode = mode === 'new' ? 'new' : 'saved';
+
+    // If the user has no saved addresses, never show the toggle button.
+    if (toggleBtn) toggleBtn.hidden = !hasSavedAddresses;
+
+    if (savedWrap) savedWrap.hidden = normalizedMode === 'new' && hasSavedAddresses;
+    if (newFields) newFields.hidden = normalizedMode !== 'new';
+    if (toggleBtn) {
+        toggleBtn.textContent = normalizedMode === 'new' && hasSavedAddresses ? 'Use saved address' : 'Add new address';
+    }
+    if (normalizedMode === 'new') {
+        prefillNewAddressForm();
+    }
+}
+
+function renderCheckoutAddresses() {
+    const container = document.getElementById('checkoutSavedAddresses');
+    const section = document.getElementById('checkoutAddressSection');
+    const addBtn = document.getElementById('checkoutAddAddressBtn');
+    if (!container || !section) return;
+
+    const addresses = getCustomerAddresses();
+    if (!addresses.length) {
+        container.innerHTML =
+            '<p class="checkout-address-empty">No saved addresses yet. Add this delivery address once and we will keep it for next time.</p>';
+        if (addBtn) addBtn.hidden = true;
+        section.dataset.mode = 'new';
+        setCheckoutAddressMode('new');
+        return;
+    }
+
+    if (addBtn) addBtn.hidden = false;
+    const selected = getDefaultCustomerAddress();
+    container.innerHTML = addresses
+        .map((address) => {
+            const checked = selected && String(selected.id) === String(address.id);
+            return `
+                <label class="checkout-address-option">
+                    <input type="radio" name="savedAddressId" value="${escapeHtmlAttr(String(address.id))}"${checked ? ' checked' : ''}>
+                    <span class="checkout-address-option-body">
+                        <span class="checkout-address-option-top">
+                            <strong>${escapeHtmlAttr(address.label || 'Saved address')}</strong>
+                            ${address.isDefault ? '<span class="checkout-address-badge">Default</span>' : ''}
+                        </span>
+                        <span class="checkout-address-option-line">${escapeHtmlAttr(formatSavedAddress(address))}</span>
+                    </span>
+                </label>
+            `;
+        })
+        .join('');
+    section.dataset.mode = 'saved';
+    setCheckoutAddressMode('saved');
+}
+
+async function refreshCurrentCustomerProfile() {
+    const token = getCustomerToken();
+    if (!token) return null;
+    const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error('Could not refresh your profile.');
+    const data = await res.json();
+    currentCustomer = data.customer || null;
+    setCustomerProfile(currentCustomer);
+    updateCheckoutProfileUI();
+    return currentCustomer;
+}
+
 function hideSessionGate() {
     const gate = document.getElementById('sessionGate');
     if (gate) gate.classList.add('session-gate--hidden');
@@ -127,9 +216,15 @@ function updateCheckoutProfileUI() {
     };
 
     if (currentCustomer) {
+        const defaultAddress = getDefaultCustomerAddress();
         summary.hidden = false;
         fallback.hidden = false;
-        line.textContent = `${currentCustomer.name} · ${currentCustomer.mobile} · ${currentCustomer.city}`;
+        line.textContent = [
+            `${currentCustomer.name} · ${currentCustomer.mobile} · ${currentCustomer.city}`,
+            defaultAddress ? formatSavedAddress(defaultAddress) : ''
+        ]
+            .filter(Boolean)
+            .join(' \u2022 ');
         if (nameInput) nameInput.value = currentCustomer.name || '';
         if (mobileInput) mobileInput.value = currentCustomer.mobile || '';
         if (citySelect) citySelect.value = currentCustomer.city || '';
@@ -139,6 +234,8 @@ function updateCheckoutProfileUI() {
         fallback.hidden = false;
         lockFields(false);
     }
+
+    renderCheckoutAddresses();
 }
 
 function initSessionGate() {
@@ -2206,7 +2303,7 @@ function initCartModal() {
                 return;
             }
             cartModal.classList.remove('active');
-            openCheckoutModal();
+            void openCheckoutModal();
         });
     }
 }
@@ -2214,12 +2311,24 @@ function initCartModal() {
 // ============================================
 // Checkout Modal
 // ============================================
-function openCheckoutModal() {
+async function openCheckoutModal() {
     const checkoutModal = document.getElementById('checkoutModal');
     const orderSummary = document.getElementById('orderSummary');
     const checkoutTotal = document.getElementById('checkoutTotal');
 
+    // Ensure profile data is fresh right before showing checkout.
+    // This avoids rare cases where checkout fields render before session/profile refresh completes.
+    if (!currentCustomer || !currentCustomer.name || !currentCustomer.mobile || !currentCustomer.city) {
+        try {
+            await refreshCurrentCustomerProfile();
+        } catch {
+            /* ignore; UI will fall back to editable fields */
+        }
+    }
+
     updateCheckoutProfileUI();
+    renderCheckoutAddresses();
+    prefillNewAddressForm();
 
     // Update order summary
     orderSummary.innerHTML = cart.map(item => `
@@ -2240,6 +2349,7 @@ function initCheckoutModal() {
     const checkoutClose = document.getElementById('checkoutClose');
     const backToCartBtn = document.getElementById('backToCartBtn');
     const checkoutForm = document.getElementById('checkoutForm');
+    const addAddressBtn = document.getElementById('checkoutAddAddressBtn');
     
     checkoutClose.addEventListener('click', () => {
         checkoutModal.classList.remove('active');
@@ -2261,6 +2371,12 @@ function initCheckoutModal() {
     checkoutForm.addEventListener('submit', (e) => {
         e.preventDefault();
         placeOrder();
+    });
+
+    addAddressBtn?.addEventListener('click', () => {
+        const nextMode =
+            document.getElementById('checkoutNewAddressFields')?.hidden === false ? 'saved' : 'new';
+        setCheckoutAddressMode(nextMode);
     });
 }
 
@@ -2332,6 +2448,8 @@ async function placeOrder() {
     }
 
     const total = getCartTotal();
+    const selectedSavedAddress = document.querySelector('input[name="savedAddressId"]:checked');
+    const usingNewAddress = document.getElementById('checkoutNewAddressFields')?.hidden === false;
     const payload = {
         items: cart.map((item) => ({
             name: item.name,
@@ -2340,6 +2458,31 @@ async function placeOrder() {
         })),
         total
     };
+
+    if (usingNewAddress) {
+        const addressLine = (document.getElementById('addressLine')?.value || '').trim();
+        if (!addressLine) {
+            alert('Please enter your address.');
+            return;
+        }
+        const citySelect = document.getElementById('customerCity');
+        const city = (citySelect && citySelect.value) || currentCustomer?.city || '';
+        payload.address = {
+            label: 'Saved address',
+            addressLine,
+            city
+        };
+    } else if (selectedSavedAddress?.value) {
+        payload.addressId = selectedSavedAddress.value;
+    } else {
+        const defaultAddress = getDefaultCustomerAddress();
+        if (defaultAddress?.id) {
+            payload.addressId = defaultAddress.id;
+        } else {
+            alert('Please select a saved address or add a new one.');
+            return;
+        }
+    }
 
     const submitBtn = document.querySelector('#checkoutForm button[type="submit"]');
     const prevLabel = submitBtn ? submitBtn.textContent : '';
@@ -2362,6 +2505,8 @@ async function placeOrder() {
         cart = [];
         saveCart();
         updateCartUI();
+
+        await refreshCurrentCustomerProfile();
 
         document.getElementById('checkoutModal').classList.remove('active');
         document.getElementById('cartModal').classList.remove('active');

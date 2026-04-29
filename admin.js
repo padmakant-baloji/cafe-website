@@ -165,6 +165,20 @@ function formatItems(items) {
         .join('\n');
 }
 
+function formatDeliveryAddress(address) {
+    if (!address) return '';
+    let parsed = address;
+    if (typeof address === 'string') {
+        try {
+            parsed = JSON.parse(address);
+        } catch {
+            return '';
+        }
+    }
+    if (!parsed || typeof parsed !== 'object') return '';
+    return String(parsed.addressLine || parsed.address_line || '').trim();
+}
+
 function renderOrders(orders, container) {
     if (!orders.length) {
         container.innerHTML = '<p class="admin-empty">No orders yet.</p>';
@@ -200,6 +214,7 @@ function renderOrders(orders, container) {
             }
 
             const when = o.created_at ? new Date(o.created_at).toLocaleString() : '';
+            const deliveryAddress = formatDeliveryAddress(o.delivery_address);
 
             return `
                 <article class="admin-order admin-order--${escapeHtml(o.status)}" data-order-id="${id}">
@@ -211,6 +226,7 @@ function renderOrders(orders, container) {
                         <strong>${escapeHtml(o.name || '')}</strong>
                         <span>${escapeHtml(o.mobile || '')}</span>
                         <span>${escapeHtml(o.city || '')}</span>
+                        ${deliveryAddress ? `<span>${escapeHtml(deliveryAddress)}</span>` : ''}
                         <span class="admin-order-time">${escapeHtml(when)}</span>
                     </div>
                     <div class="admin-order-items">${itemsHtml}</div>

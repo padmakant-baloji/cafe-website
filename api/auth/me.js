@@ -1,8 +1,19 @@
 'use strict';
 
 const { ensureSchema } = require('../../lib/schema');
-const { getCustomerByMobile } = require('../../lib/order-service');
+const { getCustomerByMobile, listCustomerAddresses } = require('../../lib/order-service');
 const { resolveCustomerSession } = require('../../lib/api-auth');
+
+async function serializeCustomer(row) {
+    const addresses = row ? await listCustomerAddresses(row.mobile) : [];
+    return {
+        customerId: row.mobile,
+        name: row.name,
+        city: row.city,
+        mobile: row.mobile,
+        addresses
+    };
+}
 
 module.exports = async (req, res) => {
     if (req.method !== 'GET') {
@@ -19,14 +30,7 @@ module.exports = async (req, res) => {
         if (!row) {
             return res.status(401).json({ error: 'Session expired.' });
         }
-        return res.status(200).json({
-            customer: {
-                customerId: row.mobile,
-                name: row.name,
-                city: row.city,
-                mobile: row.mobile
-            }
-        });
+        return res.status(200).json({ customer: await serializeCustomer(row) });
     } catch (err) {
         console.error('auth/me:', err.message);
         return res.status(500).json({ error: 'Database error.' });

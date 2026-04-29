@@ -11,6 +11,8 @@ const {
     findCustomerByMobile,
     createCustomer,
     getCustomerByMobile,
+    listCustomerAddresses,
+    createCustomerAddress,
     updateCustomerProfile,
     listOrdersForCustomer,
     listAllOrdersForAdmin,
@@ -80,6 +82,17 @@ function parseId(v) {
     return Number.isFinite(n) ? n : NaN;
 }
 
+async function serializeCustomer(row) {
+    const addresses = row ? await listCustomerAddresses(row.mobile) : [];
+    return {
+        customerId: row.mobile,
+        name: row.name,
+        city: row.city,
+        mobile: row.mobile,
+        addresses
+    };
+}
+
 app.post('/api/auth/lookup', async (req, res) => {
     try {
         await ensureSchema();
@@ -95,12 +108,7 @@ app.post('/api/auth/lookup', async (req, res) => {
         return res.json({
             exists: true,
             token,
-            customer: {
-                customerId: row.mobile,
-                name: row.name,
-                city: row.city,
-                mobile: row.mobile
-            }
+            customer: await serializeCustomer(row)
         });
     } catch (err) {
         console.error('auth/lookup:', err.message);
@@ -136,12 +144,7 @@ app.post('/api/auth/register', async (req, res) => {
         const token = signCustomerSession(row.mobile);
         return res.json({
             token,
-            customer: {
-                customerId: row.mobile,
-                name: row.name,
-                city: row.city,
-                mobile: row.mobile
-            }
+            customer: await serializeCustomer(row)
         });
     } catch (err) {
         console.error('auth/register:', err.message);
@@ -157,14 +160,7 @@ app.get('/api/auth/me', requireCustomer, async (req, res) => {
         if (!row) {
             return res.status(401).json({ error: 'Session expired.' });
         }
-        return res.json({
-            customer: {
-                customerId: row.mobile,
-                name: row.name,
-                city: row.city,
-                mobile: row.mobile
-            }
-        });
+        return res.json({ customer: await serializeCustomer(row) });
     } catch (err) {
         console.error('auth/me:', err.message);
         return res.status(500).json({ error: 'Database error.' });
@@ -180,14 +176,7 @@ app.patch('/api/auth/profile', requireCustomer, async (req, res) => {
             body.name,
             body.city
         );
-        return res.json({
-            customer: {
-                customerId: updated.mobile,
-                name: updated.name,
-                city: updated.city,
-                mobile: updated.mobile
-            }
-        });
+        return res.json({ customer: await serializeCustomer(updated) });
     } catch (err) {
         const code =
             err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
@@ -195,6 +184,27 @@ app.patch('/api/auth/profile', requireCustomer, async (req, res) => {
             console.error('auth/profile:', err.message);
         }
         return res.status(code).json({ error: err.message || 'Could not update profile.' });
+    }
+});
+
+app.post('/api/customer-addresses', requireCustomer, async (req, res) => {
+    try {
+        await ensureSchema();
+        const address = await createCustomerAddress(req.customerSession.mobile, req.body || {}, {
+            makeDefault: req.body?.isDefault !== false
+        });
+        const customer = await getCustomerByMobile(req.customerSession.mobile);
+        return res.status(201).json({
+            address,
+            customer: customer ? await serializeCustomer(customer) : null
+        });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) {
+            console.error('customer-addresses:', err.message);
+        }
+        return res.status(code).json({ error: err.message || 'Could not save address.' });
     }
 });
 

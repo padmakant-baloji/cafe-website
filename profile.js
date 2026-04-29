@@ -41,6 +41,39 @@ function getInitials(name) {
     return parts.map((part) => part[0].toUpperCase()).join('');
 }
 
+function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = String(value ?? '');
+    return div.innerHTML;
+}
+
+function formatSavedAddress(address) {
+    if (!address || typeof address !== 'object') return '';
+    return String(address.addressLine || address.address_line || '').trim();
+}
+
+function renderSavedAddresses(addresses) {
+    const list = document.getElementById('profileAddressList');
+    if (!list) return;
+    if (!Array.isArray(addresses) || addresses.length === 0) {
+        list.innerHTML =
+            '<p class="profile-address-empty">No saved addresses yet. Add one during checkout and it will appear here for next time.</p>';
+        return;
+    }
+    list.innerHTML = addresses
+        .map(
+            (address) => `
+                <article class="profile-address-card">
+                    <div class="profile-address-head">
+                        ${address.isDefault ? '<span class="checkout-address-badge">Default</span>' : '<strong>Saved address</strong>'}
+                    </div>
+                    <p class="profile-address-line">${escapeHtml(formatSavedAddress(address))}</p>
+                </article>
+            `
+        )
+        .join('');
+}
+
 function renderProfile(profile) {
     const name = document.getElementById('profileName');
     const mobile = document.getElementById('profileMobile');
@@ -58,6 +91,7 @@ function renderProfile(profile) {
     const editCity = document.getElementById('profileEditCity');
     if (editName) editName.value = profile?.name || '';
     if (editCity) editCity.value = profile?.city || '';
+    renderSavedAddresses(profile?.addresses || []);
 }
 
 function setFeedback(message, type = 'info') {

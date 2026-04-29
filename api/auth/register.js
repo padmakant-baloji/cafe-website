@@ -2,7 +2,18 @@
 
 const { ensureSchema } = require('../../lib/schema');
 const { signCustomerSession } = require('../../lib/customer-session');
-const { normalizeMobile, createCustomer } = require('../../lib/order-service');
+const { normalizeMobile, createCustomer, listCustomerAddresses } = require('../../lib/order-service');
+
+async function serializeCustomer(row) {
+    const addresses = row ? await listCustomerAddresses(row.mobile) : [];
+    return {
+        customerId: row.mobile,
+        name: row.name,
+        city: row.city,
+        mobile: row.mobile,
+        addresses
+    };
+}
 
 module.exports = async (req, res) => {
     if (req.method !== 'POST') {
@@ -35,12 +46,7 @@ module.exports = async (req, res) => {
 
         return res.status(200).json({
             token: signCustomerSession(row.mobile),
-            customer: {
-                customerId: row.mobile,
-                name: row.name,
-                city: row.city,
-                mobile: row.mobile
-            }
+            customer: await serializeCustomer(row)
         });
     } catch (err) {
         console.error('auth/register:', err.message);
