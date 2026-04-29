@@ -10,6 +10,7 @@ let ringingTimer = null;
 let audioCtx = null;
 let audioUnlocked = false;
 let refreshTimer = null;
+let currentAdminCredentials = null;
 
 function loadAdminCredentials() {
     try {
@@ -25,18 +26,29 @@ function loadAdminCredentials() {
 }
 
 function saveAdminCredentials(user, pass) {
-    localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({ user, pass }));
+    const normalized = { user: String(user || '').trim(), pass: String(pass || '').trim() };
+    currentAdminCredentials = normalized;
+    try {
+        localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(normalized));
+    } catch {
+        /* ignore storage failures; in-memory creds still work */
+    }
 }
 
 function clearAdminCredentials() {
-    localStorage.removeItem(ADMIN_STORAGE_KEY);
+    currentAdminCredentials = null;
+    try {
+        localStorage.removeItem(ADMIN_STORAGE_KEY);
+    } catch {
+        /* ignore */
+    }
 }
 
-function adminHeaders() {
-    const creds = loadAdminCredentials();
+function adminHeaders(credsOverride) {
+    const creds = credsOverride || currentAdminCredentials || loadAdminCredentials();
     if (!creds) return { Accept: 'application/json' };
     const user = creds.user;
-    const pass = creds.pass;
+    const pass = String(creds.pass || '');
     const token = btoa(`${user}:${pass}`);
     return {
         Authorization: `Basic ${token}`,
@@ -45,8 +57,7 @@ function adminHeaders() {
 }
 
 function fillAdminDefaults() {
-    const userInput = document.getElementById('adminUsername');
-    if (userInput && !userInput.value) userInput.value = DEFAULT_ADMIN_USER;
+    // Intentionally do not auto-populate admin credentials.
 }
 
 function showAdminGate(message = '') {
@@ -130,8 +141,10 @@ async function patchOrder(orderId, action) {
     return data.order;
 }
 
-async function verifyAdminCredentials() {
-    const res = await fetch('/api/admin/session', { headers: adminHeaders() });
+async function verifyAdminCredentials(user, pass) {
+    const res = await fetch('/api/admin/session', {
+        headers: adminHeaders({ user: String(user || '').trim(), pass: String(pass || '').trim() })
+    });
     if (res.status === 401) return false;
     return res.ok;
 }
@@ -472,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
     authForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
         const user = ((authUser?.value || '').trim() || DEFAULT_ADMIN_USER);
-        const pass = (authPass?.value || DEFAULT_ADMIN_PASS);
+        const pass = String(authPass?.value || DEFAULT_ADMIN_PASS).trim();
         if (!user || !pass) {
             showAdminGate('Enter both username and password.');
             return;
@@ -481,12 +494,12 @@ document.addEventListener('DOMContentLoaded', () => {
             authSubmit.disabled = true;
             authSubmit.textContent = 'Checking...';
         }
-        saveAdminCredentials(user, pass);
-        const ok = await verifyAdminCredentials().catch(() => false);
+        const ok = await verifyAdminCredentials(user, pass).catch(() => false);
         if (!ok) {
             clearAdminCredentials();
             showAdminGate('Invalid admin credentials. Please try again.');
         } else {
+            saveAdminCredentials(user, pass);
             hideAdminGate();
             await refresh();
             if (!refreshTimer) {
@@ -499,12 +512,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    if (loadAdminCredentials()) {
+    const initAdmin = async () => {
+        const savedCreds = loadAdminCredentials();
+        currentAdminCredentials = savedCreds;
+        if (!savedCreds) {
+            showAdminGate();
+            listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
+            return;
+        }
+
+        const ok = await verifyAdminCredentials(savedCreds.user, savedCreds.pass).catch(() => false);
+        if (!ok) {
+            clearAdminCredentials();
+            showAdminGate('Invalid saved admin credentials. Please log in again.');
+            listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
+            return;
+        }
+
         hideAdminGate();
         refresh();
         refreshTimer = setInterval(refresh, 2500);
-    } else {
-        showAdminGate();
-        listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
-    }
+    };
+
+    initAdmin();
 });

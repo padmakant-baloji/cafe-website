@@ -73,6 +73,9 @@
             background: rgba(15, 23, 42, 0.82);
             backdrop-filter: blur(8px);
         }
+        .admin-auth-gate[hidden] {
+            display: none !important;
+        }
         .admin-auth-card {
             width: min(100%, 24rem);
             background: #111c31;
@@ -271,7 +274,6 @@
     <div class="admin-auth-gate" id="adminAuthGate" hidden>
         <form class="admin-auth-card" id="adminAuthForm">
             <h2>Admin access</h2>
-            <p>Enter your admin username and password. If credentials are saved in this browser, you will not be asked again.</p>
             <label for="adminUsername">Username</label>
             <input type="text" id="adminUsername" autocomplete="username" required>
             <label for="adminPassword">Password</label>
