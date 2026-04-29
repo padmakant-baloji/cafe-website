@@ -469,6 +469,7 @@
                 <div class="cart-total">
                     <strong>Total: ₹<span id="cartTotal">0</span></strong>
                 </div>
+                <p class="delivery-note" id="cartDeliveryNote" hidden></p>
                 <button class="btn btn-checkout" id="checkoutBtn">Checkout</button>
             </div>
         </div>
@@ -534,6 +535,17 @@
 
                 <div class="form-group">
                     <label>Total Amount</label>
+                    <div class="order-summary" style="margin-bottom: 0.75rem;">
+                        <div class="summary-item">
+                            <span>Items total</span>
+                            <span>₹<span id="checkoutSubtotal">0</span></span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Delivery</span>
+                            <span>₹<span id="checkoutDeliveryFee">0</span></span>
+                        </div>
+                        <p id="checkoutDeliveryNote" style="margin: 0.5rem 0 0; color: #94a3b8;" hidden></p>
+                    </div>
                     <div class="total-amount">₹<span id="checkoutTotal">0</span></div>
                 </div>
 

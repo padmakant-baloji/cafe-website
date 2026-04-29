@@ -2876,6 +2876,32 @@ button {
     font-weight: 700;
 }
 
+.delivery-note {
+    margin: 0 0 0.9rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 12px;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.18), rgba(245, 158, 11, 0.08));
+    color: #7c2d12;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.25;
+}
+
+.delivery-note strong {
+    color: #431407;
+}
+
+.delivery-note--error {
+    border-color: rgba(239, 68, 68, 0.45);
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.16), rgba(239, 68, 68, 0.08));
+    color: #7f1d1d;
+}
+
+.delivery-note--error strong {
+    color: #450a0a;
+}
+
 .btn-checkout {
     width: 100%;
     padding: 1rem;

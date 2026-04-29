@@ -1084,6 +1084,117 @@ function getCartTotal() {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 }
 
+const MIN_NON_KUDACHI_ORDER_VALUE = 200;
+const MIN_FREE_DELIVERY_ORDER_VALUE = 500;
+const NON_KUDACHI_DELIVERY_FEE = 40;
+
+function getNormalizedCustomerCity() {
+    return String(currentCustomer?.city || getCustomerProfile()?.city || '').trim().toLowerCase();
+}
+
+function getCheckoutSelectedCity() {
+    const citySelect = document.getElementById('customerCity');
+    const raw = (citySelect && citySelect.value) || currentCustomer?.city || getCustomerProfile()?.city || '';
+    return String(raw).trim().toLowerCase();
+}
+
+function getDeliveryFee(subtotal, cityLower) {
+    if (!cityLower) return 0;
+    if (cityLower === 'kudachi') return 0;
+    // For non-Kudachi, delivery fee applies only once minimum order is met.
+    if (subtotal < MIN_NON_KUDACHI_ORDER_VALUE) return 0;
+    if (subtotal >= MIN_FREE_DELIVERY_ORDER_VALUE) return 0;
+    return NON_KUDACHI_DELIVERY_FEE;
+}
+
+function isCheckoutAllowed(subtotal, cityLower) {
+    if (!cityLower) return true; // city might be selected in checkout
+    if (cityLower === 'kudachi') return true;
+    return subtotal >= MIN_NON_KUDACHI_ORDER_VALUE;
+}
+
+function renderCartDeliveryNote() {
+    const el = document.getElementById('cartDeliveryNote');
+    if (!el) return;
+
+    const subtotal = getCartTotal();
+    const cityLower = getNormalizedCustomerCity();
+    el.classList.remove('delivery-note--error');
+
+    if (!subtotal) {
+        el.textContent = '';
+        el.hidden = true;
+        return;
+    }
+
+    if (!cityLower) {
+        el.textContent = 'Select your city at checkout to see delivery charges.';
+        el.hidden = false;
+        return;
+    }
+
+    if (cityLower === 'kudachi') {
+        el.innerHTML = 'Free delivery in <strong>Kudachi</strong>.';
+        el.hidden = false;
+        return;
+    }
+
+    if (subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
+        const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
+        el.classList.add('delivery-note--error');
+        el.innerHTML = `Minimum order for delivery outside <strong>Kudachi</strong> is <strong>₹${MIN_NON_KUDACHI_ORDER_VALUE}</strong>. Add <strong>₹${remaining}</strong> more to checkout.`;
+        el.hidden = false;
+        return;
+    }
+
+    if (subtotal < MIN_FREE_DELIVERY_ORDER_VALUE) {
+        const remaining = MIN_FREE_DELIVERY_ORDER_VALUE - subtotal;
+        el.innerHTML = `Add <strong>₹${remaining}</strong> more to get <strong>free delivery</strong> (₹${NON_KUDACHI_DELIVERY_FEE} delivery charge becomes ₹0).`;
+        el.hidden = false;
+        return;
+    }
+
+    el.innerHTML = `You unlocked <strong>free delivery</strong> for orders ₹${MIN_FREE_DELIVERY_ORDER_VALUE}+ .`;
+    el.hidden = false;
+}
+
+function renderCheckoutTotals() {
+    const subtotalEl = document.getElementById('checkoutSubtotal');
+    const deliveryEl = document.getElementById('checkoutDeliveryFee');
+    const totalEl = document.getElementById('checkoutTotal');
+    const noteEl = document.getElementById('checkoutDeliveryNote');
+
+    if (!totalEl) return;
+
+    const subtotal = getCartTotal();
+    const cityLower = getCheckoutSelectedCity();
+    const allowed = isCheckoutAllowed(subtotal, cityLower);
+    const deliveryFee = allowed ? getDeliveryFee(subtotal, cityLower) : 0;
+    const grandTotal = subtotal + deliveryFee;
+
+    if (subtotalEl) subtotalEl.textContent = String(subtotal);
+    if (deliveryEl) deliveryEl.textContent = String(deliveryFee);
+    totalEl.textContent = String(grandTotal);
+
+    if (noteEl) {
+        if (!cityLower) {
+            noteEl.textContent = 'Select your city to see delivery charges.';
+            noteEl.hidden = false;
+        } else if (cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
+            const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
+            noteEl.textContent = `Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Add ₹${remaining} more to place your order.`;
+            noteEl.hidden = false;
+        } else if (cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_FREE_DELIVERY_ORDER_VALUE) {
+            const remaining = MIN_FREE_DELIVERY_ORDER_VALUE - subtotal;
+            noteEl.textContent = `Add ₹${remaining} more to make your order ₹${MIN_FREE_DELIVERY_ORDER_VALUE} and get free delivery (₹${NON_KUDACHI_DELIVERY_FEE} delivery charge becomes ₹0).`;
+            noteEl.hidden = false;
+        } else {
+            noteEl.textContent = '';
+            noteEl.hidden = true;
+        }
+    }
+}
+
 // Update cart UI
 function updateCartUI() {
     const cartCount = document.getElementById('cartCount');
@@ -1123,6 +1234,7 @@ function updateCartUI() {
         if (cartTotal) {
             cartTotal.textContent = '0';
         }
+        renderCartDeliveryNote();
     } else {
         if (cartItems) {
             cartItems.innerHTML = cart.map((item, index) => `
@@ -1143,6 +1255,21 @@ function updateCartUI() {
         if (cartTotal) {
             cartTotal.textContent = getCartTotal();
         }
+        renderCartDeliveryNote();
+    }
+
+    // Disable checkout in cart when non-Kudachi min order isn't met (only if we already know the city).
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    if (checkoutBtn) {
+        const subtotal = getCartTotal();
+        const cityLower = getNormalizedCustomerCity();
+        const allow = isCheckoutAllowed(subtotal, cityLower);
+        checkoutBtn.disabled = !allow;
+    }
+
+    // Keep checkout totals in sync if checkout is open.
+    if (document.getElementById('checkoutModal')?.classList.contains('active')) {
+        renderCheckoutTotals();
     }
 }
 
@@ -2302,6 +2429,13 @@ function initCartModal() {
                 alert('Your cart is empty!');
                 return;
             }
+            const subtotal = getCartTotal();
+            const cityLower = getNormalizedCustomerCity();
+            if (!isCheckoutAllowed(subtotal, cityLower)) {
+                const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
+                alert(`Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Please add ₹${remaining} more to continue.`);
+                return;
+            }
             cartModal.classList.remove('active');
             void openCheckoutModal();
         });
@@ -2314,7 +2448,6 @@ function initCartModal() {
 async function openCheckoutModal() {
     const checkoutModal = document.getElementById('checkoutModal');
     const orderSummary = document.getElementById('orderSummary');
-    const checkoutTotal = document.getElementById('checkoutTotal');
 
     // Ensure profile data is fresh right before showing checkout.
     // This avoids rare cases where checkout fields render before session/profile refresh completes.
@@ -2338,7 +2471,8 @@ async function openCheckoutModal() {
         </div>
     `).join('');
     
-    checkoutTotal.textContent = getCartTotal();
+    // Will set subtotal/delivery/total payable based on city.
+    renderCheckoutTotals();
     
     checkoutModal.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -2350,6 +2484,7 @@ function initCheckoutModal() {
     const backToCartBtn = document.getElementById('backToCartBtn');
     const checkoutForm = document.getElementById('checkoutForm');
     const addAddressBtn = document.getElementById('checkoutAddAddressBtn');
+    const citySelect = document.getElementById('customerCity');
     
     checkoutClose.addEventListener('click', () => {
         checkoutModal.classList.remove('active');
@@ -2373,6 +2508,10 @@ function initCheckoutModal() {
         placeOrder();
     });
 
+    citySelect?.addEventListener('change', () => {
+        renderCheckoutTotals();
+    });
+
     addAddressBtn?.addEventListener('click', () => {
         const nextMode =
             document.getElementById('checkoutNewAddressFields')?.hidden === false ? 'saved' : 'new';
@@ -2381,7 +2520,7 @@ function initCheckoutModal() {
 }
 
 function getOrderSuccessMessage() {
-    const city = String(currentCustomer?.city || getCustomerProfile()?.city || '').trim().toLowerCase();
+    const city = getNormalizedCustomerCity();
     if (city === 'kudachi') {
         return 'Your order is confirmed and our kitchen has started preparing it. Delivery in Kudachi usually takes about 15 to 20 minutes. You can track every update live on the My orders page.';
     }
@@ -2447,7 +2586,15 @@ async function placeOrder() {
         return;
     }
 
-    const total = getCartTotal();
+    const subtotal = getCartTotal();
+    const cityLower = getCheckoutSelectedCity();
+    if (!isCheckoutAllowed(subtotal, cityLower)) {
+        const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
+        alert(`Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Please add ₹${remaining} more to continue.`);
+        return;
+    }
+    const deliveryFee = getDeliveryFee(subtotal, cityLower);
+    const total = subtotal + deliveryFee;
     const selectedSavedAddress = document.querySelector('input[name="savedAddressId"]:checked');
     const usingNewAddress = document.getElementById('checkoutNewAddressFields')?.hidden === false;
     const payload = {
