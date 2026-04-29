@@ -261,6 +261,10 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
     }
 });
 
+app.get('/api/admin/session', requireAdmin, (req, res) => {
+    return res.json({ ok: true });
+});
+
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(ROOT, 'admin.html'));
 });

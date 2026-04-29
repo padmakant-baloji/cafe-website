@@ -46,9 +46,7 @@ function adminHeaders() {
 
 function fillAdminDefaults() {
     const userInput = document.getElementById('adminUsername');
-    const passInput = document.getElementById('adminPassword');
     if (userInput && !userInput.value) userInput.value = DEFAULT_ADMIN_USER;
-    if (passInput && !passInput.value) passInput.value = DEFAULT_ADMIN_PASS;
 }
 
 function showAdminGate(message = '') {
@@ -133,7 +131,7 @@ async function patchOrder(orderId, action) {
 }
 
 async function verifyAdminCredentials() {
-    const res = await fetch('/api/admin/orders', { headers: adminHeaders() });
+    const res = await fetch('/api/admin/session', { headers: adminHeaders() });
     if (res.status === 401) return false;
     return res.ok;
 }
