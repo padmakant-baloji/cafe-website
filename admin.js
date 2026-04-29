@@ -375,40 +375,44 @@ async function playNewOrderAlert() {
         if (ctx.state !== 'running') return;
         const master = ctx.createGain();
         master.gain.setValueAtTime(0.0001, ctx.currentTime);
-        master.gain.exponentialRampToValueAtTime(0.9, ctx.currentTime + 0.02);
-        master.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.45);
+        // Louder + sharper: faster attack, slightly higher peak, quicker decay.
+        master.gain.exponentialRampToValueAtTime(1.0, ctx.currentTime + 0.01);
+        master.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 2.0);
         master.connect(ctx.destination);
 
-        const makeTone = (freq, start, duration, type = 'sawtooth') => {
+        const makeTone = (freq, start, duration, type = 'sine', peak = 0.36, detune = 0) => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = type;
             osc.frequency.setValueAtTime(freq, start);
+            osc.detune.setValueAtTime(detune, start);
             gain.gain.setValueAtTime(0.0001, start);
-            gain.gain.exponentialRampToValueAtTime(0.42, start + 0.02);
+            // Very fast attack + shorter decay => "sharp" bell edge.
+            gain.gain.exponentialRampToValueAtTime(peak, start + 0.006);
+            gain.gain.exponentialRampToValueAtTime(peak * 0.45, start + 0.02);
             gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
             osc.connect(gain);
             gain.connect(master);
             osc.start(start);
-            osc.stop(start + duration + 0.02);
+            osc.stop(start + duration + 0.03);
+        };
+
+        const ringBurst = (start) => {
+            // Telephone bell-like dual partials with a metallic pulse.
+            makeTone(440, start, 0.20, 'triangle', 0.42, -6);
+            makeTone(480, start, 0.20, 'triangle', 0.34, 6);
+            makeTone(880, start + 0.008, 0.13, 'sine', 0.18);
+
+            makeTone(440, start + 0.13, 0.20, 'triangle', 0.42, -6);
+            makeTone(480, start + 0.13, 0.20, 'triangle', 0.34, 6);
+            makeTone(880, start + 0.138, 0.13, 'sine', 0.18);
         };
 
         const t = ctx.currentTime;
-        // Loud "ring ring" style cadence.
-        makeTone(660, t, 0.22, 'square');
-        makeTone(880, t, 0.22, 'triangle');
-        makeTone(660, t + 0.12, 0.18, 'square');
-        makeTone(990, t + 0.12, 0.18, 'triangle');
-
-        makeTone(660, t + 0.52, 0.22, 'square');
-        makeTone(880, t + 0.52, 0.22, 'triangle');
-        makeTone(660, t + 0.64, 0.18, 'square');
-        makeTone(990, t + 0.64, 0.18, 'triangle');
-
-        makeTone(660, t + 1.02, 0.22, 'square');
-        makeTone(880, t + 1.02, 0.22, 'triangle');
-        makeTone(660, t + 1.14, 0.18, 'square');
-        makeTone(990, t + 1.14, 0.18, 'triangle');
+        // Classic telephone bell cadence: ring-ring, pause, ring-ring.
+        ringBurst(t);
+        ringBurst(t + 0.72);
+        ringBurst(t + 1.44);
     } catch {
         /* ignore */
     }
