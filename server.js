@@ -11,6 +11,7 @@ const {
     findCustomerByMobile,
     createCustomer,
     getCustomerByMobile,
+    updateCustomerProfile,
     listOrdersForCustomer,
     listAllOrdersForAdmin,
     applyAdminOrderAction
@@ -173,6 +174,33 @@ app.get('/api/auth/me', requireCustomer, async (req, res) => {
     }
 });
 
+app.patch('/api/auth/profile', requireCustomer, async (req, res) => {
+    try {
+        await ensureSchema();
+        const body = req.body || {};
+        const updated = await updateCustomerProfile(
+            req.customerSession.mobile,
+            body.name,
+            body.city
+        );
+        return res.json({
+            customer: {
+                customerId: updated.mobile,
+                name: updated.name,
+                city: updated.city,
+                mobile: updated.mobile
+            }
+        });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) {
+            console.error('auth/profile:', err.message);
+        }
+        return res.status(code).json({ error: err.message || 'Could not update profile.' });
+    }
+});
+
 app.get('/api/orders/my', requireCustomer, async (req, res) => {
     try {
         await ensureSchema();
@@ -258,6 +286,10 @@ app.get('/menu', (req, res) => {
 
 app.get('/orders', (req, res) => {
     res.sendFile(path.join(ROOT, 'orders.html'));
+});
+
+app.get('/profile', (req, res) => {
+    res.sendFile(path.join(ROOT, 'profile.html'));
 });
 
 app.use(express.static(ROOT));

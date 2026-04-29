@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <title>My Profile — Baloji's Cafe</title>
+    <meta name="description" content="View your Baloji's Cafe profile details and quick actions.">
+    <link rel="icon" type="image/png" href="images/logo/logo-small.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Playfair+Display:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="order-app app-mobile app-four-tabs">
+    <div class="app-shell">
+        <div class="app-topbar" role="banner">
+            <div class="app-topbar-inner">
+                <a href="/menu" class="app-brand" aria-label="Baloji's Cafe menu">
+                    <span class="app-brand-logo-wrap">
+                        <img src="images/logo/logo-small.png" alt="" class="app-brand-logo" width="40" height="40" decoding="async">
+                    </span>
+                    <span class="app-brand-text">
+                        <span class="app-brand-name">Baloji's Cafe</span>
+                        <span class="app-brand-sub">Kudachi · Veg</span>
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        <section class="order-header app-home-hero" aria-label="My profile overview">
+            <div class="order-header-inner">
+                <div class="order-header-text">
+                    <p class="app-hero-eyebrow">Account</p>
+                    <h1 class="order-header-title">My profile</h1>
+                    <p class="order-header-lead">Check the contact details linked to your orders and jump quickly to the menu or your live order updates.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="profile-section" aria-label="Profile details">
+            <div class="container">
+                <div class="profile-shell">
+                    <div class="profile-card profile-card--hero">
+                        <div class="profile-card-head">
+                            <div class="profile-avatar" id="profileAvatar" aria-hidden="true">B</div>
+                            <div class="profile-identity">
+                                <p class="profile-eyebrow">Signed in as</p>
+                                <h2 class="profile-name" id="profileName">Loading...</h2>
+                                <p class="profile-subtitle" id="profileSubtitle">Please wait while we load your profile.</p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="profile-grid">
+                        <div class="profile-card">
+                            <div class="profile-section-head">
+                                <div>
+                                    <p class="profile-eyebrow">Profile details</p>
+                                    <h3 class="profile-section-title">Your saved info</h3>
+                                </div>
+                                <button type="button" class="btn btn-secondary profile-edit-btn" id="profileEditBtn">Update profile</button>
+                            </div>
+
+                            <div class="profile-details">
+                                <div class="profile-detail-card">
+                                    <span class="profile-detail-label">Mobile</span>
+                                    <strong class="profile-detail-value" id="profileMobile">-</strong>
+                                </div>
+                                <div class="profile-detail-card">
+                                    <span class="profile-detail-label">City</span>
+                                    <strong class="profile-detail-value" id="profileCity">-</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-card profile-card--actions">
+                            <p class="profile-eyebrow">Quick actions</p>
+                            <h3 class="profile-section-title">What would you like to do?</h3>
+                            <div class="profile-actions">
+                                <a href="/menu" class="btn btn-primary">Start new order</a>
+                                <a href="/orders" class="btn btn-secondary">View my orders</a>
+                                <button type="button" class="btn btn-secondary profile-signout-btn" id="profileSignOutBtn">Sign out</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="checkout-modal profile-edit-modal" id="profileEditModal" aria-hidden="true">
+        <div class="checkout-modal-content profile-edit-modal-content" role="dialog" aria-modal="true" aria-labelledby="profileEditTitle">
+            <div class="checkout-modal-header profile-edit-modal-header">
+                <div>
+                    <p class="profile-eyebrow">Edit details</p>
+                    <h2 id="profileEditTitle">Update profile</h2>
+                </div>
+                <button class="checkout-close" id="profileEditCloseBtn" aria-label="Close edit profile popup">&times;</button>
+            </div>
+            <form class="profile-edit-form profile-edit-form--modal" id="profileEditForm">
+                <div class="profile-form-grid">
+                    <div class="form-group">
+                        <label for="profileEditName">Name</label>
+                        <input type="text" id="profileEditName" maxlength="200" placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <label for="profileEditCity">City</label>
+                        <select id="profileEditCity">
+                            <option value="">Select your city</option>
+                            <option value="Kudachi">Kudachi</option>
+                            <option value="Ugar">Ugar</option>
+                            <option value="Chinchali">Chinchali</option>
+                            <option value="Ainapur">Ainapur</option>
+                            <option value="Gundawad">Gundawad</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="profile-form-feedback" id="profileFormFeedback" hidden></p>
+                <div class="profile-form-actions">
+                    <button type="button" class="btn btn-secondary" id="profileCancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="profileSaveBtn">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <nav class="app-bottom-nav" aria-label="Primary">
+        <a href="/menu#home" class="app-tab" data-app-tab="home">
+            <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+            <span class="app-tab-label">Home</span>
+        </a>
+        <a href="/menu#menu" class="app-tab" data-app-tab="menu">
+            <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+            <span class="app-tab-label">Menu</span>
+        </a>
+        <a href="/orders" class="app-tab" data-app-tab="orders">
+            <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11V6a3 3 0 0 1 6 0v5"/><rect x="5" y="11" width="14" height="10" rx="2"/></svg>
+            <span class="app-tab-label">Orders</span>
+        </a>
+        <a href="/profile" class="app-tab active" data-app-tab="profile" aria-current="page">
+            <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>
+            <span class="app-tab-label">Profile</span>
+        </a>
+    </nav>
+
+    <script src="profile.js"></script>
+</body>
+</html>
