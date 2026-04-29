@@ -841,30 +841,42 @@ function initTestimonials() {
 // Cart System
 // ============================================
 let cart = [];
-const ORDERING_START_HOUR = 14;
-/** Set to `true` to block add-to-cart before 2 PM (India time). */
+const ORDERING_START_HOUR = 13;
+const ORDERING_START_MINUTE = 30;
+/** Set to `true` to block add-to-cart before 1:30 PM (India time). */
 const ENFORCE_ORDERING_START_TIME = true;
 
-function getCafeHour() {
+function getCafeTime() {
     try {
-        const hour = new Intl.DateTimeFormat('en-IN', {
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en-IN', {
             timeZone: 'Asia/Kolkata',
             hour: 'numeric',
+            minute: 'numeric',
             hourCycle: 'h23'
-        }).format(new Date());
-        return parseInt(hour, 10);
+        });
+        const parts = formatter.formatToParts(now);
+        const hourPart = parts.find((p) => p.type === 'hour');
+        const minutePart = parts.find((p) => p.type === 'minute');
+        const hour = hourPart ? parseInt(hourPart.value, 10) : now.getHours();
+        const minute = minutePart ? parseInt(minutePart.value, 10) : now.getMinutes();
+        return { hour, minute };
     } catch (error) {
-        return new Date().getHours();
+        const fallback = new Date();
+        return { hour: fallback.getHours(), minute: fallback.getMinutes() };
     }
 }
 
 function isOrderingAvailable() {
     if (!ENFORCE_ORDERING_START_TIME) return true;
-    return getCafeHour() >= ORDERING_START_HOUR;
+    const { hour, minute } = getCafeTime();
+    if (hour > ORDERING_START_HOUR) return true;
+    if (hour < ORDERING_START_HOUR) return false;
+    return minute >= ORDERING_START_MINUTE;
 }
 
 function showOrderingClosedMessage() {
-    alert('Online ordering starts at 2 PM. Please try again after 2 PM.');
+    alert('Online ordering starts at 1:30 PM. Please try again after 1:30 PM.');
 }
 
 function updateOrderingAvailability() {
@@ -876,22 +888,22 @@ function updateOrderingAvailability() {
     orderButtons.forEach((button) => {
         button.disabled = orderingDisabled;
         button.setAttribute('aria-disabled', String(orderingDisabled));
-        button.title = orderingDisabled ? 'Online ordering starts at 2 PM' : '';
+        button.title = orderingDisabled ? 'Online ordering starts at 1:30 PM' : '';
 
         const label = button.querySelector('.order-btn-label');
         if (label) {
-            label.textContent = orderingDisabled ? 'Starts at 2 PM' : 'Add to cart';
+            label.textContent = orderingDisabled ? 'Starts at 1:30 PM' : 'Add to cart';
         }
     });
 
     sizeButtons.forEach((button) => {
         button.disabled = orderingDisabled;
         button.setAttribute('aria-disabled', String(orderingDisabled));
-        button.title = orderingDisabled ? 'Online ordering starts at 2 PM' : '';
+        button.title = orderingDisabled ? 'Online ordering starts at 1:30 PM' : '';
     });
 
     sizeHints.forEach((hint) => {
-        hint.textContent = orderingDisabled ? 'Ordering starts at 2 PM' : 'Tap a size to add to cart';
+        hint.textContent = orderingDisabled ? 'Ordering starts at 1:30 PM' : 'Tap a size to add to cart';
     });
 }
 
