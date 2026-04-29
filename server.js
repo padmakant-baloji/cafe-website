@@ -252,6 +252,10 @@ app.get('/menu', (req, res) => {
     res.sendFile(path.join(ROOT, 'index.html'));
 });
 
+app.get('/orders', (req, res) => {
+    res.sendFile(path.join(ROOT, 'orders.html'));
+});
+
 app.use(express.static(ROOT));
 
 app.listen(PORT, () => {

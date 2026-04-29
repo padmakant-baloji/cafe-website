@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <title>My Orders — Baloji's Cafe</title>
+    <meta name="description" content="Track your Baloji's Cafe orders in real time.">
+    <link rel="icon" type="image/png" href="images/logo/logo-small.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Playfair+Display:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="order-app app-mobile app-five-tabs">
+    <div class="app-shell">
+        <div class="app-topbar" role="banner">
+            <div class="app-topbar-inner">
+                <a href="/menu" class="app-brand" aria-label="Baloji's Cafe menu">
+                    <span class="app-brand-logo-wrap">
+                        <img src="images/logo/logo-small.png" alt="" class="app-brand-logo" width="40" height="40" decoding="async">
+                    </span>
+                    <span class="app-brand-text">
+                        <span class="app-brand-name">Baloji's Cafe</span>
+                        <span class="app-brand-sub">Kudachi · Veg</span>
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        <section class="order-header app-home-hero" aria-label="My orders overview">
+            <div class="order-header-inner">
+                <div class="order-header-text">
+                    <p class="app-hero-eyebrow">Live status</p>
+                    <h1 class="order-header-title">My orders</h1>
+                    <p class="order-header-lead">See your latest orders and follow each status update from the kitchen in real time.</p>
+                    <div class="order-header-actions">
+                        <a href="/menu" class="btn btn-primary order-header-cta app-hero-primary">Back to menu</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="order-my-orders" aria-label="My orders">
+            <div class="container">
+                <h2 class="section-title">Recent orders</h2>
+                <p class="section-subtitle">Status updates refresh automatically while your order is active.</p>
+                <div class="my-orders-list" id="ordersList">
+                    <p class="my-orders-placeholder">Your orders will appear here after you place one.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <nav class="app-bottom-nav" aria-label="Primary">
+        <a href="/menu#home" class="app-tab" data-app-tab="home">
+            <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+            <span class="app-tab-label">Home</span>
+        </a>
+        <a href="/menu#menu" class="app-tab" data-app-tab="menu">
+            <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+            <span class="app-tab-label">Menu</span>
+        </a>
+        <a href="/orders" class="app-tab active" data-app-tab="orders" aria-current="page">
+            <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11V6a3 3 0 0 1 6 0v5"/><rect x="5" y="11" width="14" height="10" rx="2"/></svg>
+            <span class="app-tab-label">Orders</span>
+        </a>
+        <a href="/menu#help" class="app-tab" data-app-tab="help">
+            <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            <span class="app-tab-label">Help</span>
+        </a>
+        <a href="/menu#contact" class="app-tab" data-app-tab="contact">
+            <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="app-tab-label">Store</span>
+        </a>
+    </nav>
+
+    <script src="orders.js"></script>
+</body>
+</html>

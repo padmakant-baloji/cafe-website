@@ -289,6 +289,8 @@ function renderMyOrders(orders) {
 }
 
 async function fetchMyOrders() {
+    const list = document.getElementById('ordersList');
+    if (!list) return;
     const token = getCustomerToken();
     if (!token) return;
     try {
@@ -302,6 +304,7 @@ async function fetchMyOrders() {
 }
 
 function startMyOrdersPoll() {
+    if (!document.getElementById('ordersList')) return;
     if (myOrdersPollTimer) clearInterval(myOrdersPollTimer);
     fetchMyOrders();
     myOrdersPollTimer = setInterval(fetchMyOrders, 3000);
@@ -2303,8 +2306,8 @@ async function placeOrder() {
         document.getElementById('checkoutForm').reset();
         updateCheckoutProfileUI();
 
-        fetchMyOrders();
-        alert('Order placed! Track status under My orders.');
+        alert('Order placed! Opening your My orders page.');
+        window.location.assign('/orders');
     } catch (err) {
         const hint =
             window.location.protocol === 'file:'
