@@ -408,25 +408,27 @@ function renderOrders(orders, container, emptyText = 'orders') {
                 .map((line) => `<div class="admin-order-line">${escapeHtml(line)}</div>`)
                 .join('');
 
-            let actions = '';
+            const copyBtn = `<button type="button" class="admin-btn admin-btn--copy" data-action="copy" data-id="${id}">Copy order</button>`;
+            let statusActions = '';
             if (o.status === 'pending') {
-                actions = `
+                statusActions = `
                     <button type="button" class="admin-btn admin-btn--accept" data-action="accept" data-id="${id}">Accept</button>
                     <button type="button" class="admin-btn admin-btn--reject" data-action="reject" data-id="${id}">Reject</button>
                 `;
             } else if (o.status === 'accepted') {
-                actions = `
+                statusActions = `
                     <button type="button" class="admin-btn admin-btn--prep" data-action="preparing" data-id="${id}">Preparing order</button>
                 `;
             } else if (o.status === 'preparing') {
-                actions = `
+                statusActions = `
                     <button type="button" class="admin-btn admin-btn--out" data-action="out_for_delivery" data-id="${id}">Out for delivery</button>
                 `;
             } else if (o.status === 'out_for_delivery') {
-                actions = `
+                statusActions = `
                     <button type="button" class="admin-btn admin-btn--complete" data-action="completed" data-id="${id}">Complete order</button>
                 `;
             }
+            const actions = `${copyBtn}${statusActions}`;
 
             const when = o.created_at ? new Date(o.created_at).toLocaleString() : '';
             const deliveryAddress = formatDeliveryAddress(o.delivery_address);
@@ -451,6 +453,38 @@ function renderOrders(orders, container, emptyText = 'orders') {
             `;
         })
         .join('');
+}
+
+function buildOrderCopyText(order) {
+    const id = String(order?.id ?? '');
+    const name = String(order?.name ?? '').trim();
+    const mobile = String(order?.mobile ?? '').trim();
+    const city = String(order?.city ?? '').trim();
+    const address = formatDeliveryAddress(order?.delivery_address);
+    const when = order?.created_at ? new Date(order.created_at).toLocaleString() : '';
+
+    const lines = [
+        `Baloji's Cafe — Order #${id}`,
+        when ? `Time: ${when}` : '',
+        name ? `Name: ${name}` : '',
+        mobile ? `Mobile: ${mobile}` : '',
+        city ? `City: ${city}` : '',
+        address ? `Address: ${address}` : '',
+        '',
+        'Items:',
+        ...formatItems(order?.items)
+            .split('\n')
+            .map((l) => l.trim())
+            .filter(Boolean)
+            .map((l) => `- ${l}`),
+        '',
+        `Subtotal: ${formatMoney(order?.subtotal ?? 0)}`,
+        `Delivery: ${formatMoney(order?.delivery_fee ?? 0)}`,
+        `Discount: ${formatMoney(order?.discount ?? 0)}`,
+        `Total: ${formatMoney(order?.total ?? 0)}`
+    ].filter(Boolean);
+
+    return lines.join('\n');
 }
 
 function renderOrderTabs(tabsEl, countsByStatus, activeKey) {
@@ -1040,6 +1074,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = btn.getAttribute('data-id');
         const action = btn.getAttribute('data-action');
         if (!id || !action) return;
+
+        if (action === 'copy') {
+            const order = (lastOrders || []).find((o) => String(o.id) === String(id));
+            const text = order ? buildOrderCopyText(order) : '';
+            const ok = text ? await safeClipboardWrite(text) : false;
+            showToast(ok ? `Order #${id} copied` : 'Could not copy order');
+            return;
+        }
+
         btn.disabled = true;
         try {
             await patchOrder(id, action);

@@ -5653,6 +5653,13 @@ body.app-mobile .category-tabs {
     padding-right: max(var(--fo-space-5), env(safe-area-inset-right, 0px));
 }
 
+/* Mobile: remove menu filters (category tabs) */
+@media (max-width: 1024px) {
+    body.app-mobile #categoryTabs {
+        display: none !important;
+    }
+}
+
 body.app-mobile .category-tab:hover:not(.active) {
     border-color: #d4d4d8;
     color: var(--fo-text);
