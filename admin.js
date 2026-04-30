@@ -198,6 +198,119 @@ function formatDeliveryAddress(address) {
     return String(parsed.addressLine || parsed.address_line || '').trim();
 }
 
+function formatMoney(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return '₹0';
+    return `₹${Math.round(v)}`;
+}
+
+function isSameLocalDay(a, b) {
+    return (
+        a.getFullYear() === b.getFullYear() &&
+        a.getMonth() === b.getMonth() &&
+        a.getDate() === b.getDate()
+    );
+}
+
+function computeAdminAnalytics(orders) {
+    const now = new Date();
+    const todayOrders = [];
+    let pendingNow = 0;
+    let inProgressNow = 0;
+    let completedToday = 0;
+    let revenueToday = 0;
+    let discountsToday = 0;
+    let deliveryFeesToday = 0;
+    let totalOrdersLoaded = 0;
+    let totalEarningLoaded = 0;
+
+    for (const o of orders || []) {
+        totalOrdersLoaded += 1;
+        totalEarningLoaded += Number(o.total) || 0;
+        const status = String(o.status || '');
+        if (status === 'pending') pendingNow += 1;
+        if (status === 'accepted' || status === 'preparing' || status === 'out_for_delivery') inProgressNow += 1;
+
+        const createdAt = o.created_at ? new Date(o.created_at) : null;
+        if (!createdAt || Number.isNaN(createdAt.getTime())) continue;
+        if (!isSameLocalDay(createdAt, now)) continue;
+
+        todayOrders.push(o);
+        const total = Number(o.total) || 0;
+        revenueToday += total;
+        discountsToday += Number(o.discount) || 0;
+        deliveryFeesToday += Number(o.delivery_fee) || 0;
+
+        if (status === 'completed') completedToday += 1;
+    }
+
+    const ordersTodayCount = todayOrders.length;
+    const avgOrderToday = ordersTodayCount ? revenueToday / ordersTodayCount : 0;
+
+    return {
+        updatedAt: now,
+        ordersTodayCount,
+        revenueToday,
+        avgOrderToday,
+        totalOrdersLoaded,
+        totalEarningLoaded,
+        pendingNow,
+        inProgressNow,
+        completedToday,
+        discountsToday,
+        deliveryFeesToday
+    };
+}
+
+function renderAdminAnalytics(orders) {
+    const root = document.getElementById('adminDesktopAnalytics');
+    if (!root) return;
+
+    const data = computeAdminAnalytics(orders || []);
+
+    const updatedEl = document.getElementById('adminAnalyticsUpdatedAt');
+    if (updatedEl) updatedEl.textContent = `Updated ${data.updatedAt.toLocaleTimeString()}`;
+
+    const ordersTodayEl = document.getElementById('metricOrdersToday');
+    if (ordersTodayEl) ordersTodayEl.textContent = String(data.ordersTodayCount);
+    const ordersTodayHintEl = document.getElementById('metricOrdersTodayHint');
+    if (ordersTodayHintEl) ordersTodayHintEl.textContent = `Pending ${data.pendingNow} · In progress ${data.inProgressNow}`;
+
+    const revenueEl = document.getElementById('metricRevenueToday');
+    if (revenueEl) revenueEl.textContent = formatMoney(data.revenueToday);
+    const revenueHintEl = document.getElementById('metricRevenueTodayHint');
+    if (revenueHintEl) {
+        const parts = [];
+        if (data.deliveryFeesToday > 0) parts.push(`Delivery ${formatMoney(data.deliveryFeesToday)}`);
+        if (data.discountsToday > 0) parts.push(`Discounts ${formatMoney(data.discountsToday)}`);
+        revenueHintEl.textContent = parts.length ? parts.join(' · ') : '—';
+    }
+
+    const totalOrdersEl = document.getElementById('metricTotalOrders');
+    if (totalOrdersEl) totalOrdersEl.textContent = String(data.totalOrdersLoaded);
+
+    const totalEarnEl = document.getElementById('metricTotalEarning');
+    if (totalEarnEl) totalEarnEl.textContent = formatMoney(data.totalEarningLoaded);
+
+    const pendingEl = document.getElementById('metricPendingNow');
+    if (pendingEl) pendingEl.textContent = String(data.pendingNow);
+
+    const inProgressEl = document.getElementById('metricInProgressNow');
+    if (inProgressEl) inProgressEl.textContent = String(data.inProgressNow);
+
+    const completedEl = document.getElementById('metricCompletedToday');
+    if (completedEl) completedEl.textContent = String(data.completedToday);
+    const completedHintEl = document.getElementById('metricCompletedTodayHint');
+    if (completedHintEl) {
+        completedHintEl.textContent = data.ordersTodayCount
+            ? `${Math.round((data.completedToday / data.ordersTodayCount) * 100)}% of today`
+            : '—';
+    }
+
+    const avgEl = document.getElementById('metricAvgOrderToday');
+    if (avgEl) avgEl.textContent = formatMoney(data.avgOrderToday);
+}
+
 function renderOrders(orders, container, emptyText = 'orders') {
     if (!orders.length) {
         container.innerHTML = `<p class="admin-empty">No ${escapeHtml(emptyText)} yet.</p>`;
@@ -441,15 +554,18 @@ function stopRingingIfAny() {
 function updateSoundButtonState() {
     const btn = document.getElementById('adminEnableSoundBtn');
     if (!btn) return;
-    btn.textContent = audioUnlocked ? 'Sound enabled' : 'Enable sound';
+    btn.classList.toggle('admin-icon-btn--on', audioUnlocked);
+    btn.title = audioUnlocked ? 'Sound enabled' : 'Enable sound';
+    btn.setAttribute('aria-label', audioUnlocked ? 'Sound enabled' : 'Enable sound');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const listEl = document.getElementById('adminOrderList');
     const tabsEl = document.getElementById('adminTabs');
-    const banner = document.getElementById('adminNotifyBanner');
+    const searchInput = document.getElementById('adminSearchInput');
     const refreshBtn = document.getElementById('adminRefreshBtn');
     const enableSoundBtn = document.getElementById('adminEnableSoundBtn');
+    const enableNotifyBtn = document.getElementById('adminEnableNotifyBtn');
     const logoutBtn = document.getElementById('adminLogoutBtn');
     const authForm = document.getElementById('adminAuthForm');
     const authSubmit = document.getElementById('adminAuthSubmit');
@@ -501,12 +617,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return counts;
     }
 
+    function normalizeSearch(s) {
+        return String(s || '').trim().toLowerCase();
+    }
+
+    function matchesSearch(order, q) {
+        if (!q) return true;
+        const id = String(order.id || '').toLowerCase();
+        const name = String(order.name || '').toLowerCase();
+        const mobile = String(order.mobile || '').toLowerCase();
+        const city = String(order.city || '').toLowerCase();
+        return id.includes(q) || name.includes(q) || mobile.includes(q) || city.includes(q);
+    }
+
     function renderTabsAndActiveList(orders) {
-        const countsByStatus = getCountsByStatus(orders);
+        const q = normalizeSearch(searchInput?.value);
+        const searched = q ? orders.filter((o) => matchesSearch(o, q)) : orders;
+        const countsByStatus = getCountsByStatus(searched);
+        renderAdminAnalytics(orders);
         renderOrderTabs(tabsEl, countsByStatus, activeOrderTab);
         const tab = ORDER_STATUS_TABS.find((t) => t.key === activeOrderTab) || ORDER_STATUS_TABS[0];
-        const filtered = activeOrderTab === 'all' ? orders : orders.filter((o) => o.status === activeOrderTab);
-        renderOrders(filtered, listEl, tab.emptyText || 'orders');
+        const filteredBase = activeOrderTab === 'all' ? searched : searched.filter((o) => o.status === activeOrderTab);
+        const filtered = filteredBase;
+        const emptyText = q ? 'matching orders' : (tab.emptyText || 'orders');
+        renderOrders(filtered, listEl, emptyText);
     }
 
     tabsEl?.addEventListener('click', (e) => {
@@ -520,14 +654,46 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTabsAndActiveList(lastOrders);
     });
 
-    if (typeof Notification !== 'undefined' && Notification.permission === 'default' && banner) {
-        banner.hidden = false;
-        banner.querySelector('button')?.addEventListener('click', () => {
-            Notification.requestPermission().then(() => {
-                banner.hidden = true;
-            });
-        });
-    }
+    searchInput?.addEventListener('input', () => {
+        renderTabsAndActiveList(lastOrders);
+    });
+
+    const updateNotifyButtonState = () => {
+        if (!enableNotifyBtn) return;
+        if (typeof Notification === 'undefined') {
+            enableNotifyBtn.hidden = true;
+            return;
+        }
+        if (Notification.permission === 'granted') {
+            enableNotifyBtn.hidden = true;
+            return;
+        }
+        enableNotifyBtn.hidden = false;
+        enableNotifyBtn.classList.toggle('admin-icon-btn--on', Notification.permission === 'granted');
+        const tip =
+            Notification.permission === 'denied'
+                ? 'Notifications blocked in browser settings'
+                : 'Enable notifications';
+        enableNotifyBtn.setAttribute('data-tip', Notification.permission === 'denied' ? 'Notifications blocked' : 'Notifications');
+        enableNotifyBtn.setAttribute(
+            'aria-label',
+            Notification.permission === 'denied'
+                ? 'Notifications blocked'
+                : 'Enable notifications'
+        );
+        enableNotifyBtn.title = tip; // fallback tooltip for touch / long-press
+        enableNotifyBtn.disabled = Notification.permission === 'denied';
+    };
+    updateNotifyButtonState();
+
+    enableNotifyBtn?.addEventListener('click', async () => {
+        if (typeof Notification === 'undefined') return;
+        try {
+            await Notification.requestPermission();
+        } finally {
+            updateNotifyButtonState();
+        }
+    });
 
     popupCloseBtn?.addEventListener('click', () => {
         if (!newOrderPopupOpen) {

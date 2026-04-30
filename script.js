@@ -1085,6 +1085,7 @@ function getCartTotal() {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 }
 
+const MIN_KUDACHI_ORDER_VALUE = 80;
 const MIN_NON_KUDACHI_ORDER_VALUE = 200;
 const MIN_FREE_DELIVERY_ORDER_VALUE = 500;
 const NON_KUDACHI_DELIVERY_FEE = 40;
@@ -1110,7 +1111,7 @@ function getDeliveryFee(subtotal, cityLower) {
 
 function isCheckoutAllowed(subtotal, cityLower) {
     if (!cityLower) return true; // city might be selected in checkout
-    if (cityLower === 'kudachi') return true;
+    if (cityLower === 'kudachi') return subtotal >= MIN_KUDACHI_ORDER_VALUE;
     return subtotal >= MIN_NON_KUDACHI_ORDER_VALUE;
 }
 
@@ -1227,7 +1228,13 @@ function renderCartDeliveryNote() {
     }
 
     if (cityLower === 'kudachi') {
-        el.innerHTML = 'Free delivery in <strong>Kudachi</strong>.';
+        if (subtotal < MIN_KUDACHI_ORDER_VALUE) {
+            const remaining = MIN_KUDACHI_ORDER_VALUE - subtotal;
+            el.classList.add('delivery-note--error');
+            el.innerHTML = `Minimum order in <strong>Kudachi</strong> is <strong>₹${MIN_KUDACHI_ORDER_VALUE}</strong>. Add <strong>₹${remaining}</strong> more to checkout.`;
+        } else {
+            el.innerHTML = 'Free delivery in <strong>Kudachi</strong>.';
+        }
         el.hidden = false;
         return;
     }
@@ -1294,6 +1301,10 @@ function renderCheckoutTotals() {
     if (noteEl) {
         if (!cityLower) {
             noteEl.textContent = 'Select your city to see delivery charges.';
+            noteEl.hidden = false;
+        } else if (cityLower === 'kudachi' && subtotal > 0 && subtotal < MIN_KUDACHI_ORDER_VALUE) {
+            const remaining = MIN_KUDACHI_ORDER_VALUE - subtotal;
+            noteEl.textContent = `Minimum order in Kudachi is ₹${MIN_KUDACHI_ORDER_VALUE}. Add ₹${remaining} more to place your order.`;
             noteEl.hidden = false;
         } else if (cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
             const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
@@ -2551,8 +2562,13 @@ function initCartModal() {
             const subtotal = getCartTotal();
             const cityLower = getNormalizedCustomerCity();
             if (!isCheckoutAllowed(subtotal, cityLower)) {
-                const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
-                alert(`Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Please add ₹${remaining} more to continue.`);
+                if (cityLower === 'kudachi') {
+                    const remaining = MIN_KUDACHI_ORDER_VALUE - subtotal;
+                    alert(`Minimum order in Kudachi is ₹${MIN_KUDACHI_ORDER_VALUE}. Please add ₹${remaining} more to continue.`);
+                } else {
+                    const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
+                    alert(`Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Please add ₹${remaining} more to continue.`);
+                }
                 return;
             }
             cartModal.classList.remove('active');
@@ -2730,8 +2746,13 @@ async function placeOrder() {
     const subtotal = getCartTotal();
     const cityLower = getCheckoutSelectedCity();
     if (!isCheckoutAllowed(subtotal, cityLower)) {
-        const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
-        alert(`Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Please add ₹${remaining} more to continue.`);
+        if (cityLower === 'kudachi') {
+            const remaining = MIN_KUDACHI_ORDER_VALUE - subtotal;
+            alert(`Minimum order in Kudachi is ₹${MIN_KUDACHI_ORDER_VALUE}. Please add ₹${remaining} more to continue.`);
+        } else {
+            const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
+            alert(`Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Please add ₹${remaining} more to continue.`);
+        }
         return;
     }
     const deliveryFee = getDeliveryFee(subtotal, cityLower);

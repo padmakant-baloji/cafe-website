@@ -62,6 +62,87 @@
             cursor: pointer;
         }
         .admin-toolbar button:active { transform: scale(0.98); }
+        .admin-icon-btn {
+            width: 2.35rem;
+            height: 2.35rem;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            border: 1px solid rgba(51, 65, 85, 0.85);
+            background: rgba(51, 65, 85, 0.65);
+            color: var(--text);
+            cursor: pointer;
+            line-height: 1;
+            font-size: 1rem;
+            position: relative;
+        }
+        .admin-icon-btn:hover {
+            background: rgba(51, 65, 85, 0.85);
+        }
+        .admin-icon-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .admin-icon-btn--on {
+            background: rgba(34, 197, 94, 0.18);
+            border-color: rgba(34, 197, 94, 0.6);
+            color: #bbf7d0;
+        }
+        .admin-icon-btn--danger {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.5);
+            color: #fecaca;
+        }
+
+        /* Tooltips (desktop hover + keyboard focus) */
+        @media (hover: hover) and (pointer: fine) {
+            .admin-icon-btn[data-tip]::after {
+                content: attr(data-tip);
+                position: absolute;
+                top: calc(100% + 0.5rem);
+                right: 0;
+                white-space: nowrap;
+                padding: 0.35rem 0.55rem;
+                border-radius: 10px;
+                border: 1px solid rgba(51, 65, 85, 0.85);
+                background: rgba(15, 23, 42, 0.92);
+                color: var(--text);
+                font-size: 0.72rem;
+                font-weight: 700;
+                letter-spacing: 0.01em;
+                box-shadow: 0 14px 28px rgba(0,0,0,0.35);
+                opacity: 0;
+                transform: translateY(-4px);
+                pointer-events: none;
+                transition: opacity 0.14s ease, transform 0.14s ease;
+                z-index: 50;
+            }
+            .admin-icon-btn[data-tip]::before {
+                content: '';
+                position: absolute;
+                top: calc(100% + 0.22rem);
+                right: 0.85rem;
+                width: 0;
+                height: 0;
+                border-left: 6px solid transparent;
+                border-right: 6px solid transparent;
+                border-bottom: 7px solid rgba(15, 23, 42, 0.92);
+                opacity: 0;
+                transform: translateY(-4px);
+                pointer-events: none;
+                transition: opacity 0.14s ease, transform 0.14s ease;
+                z-index: 49;
+            }
+            .admin-icon-btn:hover::after,
+            .admin-icon-btn:focus-visible::after,
+            .admin-icon-btn:hover::before,
+            .admin-icon-btn:focus-visible::before {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
         .admin-auth-gate {
             position: fixed;
             inset: 0;
@@ -135,29 +216,6 @@
             font-size: 0.875rem;
             line-height: 1.5;
         }
-        #adminNotifyBanner {
-            max-width: 720px;
-            margin: 0 auto 1rem;
-            padding: 0.75rem 1rem;
-            background: #1e3a2f;
-            border: 1px solid #166534;
-            border-radius: 10px;
-            font-size: 0.875rem;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        #adminNotifyBanner button {
-            font: inherit;
-            font-weight: 600;
-            padding: 0.35rem 0.75rem;
-            border-radius: 6px;
-            border: none;
-            background: var(--accent);
-            color: #052e16;
-            cursor: pointer;
-        }
         .admin-tabs {
             max-width: 720px;
             margin: 0 auto 1rem;
@@ -201,6 +259,112 @@
             background: rgba(5, 46, 22, 0.12);
             border-color: rgba(5, 46, 22, 0.25);
         }
+        .admin-desktop-analytics {
+            display: none;
+            max-width: 720px;
+            margin: 0 auto 1rem;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            background: rgba(30, 41, 59, 0.65);
+            padding: 0.85rem;
+        }
+        .admin-analytics-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .admin-analytics-title {
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+        .admin-analytics-sub {
+            color: var(--muted);
+            font-size: 0.75rem;
+        }
+        .admin-analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 0.65rem;
+        }
+        .admin-metric {
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 12px;
+            padding: 0.65rem 0.75rem;
+            background: rgba(15, 23, 42, 0.5);
+            min-height: 4rem;
+        }
+        .admin-metric-label {
+            color: var(--muted);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .admin-metric-value {
+            margin-top: 0.25rem;
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: var(--text);
+        }
+        .admin-metric-hint {
+            margin-top: 0.15rem;
+            color: rgba(148, 163, 184, 0.9);
+            font-size: 0.72rem;
+        }
+
+        .admin-layout {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .admin-filters {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .admin-search {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .admin-search label {
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .admin-search input {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(51, 65, 85, 0.85);
+            background: rgba(15, 23, 42, 0.55);
+            color: var(--text);
+            padding: 0.65rem 0.75rem;
+            font: inherit;
+            outline: none;
+        }
+        .admin-search input:focus {
+            border-color: rgba(34, 197, 94, 0.65);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+        }
+
+        .admin-tabs--sidebar {
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .admin-tabs--sidebar .admin-tab-btn {
+            width: 100%;
+            justify-content: space-between;
+            border-radius: 12px;
+            padding: 0.55rem 0.65rem;
+        }
+        .admin-tabs--sidebar .admin-tab-count {
+            background: rgba(15, 23, 42, 0.35);
+        }
+
         .admin-modal {
             position: fixed;
             inset: 0;
@@ -432,6 +596,83 @@
                 white-space: nowrap;
             }
         }
+
+        /* Desktop-only analytics + full-screen layout */
+        @media (min-width: 900px) {
+            body {
+                padding: 0.75rem;
+                height: 100vh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+            .admin-header,
+            .admin-layout {
+                max-width: none;
+            }
+            .admin-header {
+                margin-bottom: 0.75rem;
+            }
+
+            /* World-class desktop layout: orders + sticky analytics sidebar */
+            .admin-layout {
+                flex: 1 1 auto;
+                height: 100%;
+                min-height: 0;
+                display: grid;
+                grid-template-columns: 280px minmax(560px, 1fr) 360px;
+                gap: 0.85rem;
+                align-items: start;
+            }
+
+            .admin-primary {
+                height: 100%;
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+                overflow: hidden; /* ensures the list becomes the scroll container */
+            }
+
+            .admin-sidebar {
+                min-height: 0;
+                position: sticky;
+                top: 0.75rem;
+            }
+
+            .admin-filters {
+                min-height: 0;
+                position: sticky;
+                top: 0.75rem;
+                align-self: start;
+            }
+            .admin-filters-card {
+                border: 1px solid rgba(51, 65, 85, 0.75);
+                border-radius: 14px;
+                background: rgba(15, 23, 42, 0.55);
+                backdrop-filter: blur(10px);
+                padding: 0.65rem;
+            }
+
+            .admin-desktop-analytics {
+                display: block;
+                max-width: none;
+                margin: 0;
+            }
+
+            .admin-analytics-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            #adminOrderList {
+                max-width: none;
+                margin: 0;
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow: auto;
+                padding-right: 0.35rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -455,22 +696,82 @@
             <p>Live list refreshes every few seconds. Use Accept → Preparing → Out for delivery.</p>
         </div>
         <div class="admin-toolbar">
-            <button type="button" id="adminRefreshBtn">Refresh now</button>
-            <button type="button" id="adminEnableSoundBtn">Enable sound</button>
-            <button type="button" id="adminLogoutBtn">Logout</button>
+            <button type="button" id="adminRefreshBtn" class="admin-icon-btn" data-tip="Refresh" aria-label="Refresh">⟳</button>
+            <button type="button" id="adminEnableSoundBtn" class="admin-icon-btn" data-tip="Sound" aria-label="Sound">🔊</button>
+            <button type="button" id="adminEnableNotifyBtn" class="admin-icon-btn" data-tip="Notifications" aria-label="Notifications" hidden>🔔</button>
+            <button type="button" id="adminLogoutBtn" class="admin-icon-btn admin-icon-btn--danger" data-tip="Logout" aria-label="Logout">⎋</button>
         </div>
     </header>
 
-    <div id="adminNotifyBanner" hidden>
-        <span>Enable browser notifications for instant alerts when customers place orders.</span>
-        <button type="button">Enable notifications</button>
-    </div>
+    <main class="admin-layout">
+        <aside class="admin-filters">
+            <div class="admin-filters-card">
+                <div class="admin-search">
+                    <label for="adminSearchInput">Search</label>
+                    <input id="adminSearchInput" type="search" placeholder="Order #, name, mobile, city" autocomplete="off">
+                </div>
+                <div style="height: 0.65rem;"></div>
+                <div id="adminTabs" class="admin-tabs admin-tabs--sidebar" role="tablist" aria-label="Order status"></div>
+            </div>
+        </aside>
 
-    <div id="adminTabs" class="admin-tabs" role="tablist" aria-label="Order status"></div>
+        <section class="admin-primary">
+            <div id="adminOrderList">
+                <p class="admin-empty">Loading…</p>
+            </div>
+        </section>
 
-    <div id="adminOrderList">
-        <p class="admin-empty">Loading…</p>
-    </div>
+        <aside class="admin-sidebar">
+            <section class="admin-desktop-analytics" id="adminDesktopAnalytics" aria-label="Analytics">
+                <div class="admin-analytics-head">
+                    <div class="admin-analytics-title">Today’s analytics</div>
+                    <div class="admin-analytics-sub" id="adminAnalyticsUpdatedAt">—</div>
+                </div>
+                <div class="admin-analytics-grid">
+                    <div class="admin-metric">
+                        <div class="admin-metric-label">Orders today</div>
+                        <div class="admin-metric-value" id="metricOrdersToday">—</div>
+                        <div class="admin-metric-hint" id="metricOrdersTodayHint">—</div>
+                    </div>
+                    <div class="admin-metric">
+                        <div class="admin-metric-label">Revenue today</div>
+                        <div class="admin-metric-value" id="metricRevenueToday">—</div>
+                        <div class="admin-metric-hint" id="metricRevenueTodayHint">—</div>
+                    </div>
+                    <div class="admin-metric">
+                        <div class="admin-metric-label">Total orders</div>
+                        <div class="admin-metric-value" id="metricTotalOrders">—</div>
+                        <div class="admin-metric-hint">From loaded orders</div>
+                    </div>
+                    <div class="admin-metric">
+                        <div class="admin-metric-label">Total earning</div>
+                        <div class="admin-metric-value" id="metricTotalEarning">—</div>
+                        <div class="admin-metric-hint">From loaded orders</div>
+                    </div>
+                    <div class="admin-metric">
+                        <div class="admin-metric-label">Pending now</div>
+                        <div class="admin-metric-value" id="metricPendingNow">—</div>
+                        <div class="admin-metric-hint">Awaiting action</div>
+                    </div>
+                    <div class="admin-metric">
+                        <div class="admin-metric-label">In progress</div>
+                        <div class="admin-metric-value" id="metricInProgressNow">—</div>
+                        <div class="admin-metric-hint">Accepted + Preparing + Out</div>
+                    </div>
+                    <div class="admin-metric">
+                        <div class="admin-metric-label">Completed today</div>
+                        <div class="admin-metric-value" id="metricCompletedToday">—</div>
+                        <div class="admin-metric-hint" id="metricCompletedTodayHint">—</div>
+                    </div>
+                    <div class="admin-metric">
+                        <div class="admin-metric-label">Avg order today</div>
+                        <div class="admin-metric-value" id="metricAvgOrderToday">—</div>
+                        <div class="admin-metric-hint">Based on today’s orders</div>
+                    </div>
+                </div>
+            </section>
+        </aside>
+    </main>
 
     <div id="adminNewOrderModal" class="admin-modal" hidden>
         <div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminNewOrderTitle">
