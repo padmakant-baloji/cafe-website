@@ -319,6 +319,90 @@
             margin: 0 auto;
         }
 
+        .admin-sidebar-actions {
+            margin-top: 0.75rem;
+            border: 1px solid rgba(51, 65, 85, 0.75);
+            border-radius: 14px;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem;
+        }
+        .admin-sidebar-actions h3 {
+            font-size: 0.8rem;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.55rem;
+        }
+        .admin-sidebar-actions h3 + p {
+            margin-top: -0.25rem;
+            margin-bottom: 0.7rem;
+            color: var(--muted);
+            font-size: 0.82rem;
+            line-height: 1.35;
+        }
+        .admin-cta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.6rem;
+        }
+        .admin-cta-btn {
+            flex: 1 1 auto;
+            font: inherit;
+            font-weight: 800;
+            font-size: 0.8rem;
+            padding: 0.55rem 0.65rem;
+            border-radius: 12px;
+            border: 1px solid rgba(51, 65, 85, 0.85);
+            background: rgba(51, 65, 85, 0.35);
+            color: var(--text);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.6rem;
+            min-width: 9.5rem;
+        }
+        .admin-cta-btn:hover { background: rgba(51, 65, 85, 0.55); }
+        .admin-cta-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2.2rem;
+            height: 1.55rem;
+            padding: 0 0.5rem;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            font-size: 0.75rem;
+            font-weight: 900;
+            color: var(--text);
+        }
+        .admin-insights {
+            display: grid;
+            gap: 0.35rem;
+            color: rgba(226, 232, 240, 0.9);
+            font-size: 0.85rem;
+        }
+        .admin-insights strong {
+            color: var(--text);
+        }
+
+        .admin-density-compact .admin-order {
+            padding: 0.75rem 0.85rem;
+        }
+        .admin-density-compact .admin-order-items {
+            font-size: 0.76rem;
+            margin-bottom: 0.35rem;
+        }
+        .admin-density-compact .admin-order-meta {
+            font-size: 0.82rem;
+            margin-bottom: 0.6rem;
+        }
+        .admin-density-compact .admin-order-total {
+            margin-bottom: 0.55rem;
+        }
+
         .admin-filters {
             display: flex;
             flex-direction: column;
@@ -748,26 +832,34 @@
                         <div class="admin-metric-value" id="metricTotalEarning">—</div>
                         <div class="admin-metric-hint">From loaded orders</div>
                     </div>
-                    <div class="admin-metric">
-                        <div class="admin-metric-label">Pending now</div>
-                        <div class="admin-metric-value" id="metricPendingNow">—</div>
-                        <div class="admin-metric-hint">Awaiting action</div>
-                    </div>
-                    <div class="admin-metric">
-                        <div class="admin-metric-label">In progress</div>
-                        <div class="admin-metric-value" id="metricInProgressNow">—</div>
-                        <div class="admin-metric-hint">Accepted + Preparing + Out</div>
-                    </div>
-                    <div class="admin-metric">
-                        <div class="admin-metric-label">Completed today</div>
-                        <div class="admin-metric-value" id="metricCompletedToday">—</div>
-                        <div class="admin-metric-hint" id="metricCompletedTodayHint">—</div>
-                    </div>
-                    <div class="admin-metric">
-                        <div class="admin-metric-label">Avg order today</div>
-                        <div class="admin-metric-value" id="metricAvgOrderToday">—</div>
-                        <div class="admin-metric-hint">Based on today’s orders</div>
-                    </div>
+                </div>
+            </section>
+
+            <section class="admin-sidebar-actions" aria-label="Quick actions and insights">
+                <h3>Ops tools</h3>
+                <p>Designed for fast kitchen + delivery operations (no extra filters).</p>
+                <div class="admin-cta-row">
+                    <button type="button" class="admin-cta-btn" id="btnToggleDensity">
+                        <span>Density</span>
+                        <span class="admin-cta-pill" id="btnToggleDensityState">Comfort</span>
+                    </button>
+                    <button type="button" class="admin-cta-btn" id="btnCopyTodaySummary">
+                        <span>Copy summary</span>
+                        <span class="admin-cta-pill">TXT</span>
+                    </button>
+                    <button type="button" class="admin-cta-btn" id="btnDownloadCsv">
+                        <span>Download CSV</span>
+                        <span class="admin-cta-pill">CSV</span>
+                    </button>
+                </div>
+                <div class="admin-insights">
+                    <div><strong>Avg order today:</strong> <span id="insightAvgOrderToday">—</span></div>
+                    <div><strong>Discounts today:</strong> <span id="insightDiscountsToday">—</span></div>
+                    <div><strong>Delivery today:</strong> <span id="insightDeliveryFeesToday">—</span></div>
+                    <div><strong>Oldest pending:</strong> <span id="insightOldestPending">—</span></div>
+                    <div><strong>Oldest in-progress:</strong> <span id="insightOldestInProgress">—</span></div>
+                    <div><strong>Last 60 min:</strong> <span id="insightLast60Min">—</span></div>
+                    <div><strong>Kudachi vs outside:</strong> <span id="insightKudachiSplit">—</span></div>
                 </div>
             </section>
         </aside>

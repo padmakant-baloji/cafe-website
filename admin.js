@@ -204,6 +204,17 @@ function formatMoney(n) {
     return `₹${Math.round(v)}`;
 }
 
+function formatDuration(ms) {
+    const n = Number(ms);
+    if (!Number.isFinite(n) || n <= 0) return '0m';
+    const totalSec = Math.floor(n / 1000);
+    const mins = Math.floor(totalSec / 60);
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    if (hrs <= 0) return `${mins}m`;
+    return `${hrs}h ${remMins}m`;
+}
+
 function isSameLocalDay(a, b) {
     return (
         a.getFullYear() === b.getFullYear() &&
@@ -223,6 +234,12 @@ function computeAdminAnalytics(orders) {
     let deliveryFeesToday = 0;
     let totalOrdersLoaded = 0;
     let totalEarningLoaded = 0;
+    let oldestPendingMs = null;
+    let oldestInProgressMs = null;
+    let last60MinOrders = 0;
+    let last60MinRevenue = 0;
+    let kudachiCountLoaded = 0;
+    let outsideCountLoaded = 0;
 
     for (const o of orders || []) {
         totalOrdersLoaded += 1;
@@ -232,7 +249,31 @@ function computeAdminAnalytics(orders) {
         if (status === 'accepted' || status === 'preparing' || status === 'out_for_delivery') inProgressNow += 1;
 
         const createdAt = o.created_at ? new Date(o.created_at) : null;
-        if (!createdAt || Number.isNaN(createdAt.getTime())) continue;
+        if (!createdAt || Number.isNaN(createdAt.getTime())) {
+            // Still count city split even if timestamps are missing.
+            const cityLower = String(o.city || '').trim().toLowerCase();
+            if (cityLower === 'kudachi') kudachiCountLoaded += 1;
+            else if (cityLower) outsideCountLoaded += 1;
+            continue;
+        }
+
+        const ageMs = now.getTime() - createdAt.getTime();
+        if (status === 'pending') {
+            oldestPendingMs = oldestPendingMs == null ? ageMs : Math.max(oldestPendingMs, ageMs);
+        }
+        if (status === 'accepted' || status === 'preparing' || status === 'out_for_delivery') {
+            oldestInProgressMs = oldestInProgressMs == null ? ageMs : Math.max(oldestInProgressMs, ageMs);
+        }
+
+        if (ageMs >= 0 && ageMs <= 60 * 60 * 1000) {
+            last60MinOrders += 1;
+            last60MinRevenue += Number(o.total) || 0;
+        }
+
+        const cityLower = String(o.city || '').trim().toLowerCase();
+        if (cityLower === 'kudachi') kudachiCountLoaded += 1;
+        else if (cityLower) outsideCountLoaded += 1;
+
         if (!isSameLocalDay(createdAt, now)) continue;
 
         todayOrders.push(o);
@@ -258,8 +299,37 @@ function computeAdminAnalytics(orders) {
         inProgressNow,
         completedToday,
         discountsToday,
-        deliveryFeesToday
+        deliveryFeesToday,
+        oldestPendingMs,
+        oldestInProgressMs,
+        last60MinOrders,
+        last60MinRevenue,
+        kudachiCountLoaded,
+        outsideCountLoaded
     };
+}
+
+function safeClipboardWrite(text) {
+    if (!text) return Promise.resolve(false);
+    if (navigator && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        return navigator.clipboard.writeText(text).then(() => true).catch(() => false);
+    }
+    return new Promise((resolve) => {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', 'true');
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            resolve(Boolean(ok));
+        } catch {
+            resolve(false);
+        }
+    });
 }
 
 function renderAdminAnalytics(orders) {
@@ -292,23 +362,36 @@ function renderAdminAnalytics(orders) {
     const totalEarnEl = document.getElementById('metricTotalEarning');
     if (totalEarnEl) totalEarnEl.textContent = formatMoney(data.totalEarningLoaded);
 
-    const pendingEl = document.getElementById('metricPendingNow');
-    if (pendingEl) pendingEl.textContent = String(data.pendingNow);
+    const avgTodayEl = document.getElementById('insightAvgOrderToday');
+    if (avgTodayEl) avgTodayEl.textContent = formatMoney(data.avgOrderToday);
 
-    const inProgressEl = document.getElementById('metricInProgressNow');
-    if (inProgressEl) inProgressEl.textContent = String(data.inProgressNow);
+    const discountsEl = document.getElementById('insightDiscountsToday');
+    if (discountsEl) discountsEl.textContent = formatMoney(data.discountsToday);
 
-    const completedEl = document.getElementById('metricCompletedToday');
-    if (completedEl) completedEl.textContent = String(data.completedToday);
-    const completedHintEl = document.getElementById('metricCompletedTodayHint');
-    if (completedHintEl) {
-        completedHintEl.textContent = data.ordersTodayCount
-            ? `${Math.round((data.completedToday / data.ordersTodayCount) * 100)}% of today`
-            : '—';
+    const deliveryEl = document.getElementById('insightDeliveryFeesToday');
+    if (deliveryEl) deliveryEl.textContent = formatMoney(data.deliveryFeesToday);
+
+    const oldestPendingEl = document.getElementById('insightOldestPending');
+    if (oldestPendingEl) {
+        oldestPendingEl.textContent = data.oldestPendingMs == null ? '—' : formatDuration(data.oldestPendingMs);
     }
 
-    const avgEl = document.getElementById('metricAvgOrderToday');
-    if (avgEl) avgEl.textContent = formatMoney(data.avgOrderToday);
+    const oldestProgEl = document.getElementById('insightOldestInProgress');
+    if (oldestProgEl) {
+        oldestProgEl.textContent = data.oldestInProgressMs == null ? '—' : formatDuration(data.oldestInProgressMs);
+    }
+
+    const last60El = document.getElementById('insightLast60Min');
+    if (last60El) {
+        last60El.textContent = `${data.last60MinOrders} orders · ${formatMoney(data.last60MinRevenue)}`;
+    }
+
+    const splitEl = document.getElementById('insightKudachiSplit');
+    if (splitEl) {
+        const total = (data.kudachiCountLoaded || 0) + (data.outsideCountLoaded || 0);
+        if (!total) splitEl.textContent = '—';
+        else splitEl.textContent = `${data.kudachiCountLoaded} / ${data.outsideCountLoaded}`;
+    }
 }
 
 function renderOrders(orders, container, emptyText = 'orders') {
@@ -563,6 +646,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const listEl = document.getElementById('adminOrderList');
     const tabsEl = document.getElementById('adminTabs');
     const searchInput = document.getElementById('adminSearchInput');
+    const btnToggleDensity = document.getElementById('btnToggleDensity');
+    const btnToggleDensityState = document.getElementById('btnToggleDensityState');
+    const btnCopyTodaySummary = document.getElementById('btnCopyTodaySummary');
+    const btnDownloadCsv = document.getElementById('btnDownloadCsv');
     const refreshBtn = document.getElementById('adminRefreshBtn');
     const enableSoundBtn = document.getElementById('adminEnableSoundBtn');
     const enableNotifyBtn = document.getElementById('adminEnableNotifyBtn');
@@ -656,6 +743,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
     searchInput?.addEventListener('input', () => {
         renderTabsAndActiveList(lastOrders);
+    });
+
+    const DENSITY_KEY = 'balojiAdminDensity';
+    const applyDensity = (value) => {
+        const compact = value === 'compact';
+        document.body.classList.toggle('admin-density-compact', compact);
+        if (btnToggleDensityState) btnToggleDensityState.textContent = compact ? 'Compact' : 'Comfort';
+    };
+    const storedDensity = (() => {
+        try { return localStorage.getItem(DENSITY_KEY) || ''; } catch { return ''; }
+    })();
+    applyDensity(storedDensity);
+
+    btnToggleDensity?.addEventListener('click', () => {
+        const next = document.body.classList.contains('admin-density-compact') ? 'comfort' : 'compact';
+        try { localStorage.setItem(DENSITY_KEY, next); } catch { /* ignore */ }
+        applyDensity(next);
+    });
+
+    btnCopyTodaySummary?.addEventListener('click', async () => {
+        const data = computeAdminAnalytics(lastOrders || []);
+        const lines = [
+            `Baloji's Cafe — Today summary`,
+            `Updated: ${data.updatedAt.toLocaleString()}`,
+            `Orders today: ${data.ordersTodayCount}`,
+            `Revenue today: ${formatMoney(data.revenueToday)}`,
+            `Avg order today: ${formatMoney(data.avgOrderToday)}`,
+            `Discounts today: ${formatMoney(data.discountsToday)}`,
+            `Delivery today: ${formatMoney(data.deliveryFeesToday)}`,
+            `Last 60 min: ${data.last60MinOrders} orders · ${formatMoney(data.last60MinRevenue)}`,
+            `Oldest pending: ${data.oldestPendingMs == null ? '—' : formatDuration(data.oldestPendingMs)}`,
+            `Oldest in-progress: ${data.oldestInProgressMs == null ? '—' : formatDuration(data.oldestInProgressMs)}`,
+            `Loaded totals: ${data.totalOrdersLoaded} orders · ${formatMoney(data.totalEarningLoaded)}`
+        ];
+        const ok = await safeClipboardWrite(lines.join('\n'));
+        showToast(ok ? 'Summary copied' : 'Could not copy summary');
+    });
+
+    btnDownloadCsv?.addEventListener('click', () => {
+        const rows = (lastOrders || []).map((o) => ({
+            id: o.id,
+            status: o.status,
+            name: o.name,
+            mobile: o.mobile,
+            city: o.city,
+            subtotal: o.subtotal,
+            delivery_fee: o.delivery_fee,
+            discount: o.discount,
+            total: o.total,
+            created_at: o.created_at,
+            updated_at: o.updated_at
+        }));
+        const header = Object.keys(rows[0] || { id: '', status: '', name: '', mobile: '', city: '', total: '', created_at: '' });
+        const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+        const csv = [
+            header.join(','),
+            ...rows.map((r) => header.map((k) => esc(r[k])).join(','))
+        ].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     });
 
     const updateNotifyButtonState = () => {
