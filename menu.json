@@ -42,40 +42,6 @@
       ]
     },
     {
-      "id": "quick-bites",
-      "name": "Quick Bites",
-      "items": [
-        {
-          "id": "samosa",
-          "name": "Samosa",
-          "image": "images/Samosa.jpg",
-          "alt": "Samosa",
-          "price": 15
-        },
-        {
-          "id": "crispy-vada-pav",
-          "name": "Crispy Vada Pav",
-          "image": "images/Crispy%20Vada%20Pav.jpg",
-          "alt": "Crispy Vada Pav",
-          "price": 15
-        },
-        {
-          "id": "bread-cheesy-pakoda",
-          "name": "Bread Cheesy Pakoda",
-          "image": "images/Bread%20Cheesy%20Pakoda.jpg",
-          "alt": "Bread Cheesy Pakoda",
-          "price": 20
-        },
-        {
-          "id": "ulta-vada-pav",
-          "name": "Ulta Vada Pav",
-          "image": "images/Ulta%20Vada%20Pav.jpg",
-          "alt": "Ulta Vada Pav",
-          "price": 20
-        }
-      ]
-    },
-    {
       "id": "pizza",
       "name": "Pizza",
       "items": [

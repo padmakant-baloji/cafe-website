@@ -932,7 +932,7 @@ function updateOrderingAvailability() {
 
         const label = button.querySelector('.order-btn-label');
         if (label) {
-            label.textContent = 'Add to cart';
+            label.textContent = 'Add';
         }
     });
 
@@ -974,7 +974,7 @@ function getOrderApiUrl() {
 }
 
 // Add item to cart
-function addToCart(itemName, price) {
+function addToCart(itemName, price, options = {}) {
     // Price can be a number or string - handle both
     const itemPrice = typeof price === 'number' ? price : (parseInt(price) || 0);
     
@@ -993,7 +993,157 @@ function addToCart(itemName, price) {
     
     saveCart();
     updateCartUI();
+    if (options.skipToast) return;
     showCartNotification();
+}
+
+function getCartQuantityForLine(lineName) {
+    const row = cart.find((c) => c.name === lineName);
+    return row ? row.quantity : 0;
+}
+
+function adjustCartLineQuantity(lineName, delta) {
+    if (!lineName || !delta) return;
+    const idx = cart.findIndex((c) => c.name === lineName);
+    if (idx < 0) return;
+    cart[idx].quantity += delta;
+    if (cart[idx].quantity <= 0) {
+        cart.splice(idx, 1);
+    }
+    saveCart();
+    updateCartUI();
+}
+
+function collectSelectedAddons(menuItem, itemId) {
+    const selectedAddons = [];
+    if (!menuItem) return selectedAddons;
+    menuItem.querySelectorAll(`input[type="checkbox"][data-item-id="${itemId}"]:checked`).forEach((checkbox) => {
+        selectedAddons.push({
+            label: checkbox.dataset.label,
+            price: parseInt(checkbox.value, 10) || 0
+        });
+    });
+    return selectedAddons;
+}
+
+function buildCartLineName(item, selectedSize, menuItem) {
+    const selectedAddons = collectSelectedAddons(menuItem, item.id);
+    let itemName = item.name;
+    if (selectedSize) {
+        itemName += ` (${selectedSize.label})`;
+    }
+    if (selectedAddons.length > 0) {
+        const addonLabels = selectedAddons.map((a) => a.label).join(', ');
+        itemName += ` [${addonLabels}]`;
+    }
+    return itemName;
+}
+
+function buildCartLinePrice(item, selectedSize, menuItem) {
+    const selectedAddons = collectSelectedAddons(menuItem, item.id);
+    let totalPrice = selectedSize ? selectedSize.price : item.price;
+    selectedAddons.forEach((addon) => {
+        totalPrice += addon.price;
+    });
+    return totalPrice;
+}
+
+function parseSizeLabelFromLine(itemName, lineName) {
+    const prefix = `${itemName} (`;
+    if (!lineName.startsWith(prefix)) return '';
+    const inner = lineName.slice(prefix.length);
+    const close = inner.indexOf(')');
+    return close >= 0 ? inner.slice(0, close) : '';
+}
+
+function syncMenuItemSteppers() {
+    const container = document.getElementById('menuItemsContainer');
+    if (!container) return;
+
+    container.querySelectorAll('.menu-item').forEach((row) => {
+        const itemId = row.dataset.itemId;
+        const item = findMenuItemById(itemId);
+        if (!item) return;
+
+        const hasSizes = item.sizes && item.sizes.length > 0;
+
+        if (!hasSizes) {
+            const lineName = buildCartLineName(item, null, row);
+            const qty = getCartQuantityForLine(lineName);
+            const control = row.querySelector('.menu-cart-control');
+            const addBtn = control && control.querySelector('.menu-cart-add');
+            const qtyBar = control && control.querySelector('.menu-cart-qty-bar');
+            if (!addBtn || !qtyBar) return;
+            const minusBtn = qtyBar.querySelector('.menu-qty-minus');
+            const plusBtn = qtyBar.querySelector('.menu-qty-plus');
+            const qtyNum = qtyBar.querySelector('.menu-cart-qty-middle');
+            if (qty > 0) {
+                addBtn.hidden = true;
+                qtyBar.hidden = false;
+                qtyBar.setAttribute('aria-hidden', 'false');
+                qtyBar.dataset.cartLine = lineName;
+                qtyBar.setAttribute('aria-label', `Quantity in cart: ${qty}`);
+                if (qtyNum) qtyNum.textContent = String(qty);
+                if (minusBtn) {
+                    minusBtn.setAttribute('aria-label', `Decrease quantity (${qty} in cart)`);
+                }
+                if (plusBtn) {
+                    plusBtn.setAttribute('aria-label', `Increase quantity (${qty} in cart)`);
+                }
+            } else {
+                addBtn.hidden = false;
+                qtyBar.hidden = true;
+                qtyBar.setAttribute('aria-hidden', 'true');
+                delete qtyBar.dataset.cartLine;
+                qtyBar.removeAttribute('aria-label');
+                if (qtyNum) qtyNum.textContent = '0';
+                if (minusBtn) minusBtn.setAttribute('aria-label', 'Decrease quantity');
+                if (plusBtn) plusBtn.setAttribute('aria-label', 'Increase quantity');
+            }
+            return;
+        }
+
+        const linesWrap = row.querySelector('.menu-item-size-lines');
+        if (!linesWrap) return;
+        linesWrap.innerHTML = '';
+        const entries = cart.filter((c) => c.name.startsWith(`${item.name} (`));
+        entries.forEach((entry) => {
+            const label = parseSizeLabelFromLine(item.name, entry.name);
+            const wrap = document.createElement('div');
+            wrap.className = 'menu-size-qty-row';
+
+            const lab = document.createElement('span');
+            lab.className = 'menu-size-qty-label';
+            lab.textContent = label || '—';
+
+            const qtyBar = document.createElement('div');
+            qtyBar.className = 'menu-cart-qty-bar menu-cart-qty-bar--compact';
+            qtyBar.setAttribute('role', 'group');
+            qtyBar.dataset.cartLine = entry.name;
+            qtyBar.setAttribute('aria-label', `${label || 'Item'}, ${entry.quantity} in cart`);
+
+            const minusBtn = document.createElement('button');
+            minusBtn.type = 'button';
+            minusBtn.className = 'menu-qty-minus';
+            minusBtn.setAttribute('aria-label', `Decrease quantity (${entry.quantity} in cart)`);
+            minusBtn.textContent = '−';
+
+            const qtyMid = document.createElement('span');
+            qtyMid.className = 'menu-cart-qty-middle';
+            qtyMid.setAttribute('aria-live', 'polite');
+            qtyMid.textContent = String(entry.quantity);
+
+            const plusBtn = document.createElement('button');
+            plusBtn.type = 'button';
+            plusBtn.className = 'menu-qty-plus';
+            plusBtn.setAttribute('aria-label', `Increase quantity (${entry.quantity} in cart)`);
+            plusBtn.textContent = '+';
+
+            qtyBar.append(minusBtn, qtyMid, plusBtn);
+            wrap.append(lab, qtyBar);
+            linesWrap.appendChild(wrap);
+        });
+    });
 }
 
 // Remove item from cart (global for onclick handlers)
@@ -1324,6 +1474,8 @@ function updateCartUI() {
         }
         renderCheckoutTotals();
     }
+
+    syncMenuItemSteppers();
 }
 
 // Show cart notification
@@ -1381,40 +1533,6 @@ const FALLBACK_MENU_JSON = `{
           "name": "Boost",
           "image": "images/Boost.jpg",
           "alt": "Boost",
-          "price": 20
-        }
-      ]
-    },
-    {
-      "id": "quick-bites",
-      "name": "Quick Bites",
-      "items": [
-        {
-          "id": "samosa",
-          "name": "Samosa",
-          "image": "images/Samosa.jpg",
-          "alt": "Samosa",
-          "price": 15
-        },
-        {
-          "id": "crispy-vada-pav",
-          "name": "Crispy Vada Pav",
-          "image": "images/Crispy%20Vada%20Pav.jpg",
-          "alt": "Crispy Vada Pav",
-          "price": 15
-        },
-        {
-          "id": "bread-cheesy-pakoda",
-          "name": "Bread Cheesy Pakoda",
-          "image": "images/Bread%20Cheesy%20Pakoda.jpg",
-          "alt": "Bread Cheesy Pakoda",
-          "price": 20
-        },
-        {
-          "id": "ulta-vada-pav",
-          "name": "Ulta Vada Pav",
-          "image": "images/Ulta%20Vada%20Pav.jpg",
-          "alt": "Ulta Vada Pav",
           "price": 20
         }
       ]
@@ -2039,7 +2157,6 @@ async function loadMenu() {
 
 const CATEGORY_TAB_ICONS = {
     'coffee-tea': '\u2615',
-    'quick-bites': '\u{1F950}',
     pizza: '\u{1F355}',
     starters: '\u{1F331}',
     soups: '\u{1F372}',
@@ -2242,7 +2359,7 @@ function renderMenu(searchQuery = '') {
     }
 
     updateOrderingAvailability();
-    
+    syncMenuItemSteppers();
 }
 
 function createMenuItem(item, categoryId) {
@@ -2288,15 +2405,23 @@ function createMenuItem(item, categoryId) {
     }
 
     const actionsBlock = hasSizes
-        ? `<div class="menu-item-actions">
+        ? `<div class="menu-item-actions menu-item-actions--sizes">
                 <p class="menu-item-note" id="size-hint-${item.id}">Tap a size to add to cart</p>
                 <div class="size-chips" role="group" aria-labelledby="size-hint-${item.id}"></div>
+                <div class="menu-item-size-lines" aria-live="polite"></div>
             </div>`
-        : `<div class="menu-item-actions">
-                <button type="button" class="order-btn" data-item-id="${item.id}">
-                    <span class="order-btn-label">Add to cart</span>
-                    <span class="order-btn-price">₹${item.price}</span>
-                </button>
+        : `<div class="menu-item-actions menu-item-actions--simple">
+                <div class="menu-cart-control">
+                    <button type="button" class="order-btn order-btn--primary-add menu-cart-add" data-item-id="${item.id}">
+                        <span class="order-btn-label">Add</span>
+                        <span class="order-btn-price">₹${item.price}</span>
+                    </button>
+                    <div class="menu-cart-qty-bar" hidden aria-hidden="true" role="group">
+                        <button type="button" class="menu-qty-minus" aria-label="Decrease quantity">−</button>
+                        <span class="menu-cart-qty-middle" aria-live="polite">0</span>
+                        <button type="button" class="menu-qty-plus" aria-label="Increase quantity">+</button>
+                    </div>
+                </div>
             </div>`;
 
     menuItem.innerHTML = `
@@ -2345,33 +2470,10 @@ function createMenuItem(item, categoryId) {
 function handleAddToCart(item, selectedSize = null) {
     const menuItem = document.querySelector(`[data-item-id="${item.id}"]`);
     if (!menuItem) return;
-    
-    // Get selected addons
-    const selectedAddons = [];
-    const addonCheckboxes = menuItem.querySelectorAll(`input[type="checkbox"][data-item-id="${item.id}"]:checked`);
-    addonCheckboxes.forEach(checkbox => {
-        selectedAddons.push({
-            label: checkbox.dataset.label,
-            price: parseInt(checkbox.value)
-        });
-    });
-    
-    // Calculate total price
-    let totalPrice = selectedSize ? selectedSize.price : item.price;
-    selectedAddons.forEach(addon => {
-        totalPrice += addon.price;
-    });
-    
-    // Build item name with size and addons
-    let itemName = item.name;
-    if (selectedSize) {
-        itemName += ` (${selectedSize.label})`;
-    }
-    if (selectedAddons.length > 0) {
-        const addonLabels = selectedAddons.map(a => a.label).join(', ');
-        itemName += ` [${addonLabels}]`;
-    }
-    
+
+    const itemName = buildCartLineName(item, selectedSize, menuItem);
+    const totalPrice = buildCartLinePrice(item, selectedSize, menuItem);
+
     addToCart(itemName, totalPrice);
 }
 
@@ -2425,6 +2527,24 @@ function initMenuItemActions() {
             e.preventDefault();
             if (item.sizes && item.sizes.length) return;
             handleAddToCart(item);
+            return;
+        }
+
+        const qtySeg = e.target.closest('.menu-cart-qty-bar .menu-qty-minus, .menu-cart-qty-bar .menu-qty-plus');
+        if (qtySeg) {
+            const bar = qtySeg.closest('.menu-cart-qty-bar');
+            const line = bar && bar.dataset.cartLine;
+            if (!line) return;
+            e.preventDefault();
+            const delta = qtySeg.classList.contains('menu-qty-plus') ? 1 : -1;
+            adjustCartLineQuantity(line, delta);
+        }
+    });
+
+    container.addEventListener('change', (e) => {
+        const t = e.target;
+        if (t && t.matches && t.matches('.addon-option input[type="checkbox"]')) {
+            syncMenuItemSteppers();
         }
     });
 }
