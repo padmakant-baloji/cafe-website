@@ -12,7 +12,7 @@ const {
     createCustomer,
     getCustomerByMobile,
     listCustomerAddresses,
-    createCustomerAddress,
+    upsertDefaultCustomerAddress,
     updateCustomerProfile,
     listOrdersForCustomer,
     listAllOrdersForAdmin,
@@ -192,9 +192,7 @@ app.patch('/api/auth/profile', requireCustomer, async (req, res) => {
 app.post('/api/customer-addresses', requireCustomer, async (req, res) => {
     try {
         await ensureSchema();
-        const address = await createCustomerAddress(req.customerSession.mobile, req.body || {}, {
-            makeDefault: req.body?.isDefault !== false
-        });
+        const address = await upsertDefaultCustomerAddress(req.customerSession.mobile, req.body || {});
         const customer = await getCustomerByMobile(req.customerSession.mobile);
         return res.status(201).json({
             address,

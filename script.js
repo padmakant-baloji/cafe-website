@@ -75,67 +75,12 @@ function formatSavedAddress(address) {
     return String(address.addressLine || address.address_line || '').trim();
 }
 
-function prefillNewAddressForm() {
-    return;
-}
-
-function setCheckoutAddressMode(mode) {
-    const savedWrap = document.getElementById('checkoutSavedAddresses');
-    const newFields = document.getElementById('checkoutNewAddressFields');
-    const toggleBtn = document.getElementById('checkoutAddAddressBtn');
-    const hasSavedAddresses = getCustomerAddresses().length > 0;
-    const normalizedMode = mode === 'new' ? 'new' : 'saved';
-
-    // If the user has no saved addresses, never show the toggle button.
-    if (toggleBtn) toggleBtn.hidden = !hasSavedAddresses;
-
-    if (savedWrap) savedWrap.hidden = normalizedMode === 'new' && hasSavedAddresses;
-    if (newFields) newFields.hidden = normalizedMode !== 'new';
-    if (toggleBtn) {
-        toggleBtn.textContent = normalizedMode === 'new' && hasSavedAddresses ? 'Use saved address' : 'Add new address';
-    }
-    if (normalizedMode === 'new') {
-        prefillNewAddressForm();
-    }
-}
-
-function renderCheckoutAddresses() {
-    const container = document.getElementById('checkoutSavedAddresses');
-    const section = document.getElementById('checkoutAddressSection');
-    const addBtn = document.getElementById('checkoutAddAddressBtn');
-    if (!container || !section) return;
-
-    const addresses = getCustomerAddresses();
-    if (!addresses.length) {
-        container.innerHTML =
-            '<p class="checkout-address-empty">No saved addresses yet. Add this delivery address once and we will keep it for next time.</p>';
-        if (addBtn) addBtn.hidden = true;
-        section.dataset.mode = 'new';
-        setCheckoutAddressMode('new');
-        return;
-    }
-
-    if (addBtn) addBtn.hidden = false;
-    const selected = getDefaultCustomerAddress();
-    container.innerHTML = addresses
-        .map((address) => {
-            const checked = selected && String(selected.id) === String(address.id);
-            return `
-                <label class="checkout-address-option">
-                    <input type="radio" name="savedAddressId" value="${escapeHtmlAttr(String(address.id))}"${checked ? ' checked' : ''}>
-                    <span class="checkout-address-option-body">
-                        <span class="checkout-address-option-top">
-                            <strong>${escapeHtmlAttr(address.label || 'Saved address')}</strong>
-                            ${address.isDefault ? '<span class="checkout-address-badge">Default</span>' : ''}
-                        </span>
-                        <span class="checkout-address-option-line">${escapeHtmlAttr(formatSavedAddress(address))}</span>
-                    </span>
-                </label>
-            `;
-        })
-        .join('');
-    section.dataset.mode = 'saved';
-    setCheckoutAddressMode('saved');
+/** Prefills the single checkout address field from the customer's default saved address. */
+function syncCheckoutAddressField() {
+    const input = document.getElementById('addressLine');
+    if (!input) return;
+    const saved = getDefaultCustomerAddress();
+    input.value = saved ? formatSavedAddress(saved) : '';
 }
 
 async function refreshCurrentCustomerProfile() {
@@ -201,13 +146,11 @@ async function restoreSession() {
 }
 
 function updateCheckoutProfileUI() {
-    const summary = document.getElementById('checkoutProfileSummary');
-    const line = document.getElementById('checkoutProfileLine');
     const fallback = document.getElementById('checkoutFieldsFallback');
     const nameInput = document.getElementById('customerName');
     const mobileInput = document.getElementById('mobileNumber');
     const citySelect = document.getElementById('customerCity');
-    if (!summary || !line || !fallback) return;
+    if (!fallback) return;
 
     const lockFields = (locked) => {
         if (nameInput) nameInput.readOnly = locked;
@@ -216,26 +159,15 @@ function updateCheckoutProfileUI() {
     };
 
     if (currentCustomer) {
-        const defaultAddress = getDefaultCustomerAddress();
-        summary.hidden = false;
         fallback.hidden = false;
-        line.textContent = [
-            `${currentCustomer.name} · ${currentCustomer.mobile} · ${currentCustomer.city}`,
-            defaultAddress ? formatSavedAddress(defaultAddress) : ''
-        ]
-            .filter(Boolean)
-            .join(' \u2022 ');
         if (nameInput) nameInput.value = currentCustomer.name || '';
         if (mobileInput) mobileInput.value = currentCustomer.mobile || '';
         if (citySelect) citySelect.value = currentCustomer.city || '';
         lockFields(true);
     } else {
-        summary.hidden = true;
         fallback.hidden = false;
         lockFields(false);
     }
-
-    renderCheckoutAddresses();
 }
 
 function initSessionGate() {
@@ -2595,8 +2527,7 @@ async function openCheckoutModal() {
     }
 
     updateCheckoutProfileUI();
-    renderCheckoutAddresses();
-    prefillNewAddressForm();
+    syncCheckoutAddressField();
 
     // Update order summary
     orderSummary.innerHTML = cart.map(item => `
@@ -2617,7 +2548,6 @@ function initCheckoutModal() {
     const checkoutModal = document.getElementById('checkoutModal');
     const checkoutClose = document.getElementById('checkoutClose');
     const checkoutForm = document.getElementById('checkoutForm');
-    const addAddressBtn = document.getElementById('checkoutAddAddressBtn');
     const citySelect = document.getElementById('customerCity');
     const applyCouponBtn = document.getElementById('applyCouponBtn');
     const couponInput = document.getElementById('couponCode');
@@ -2669,11 +2599,6 @@ function initCheckoutModal() {
         }
     });
 
-    addAddressBtn?.addEventListener('click', () => {
-        const nextMode =
-            document.getElementById('checkoutNewAddressFields')?.hidden === false ? 'saved' : 'new';
-        setCheckoutAddressMode(nextMode);
-    });
 }
 
 function getOrderSuccessMessage() {
@@ -2761,8 +2686,17 @@ async function placeOrder() {
             ? Math.max(0, Math.min(subtotal, Number(appliedCoupon.discount || 0)))
             : 0;
     const total = Math.max(0, subtotal - discount) + deliveryFee;
-    const selectedSavedAddress = document.querySelector('input[name="savedAddressId"]:checked');
-    const usingNewAddress = document.getElementById('checkoutNewAddressFields')?.hidden === false;
+    const addressLine = (document.getElementById('addressLine')?.value || '').trim();
+    if (!addressLine) {
+        alert('Please enter your delivery address.');
+        return;
+    }
+    const citySelect = document.getElementById('customerCity');
+    const city = (citySelect && citySelect.value) || currentCustomer?.city || '';
+    if (!city) {
+        alert('Please select your city.');
+        return;
+    }
     const payload = {
         items: cart.map((item) => ({
             name: item.name,
@@ -2770,33 +2704,13 @@ async function placeOrder() {
             quantity: item.quantity
         })),
         total,
-        couponCode: appliedCoupon?.code || ''
-    };
-
-    if (usingNewAddress) {
-        const addressLine = (document.getElementById('addressLine')?.value || '').trim();
-        if (!addressLine) {
-            alert('Please enter your address.');
-            return;
-        }
-        const citySelect = document.getElementById('customerCity');
-        const city = (citySelect && citySelect.value) || currentCustomer?.city || '';
-        payload.address = {
-            label: 'Saved address',
+        couponCode: appliedCoupon?.code || '',
+        address: {
+            label: 'Delivery',
             addressLine,
             city
-        };
-    } else if (selectedSavedAddress?.value) {
-        payload.addressId = selectedSavedAddress.value;
-    } else {
-        const defaultAddress = getDefaultCustomerAddress();
-        if (defaultAddress?.id) {
-            payload.addressId = defaultAddress.id;
-        } else {
-            alert('Please select a saved address or add a new one.');
-            return;
         }
-    }
+    };
 
     const submitBtn = document.querySelector('#checkoutForm button[type="submit"]');
     const prevLabel = submitBtn ? submitBtn.textContent : '';

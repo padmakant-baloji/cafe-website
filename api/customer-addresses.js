@@ -2,7 +2,7 @@
 
 const { ensureSchema } = require('../lib/schema');
 const {
-    createCustomerAddress,
+    upsertDefaultCustomerAddress,
     getCustomerByMobile,
     listCustomerAddresses
 } = require('../lib/order-service');
@@ -30,9 +30,7 @@ module.exports = async (req, res) => {
         if (!session) {
             return res.status(401).json({ error: 'Sign in required.' });
         }
-        const address = await createCustomerAddress(session.mobile, req.body || {}, {
-            makeDefault: req.body?.isDefault !== false
-        });
+        const address = await upsertDefaultCustomerAddress(session.mobile, req.body || {});
         const customer = await getCustomerByMobile(session.mobile);
         return res.status(201).json({
             address,
