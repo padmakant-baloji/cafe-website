@@ -57,7 +57,7 @@ function renderSavedAddresses(addresses) {
     if (!list) return;
     if (!Array.isArray(addresses) || addresses.length === 0) {
         list.innerHTML =
-            '<p class="profile-address-empty">No saved addresses yet. Add one during checkout and it will appear here for next time.</p>';
+            '<p class="profile-address-empty">No saved addresses yet. Your delivery address is saved when you register.</p>';
         return;
     }
     list.innerHTML = addresses

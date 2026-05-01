@@ -75,12 +75,46 @@ function formatSavedAddress(address) {
     return String(address.addressLine || address.address_line || '').trim();
 }
 
-/** Prefills the single checkout address field from the customer's default saved address. */
-function syncCheckoutAddressField() {
+/** Hides the delivery line when we already have a saved row (by id); prefills if saved line exists but no id yet. */
+function refreshCheckoutAddressUI() {
+    const wrap = document.getElementById('checkoutAddressWrap');
     const input = document.getElementById('addressLine');
-    if (!input) return;
-    const saved = getDefaultCustomerAddress();
-    input.value = saved ? formatSavedAddress(saved) : '';
+    if (!wrap || !input) return;
+
+    const def = getDefaultCustomerAddress();
+    const savedLine = def ? formatSavedAddress(def) : '';
+    const hasSavedRow = !!(def && def.id != null && String(def.id).trim() !== '');
+
+    wrap.hidden = hasSavedRow;
+    input.required = !hasSavedRow;
+    if (hasSavedRow) {
+        input.value = '';
+    } else {
+        input.value = savedLine;
+    }
+
+    renderCheckoutDeliveryCard();
+}
+
+function renderCheckoutDeliveryCard() {
+    const cityEl = document.getElementById('checkoutDeliveryCityDisplay');
+    const addrEl = document.getElementById('checkoutDeliveryAddressDisplay');
+    if (!cityEl || !addrEl) return;
+
+    const city =
+        (document.getElementById('customerCity')?.value || currentCustomer?.city || '').trim() ||
+        'Select city';
+    cityEl.textContent = city;
+
+    const wrap = document.getElementById('checkoutAddressWrap');
+    const input = document.getElementById('addressLine');
+    const savedLine = formatSavedAddress(getDefaultCustomerAddress());
+
+    if (wrap?.hidden) {
+        addrEl.textContent = savedLine || 'Saved delivery address';
+    } else {
+        addrEl.textContent = (input?.value || '').trim() || 'Enter street / landmark below';
+    }
 }
 
 async function refreshCurrentCustomerProfile() {
@@ -159,7 +193,12 @@ function updateCheckoutProfileUI() {
     };
 
     if (currentCustomer) {
-        fallback.hidden = false;
+        const profileComplete = !!(
+            currentCustomer.name &&
+            currentCustomer.mobile &&
+            currentCustomer.city
+        );
+        fallback.hidden = profileComplete;
         if (nameInput) nameInput.value = currentCustomer.name || '';
         if (mobileInput) mobileInput.value = currentCustomer.mobile || '';
         if (citySelect) citySelect.value = currentCustomer.city || '';
@@ -167,6 +206,10 @@ function updateCheckoutProfileUI() {
     } else {
         fallback.hidden = false;
         lockFields(false);
+    }
+
+    if (document.getElementById('checkoutModal')?.classList.contains('active')) {
+        refreshCheckoutAddressUI();
     }
 }
 
@@ -219,6 +262,7 @@ function initSessionGate() {
             .slice(-10);
         const name = (document.getElementById('gateName')?.value || '').trim();
         const city = document.getElementById('gateCity')?.value || '';
+        const addressLine = (document.getElementById('gateAddress')?.value || '').trim();
         if (mobile.length !== 10) {
             showGateError('Invalid mobile number.');
             return;
@@ -227,12 +271,16 @@ function initSessionGate() {
             showGateError('Please enter your name and select a city.');
             return;
         }
+        if (!addressLine) {
+            showGateError('Please enter your delivery address (street or landmark).');
+            return;
+        }
         gateRegisterBtn.disabled = true;
         try {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mobile, name, city })
+                body: JSON.stringify({ mobile, name, city, addressLine })
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Could not register');
@@ -871,76 +919,36 @@ function initTestimonials() {
 // ============================================
 let cart = [];
 let appliedCoupon = null; // { code: string, discount: number, subtotal: number }
-const ORDERING_START_HOUR = 13;
-const ORDERING_START_MINUTE = 30;
-/** Set to `true` to block add-to-cart before 1:30 PM (India time). */
-const ENFORCE_ORDERING_START_TIME = true;
-
-function getCafeTime() {
-    try {
-        const now = new Date();
-        const formatter = new Intl.DateTimeFormat('en-IN', {
-            timeZone: 'Asia/Kolkata',
-            hour: 'numeric',
-            minute: 'numeric',
-            hourCycle: 'h23'
-        });
-        const parts = formatter.formatToParts(now);
-        const hourPart = parts.find((p) => p.type === 'hour');
-        const minutePart = parts.find((p) => p.type === 'minute');
-        const hour = hourPart ? parseInt(hourPart.value, 10) : now.getHours();
-        const minute = minutePart ? parseInt(minutePart.value, 10) : now.getMinutes();
-        return { hour, minute };
-    } catch (error) {
-        const fallback = new Date();
-        return { hour: fallback.getHours(), minute: fallback.getMinutes() };
-    }
-}
-
-function isOrderingAvailable() {
-    if (!ENFORCE_ORDERING_START_TIME) return true;
-    const { hour, minute } = getCafeTime();
-    if (hour > ORDERING_START_HOUR) return true;
-    if (hour < ORDERING_START_HOUR) return false;
-    return minute >= ORDERING_START_MINUTE;
-}
-
-function showOrderingClosedMessage() {
-    alert('Online ordering starts at 1:30 PM. Please try again after 1:30 PM.');
-}
 
 function updateOrderingAvailability() {
-    const orderingDisabled = !isOrderingAvailable();
     const orderButtons = document.querySelectorAll('.order-btn');
     const sizeButtons = document.querySelectorAll('.size-chip');
     const sizeHints = document.querySelectorAll('.menu-item-note');
 
     orderButtons.forEach((button) => {
-        button.disabled = orderingDisabled;
-        button.setAttribute('aria-disabled', String(orderingDisabled));
-        button.title = orderingDisabled ? 'Online ordering starts at 1:30 PM' : '';
+        button.disabled = false;
+        button.setAttribute('aria-disabled', 'false');
+        button.title = '';
 
         const label = button.querySelector('.order-btn-label');
         if (label) {
-            label.textContent = orderingDisabled ? 'Starts at 1:30 PM' : 'Add to cart';
+            label.textContent = 'Add to cart';
         }
     });
 
     sizeButtons.forEach((button) => {
-        button.disabled = orderingDisabled;
-        button.setAttribute('aria-disabled', String(orderingDisabled));
-        button.title = orderingDisabled ? 'Online ordering starts at 1:30 PM' : '';
+        button.disabled = false;
+        button.setAttribute('aria-disabled', 'false');
+        button.title = '';
     });
 
     sizeHints.forEach((hint) => {
-        hint.textContent = orderingDisabled ? 'Ordering starts at 1:30 PM' : 'Tap a size to add to cart';
+        hint.textContent = 'Tap a size to add to cart';
     });
 }
 
 function initOrderingAvailability() {
     updateOrderingAvailability();
-    if (!ENFORCE_ORDERING_START_TIME) return;
-    setInterval(updateOrderingAvailability, 60000);
 }
 
 // Load cart from localStorage
@@ -967,12 +975,6 @@ function getOrderApiUrl() {
 
 // Add item to cart
 function addToCart(itemName, price) {
-    if (!isOrderingAvailable()) {
-        updateOrderingAvailability();
-        showOrderingClosedMessage();
-        return;
-    }
-
     // Price can be a number or string - handle both
     const itemPrice = typeof price === 'number' ? price : (parseInt(price) || 0);
     
@@ -1193,15 +1195,11 @@ function renderCartDeliveryNote() {
 function renderCheckoutTotals() {
     const subtotalEl = document.getElementById('checkoutSubtotal');
     const deliveryEl = document.getElementById('checkoutDeliveryFee');
-    const totalEl = document.getElementById('checkoutTotal');
     const noteEl = document.getElementById('checkoutDeliveryNote');
-    const stickyBar = document.getElementById('checkoutStickyTotalBar');
-    const stickyTotalEl = document.getElementById('checkoutStickyTotal');
-    const actionPayableEl = document.getElementById('checkoutActionPayable');
     const discountRow = document.getElementById('checkoutDiscountRow');
     const discountAmountEl = document.getElementById('checkoutDiscountAmount');
-
-    if (!totalEl) return;
+    const submitAmtEl = document.getElementById('checkoutSubmitAmount');
+    const submitBtn = document.getElementById('checkoutSubmitBtn');
 
     const subtotal = getCartTotal();
     const cityLower = getCheckoutSelectedCity();
@@ -1215,10 +1213,7 @@ function renderCheckoutTotals() {
 
     if (subtotalEl) subtotalEl.textContent = String(subtotal);
     if (deliveryEl) deliveryEl.textContent = String(deliveryFee);
-    totalEl.textContent = String(grandTotal);
-    if (stickyTotalEl) stickyTotalEl.textContent = String(grandTotal);
-    if (stickyBar) stickyBar.hidden = !(subtotal > 0);
-    if (actionPayableEl) actionPayableEl.textContent = String(grandTotal);
+    if (submitAmtEl) submitAmtEl.textContent = String(grandTotal);
 
     if (discountRow && discountAmountEl) {
         if (discount > 0) {
@@ -1229,6 +1224,13 @@ function renderCheckoutTotals() {
             discountRow.hidden = true;
         }
     }
+
+    if (submitBtn) {
+        const cityOk = !!cityLower;
+        submitBtn.disabled = subtotal === 0 || !cityOk || !allowed;
+    }
+
+    renderCheckoutDeliveryCard();
 
     if (noteEl) {
         if (!cityLower) {
@@ -2514,7 +2516,6 @@ function initCartModal() {
 // ============================================
 async function openCheckoutModal() {
     const checkoutModal = document.getElementById('checkoutModal');
-    const orderSummary = document.getElementById('orderSummary');
 
     // Ensure profile data is fresh right before showing checkout.
     // This avoids rare cases where checkout fields render before session/profile refresh completes.
@@ -2527,19 +2528,11 @@ async function openCheckoutModal() {
     }
 
     updateCheckoutProfileUI();
-    syncCheckoutAddressField();
+    refreshCheckoutAddressUI();
 
-    // Update order summary
-    orderSummary.innerHTML = cart.map(item => `
-        <div class="summary-item">
-            <span>${item.name} × ${item.quantity}</span>
-            <span>₹${item.price * item.quantity}</span>
-        </div>
-    `).join('');
-    
     // Will set subtotal/delivery/total payable based on city.
     renderCheckoutTotals();
-    
+
     checkoutModal.classList.add('active');
     document.body.style.overflow = 'hidden';
 }
@@ -2571,6 +2564,10 @@ function initCheckoutModal() {
 
     citySelect?.addEventListener('change', () => {
         renderCheckoutTotals();
+    });
+
+    document.getElementById('addressLine')?.addEventListener('input', () => {
+        renderCheckoutDeliveryCard();
     });
 
     applyCouponBtn?.addEventListener('click', () => {
@@ -2686,17 +2683,15 @@ async function placeOrder() {
             ? Math.max(0, Math.min(subtotal, Number(appliedCoupon.discount || 0)))
             : 0;
     const total = Math.max(0, subtotal - discount) + deliveryFee;
-    const addressLine = (document.getElementById('addressLine')?.value || '').trim();
-    if (!addressLine) {
-        alert('Please enter your delivery address.');
-        return;
-    }
     const citySelect = document.getElementById('customerCity');
     const city = (citySelect && citySelect.value) || currentCustomer?.city || '';
     if (!city) {
         alert('Please select your city.');
         return;
     }
+
+    const addressWrap = document.getElementById('checkoutAddressWrap');
+    const usingSavedAddressOnly = addressWrap?.hidden;
     const payload = {
         items: cart.map((item) => ({
             name: item.name,
@@ -2704,19 +2699,34 @@ async function placeOrder() {
             quantity: item.quantity
         })),
         total,
-        couponCode: appliedCoupon?.code || '',
-        address: {
+        couponCode: appliedCoupon?.code || ''
+    };
+
+    if (usingSavedAddressOnly) {
+        const def = getDefaultCustomerAddress();
+        if (!def?.id) {
+            alert('We could not load your saved delivery spot. Add one line in the box below, then try again.');
+            return;
+        }
+        payload.addressId = String(def.id);
+    } else {
+        const addressLine = (document.getElementById('addressLine')?.value || '').trim();
+        if (!addressLine) {
+            alert('Add a short delivery location (street or landmark), then place your order.');
+            return;
+        }
+        payload.address = {
             label: 'Delivery',
             addressLine,
             city
-        }
-    };
+        };
+    }
 
-    const submitBtn = document.querySelector('#checkoutForm button[type="submit"]');
-    const prevLabel = submitBtn ? submitBtn.textContent : '';
+    const submitBtn = document.getElementById('checkoutSubmitBtn');
+    const prevSubmitHtml = submitBtn ? submitBtn.innerHTML : '';
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Placing…';
+        submitBtn.innerHTML = 'Placing…';
     }
 
     try {
@@ -2753,7 +2763,8 @@ async function placeOrder() {
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.textContent = prevLabel;
+            submitBtn.innerHTML = prevSubmitHtml;
+            renderCheckoutTotals();
         }
     }
 }

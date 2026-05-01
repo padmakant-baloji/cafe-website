@@ -125,12 +125,17 @@ app.post('/api/auth/register', async (req, res) => {
         const mobile = normalizeMobile(body.mobile);
         const name = typeof body.name === 'string' ? body.name.trim().slice(0, 200) : '';
         const city = typeof body.city === 'string' ? body.city.trim().slice(0, 200) : '';
+        const addressLine =
+            typeof body.addressLine === 'string' ? body.addressLine.trim().slice(0, 300) : '';
 
         if (!mobile || mobile.length !== 10) {
             return res.status(400).json({ error: 'Enter a valid 10-digit mobile number.' });
         }
         if (!name || !city) {
             return res.status(400).json({ error: 'Name and city are required.' });
+        }
+        if (!addressLine) {
+            return res.status(400).json({ error: 'Delivery address is required.' });
         }
 
         let row;
@@ -142,6 +147,12 @@ app.post('/api/auth/register', async (req, res) => {
             }
             throw e;
         }
+
+        await upsertDefaultCustomerAddress(mobile, {
+            label: 'Delivery',
+            addressLine,
+            city
+        });
 
         const token = signCustomerSession(row.mobile);
         return res.json({

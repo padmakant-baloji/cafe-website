@@ -2,7 +2,12 @@
 
 const { ensureSchema } = require('../../lib/schema');
 const { signCustomerSession } = require('../../lib/customer-session');
-const { normalizeMobile, createCustomer, listCustomerAddresses } = require('../../lib/order-service');
+const {
+    normalizeMobile,
+    createCustomer,
+    listCustomerAddresses,
+    upsertDefaultCustomerAddress
+} = require('../../lib/order-service');
 
 async function serializeCustomer(row) {
     const addresses = row ? await listCustomerAddresses(row.mobile) : [];
@@ -26,12 +31,17 @@ module.exports = async (req, res) => {
         const mobile = normalizeMobile(body.mobile);
         const name = typeof body.name === 'string' ? body.name.trim().slice(0, 200) : '';
         const city = typeof body.city === 'string' ? body.city.trim().slice(0, 200) : '';
+        const addressLine =
+            typeof body.addressLine === 'string' ? body.addressLine.trim().slice(0, 300) : '';
 
         if (!mobile || mobile.length !== 10) {
             return res.status(400).json({ error: 'Enter a valid 10-digit mobile number.' });
         }
         if (!name || !city) {
             return res.status(400).json({ error: 'Name and city are required.' });
+        }
+        if (!addressLine) {
+            return res.status(400).json({ error: 'Delivery address is required.' });
         }
 
         let row;
@@ -43,6 +53,12 @@ module.exports = async (req, res) => {
             }
             throw e;
         }
+
+        await upsertDefaultCustomerAddress(mobile, {
+            label: 'Delivery',
+            addressLine,
+            city
+        });
 
         return res.status(200).json({
             token: signCustomerSession(row.mobile),

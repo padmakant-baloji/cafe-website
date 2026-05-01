@@ -385,7 +385,7 @@
           "name": "How do I place an order?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Add items to your cart on this page, open checkout, enter your name, phone, and city, then submit to email your order to the kitchen."
+            "text": "Sign in with your mobile number. New customers enter name, city, and delivery address once. Then add items, open checkout, and confirm your order."
           }
         },
         {
@@ -479,87 +479,80 @@
     <div class="checkout-modal" id="checkoutModal">
         <div class="checkout-modal-content">
             <div class="checkout-modal-header">
-                <h2>Checkout</h2>
+                <h2>Confirm order</h2>
                 <button class="checkout-close" id="checkoutClose">&times;</button>
             </div>
             <form class="checkout-form" id="checkoutForm">
-                <div class="form-group checkout-coupon-address-group">
-                    <div class="checkout-coupon-address-row">
-                        <div class="checkout-coupon-address-cell">
-                            <label for="couponCode">Coupon</label>
-                            <div class="coupon-row">
-                                <div class="coupon-input-wrap">
-                                    <input type="text" id="couponCode" name="couponCode" maxlength="64" placeholder="Have a coupon? Enter code" autocomplete="off" inputmode="text">
-                                    <button type="button" class="coupon-action-btn" id="applyCouponBtn" hidden>Apply</button>
-                                </div>
+                <div class="checkout-form-scroll">
+                    <div class="checkout-delivery-card">
+                        <p class="checkout-delivery-card-label">Delivering to</p>
+                        <p class="checkout-delivery-card-city" id="checkoutDeliveryCityDisplay"></p>
+                        <p class="checkout-delivery-card-address" id="checkoutDeliveryAddressDisplay"></p>
+                    </div>
+
+                    <p class="checkout-delivery-note" id="checkoutDeliveryNote" hidden></p>
+
+                    <div class="checkout-fields" id="checkoutFieldsFallback">
+                        <div class="form-group">
+                            <label for="customerName">Name *</label>
+                            <input type="text" id="customerName" name="customerName" placeholder="Enter your name">
+                        </div>
+                        <div class="form-group">
+                            <label for="mobileNumber">Mobile Number *</label>
+                            <input type="tel" id="mobileNumber" name="mobileNumber" placeholder="9876543210" pattern="[0-9]{10}">
+                        </div>
+                        <div class="form-group">
+                            <label for="customerCity">City *</label>
+                            <select id="customerCity" name="customerCity">
+                                <option value="">Select your city</option>
+                                <option value="Kudachi">Kudachi</option>
+                                <option value="Ugar">Ugar</option>
+                                <option value="Chinchali">Chinchali</option>
+                                <option value="Ainapur">Ainapur</option>
+                                <option value="Gundawad">Gundawad</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <details class="checkout-expand checkout-expand--coupon">
+                        <summary class="checkout-expand-summary">Have a coupon? <span class="checkout-expand-hint">(optional)</span></summary>
+                        <div class="coupon-row checkout-coupon-inline">
+                            <div class="coupon-input-wrap">
+                                <input type="text" id="couponCode" name="couponCode" maxlength="64" placeholder="Code" autocomplete="off" inputmode="text">
+                                <button type="button" class="coupon-action-btn" id="applyCouponBtn" hidden>Apply</button>
                             </div>
                         </div>
-                        <div class="checkout-coupon-address-cell">
-                            <label for="addressLine">Delivery address *</label>
-                            <input type="text" id="addressLine" name="addressLine" maxlength="300" placeholder="House no, street, area" autocomplete="street-address">
+                        <p class="coupon-feedback" id="couponFeedback" hidden></p>
+                    </details>
+                </div>
+
+                <div class="checkout-form-footer">
+                    <dl class="checkout-price-lines">
+                        <div class="checkout-price-row">
+                            <dt>Items</dt>
+                            <dd>₹<span id="checkoutSubtotal">0</span></dd>
                         </div>
+                        <div class="checkout-price-row checkout-discount-row" id="checkoutDiscountRow" hidden>
+                            <dt>Discount</dt>
+                            <dd class="checkout-discount-amt">-₹<span id="checkoutDiscountAmount">0</span></dd>
+                        </div>
+                        <div class="checkout-price-row">
+                            <dt>Delivery</dt>
+                            <dd>₹<span id="checkoutDeliveryFee">0</span></dd>
+                        </div>
+                    </dl>
+                    <div class="checkout-address-footer" id="checkoutAddressWrap">
+                        <input
+                            type="text"
+                            id="addressLine"
+                            name="addressLine"
+                            maxlength="300"
+                            placeholder="Street / landmark — we save this for next time"
+                            autocomplete="street-address"
+                            aria-label="Delivery location"
+                        >
                     </div>
-                    <p class="coupon-feedback" id="couponFeedback" hidden></p>
-                </div>
-                <div class="checkout-fields" id="checkoutFieldsFallback">
-                <div class="form-group">
-                    <label for="customerName">Name *</label>
-                    <input type="text" id="customerName" name="customerName" placeholder="Enter your name">
-                </div>
-                
-                <div class="form-group">
-                    <label for="mobileNumber">Mobile Number *</label>
-                    <input type="tel" id="mobileNumber" name="mobileNumber" placeholder="9876543210" pattern="[0-9]{10}">
-                </div>
-
-                <div class="form-group">
-                    <label for="customerCity">City *</label>
-                    <select id="customerCity" name="customerCity">
-                        <option value="">Select your city</option>
-                        <option value="Kudachi">Kudachi</option>
-                        <option value="Ugar">Ugar</option>
-                        <option value="Chinchali">Chinchali</option>
-                        <option value="Ainapur">Ainapur</option>
-                        <option value="Gundawad">Gundawad</option>
-                    </select>
-                </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Order Summary</label>
-                    <div class="order-summary" id="orderSummary"></div>
-                </div>
-
-                <div class="form-group">
-                    <label>Total Amount</label>
-                    <div class="order-summary" style="margin-bottom: 0.75rem;">
-                        <div class="summary-item">
-                            <span>Items total</span>
-                            <span>₹<span id="checkoutSubtotal">0</span></span>
-                        </div>
-                        <div class="summary-item checkout-discount-row" id="checkoutDiscountRow" hidden>
-                            <span>Discount</span>
-                            <span>-₹<span id="checkoutDiscountAmount">0</span></span>
-                        </div>
-                        <div class="summary-item">
-                            <span>Delivery</span>
-                            <span>₹<span id="checkoutDeliveryFee">0</span></span>
-                        </div>
-                        <p id="checkoutDeliveryNote" style="margin: 0.5rem 0 0; color: #94a3b8;" hidden></p>
-                    </div>
-                    <div class="total-amount">₹<span id="checkoutTotal">0</span></div>
-                </div>
-
-                <div class="form-actions">
-                    <div class="checkout-payable-pill" aria-live="polite">
-                        <span class="checkout-payable-label">Payable</span>
-                        <span class="checkout-payable-amount">₹<span id="checkoutActionPayable">0</span></span>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Place order</button>
-                </div>
-                <div class="checkout-sticky-total" id="checkoutStickyTotalBar" hidden>
-                    <span class="checkout-sticky-label">Payable</span>
-                    <span class="checkout-sticky-amount">₹<span id="checkoutStickyTotal">0</span></span>
+                    <button type="submit" class="btn btn-primary btn-checkout-place" id="checkoutSubmitBtn">Place order · ₹<span id="checkoutSubmitAmount">0</span></button>
                 </div>
             </form>
         </div>

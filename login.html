@@ -91,7 +91,7 @@
         </section>
 
         <section id="gateStepProfile" hidden>
-            <p class="lead">New customer: enter name and city.</p>
+            <p class="lead">New customer: name, city, and where we deliver.</p>
             <label for="gateName">Name</label>
             <input type="text" id="gateName" autocomplete="name" maxlength="200" placeholder="Your name">
             <label for="gateCity">City</label>
@@ -103,6 +103,8 @@
                 <option value="Ainapur">Ainapur</option>
                 <option value="Gundawad">Gundawad</option>
             </select>
+            <label for="gateAddress">Delivery address</label>
+            <input type="text" id="gateAddress" autocomplete="street-address" maxlength="300" placeholder="House no., street, landmark">
             <button type="button" id="gateRegister">Start ordering</button>
         </section>
 

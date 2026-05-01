@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .slice(-10);
         const name = (document.getElementById('gateName')?.value || '').trim();
         const city = document.getElementById('gateCity')?.value || '';
+        const addressLine = (document.getElementById('gateAddress')?.value || '').trim();
 
         if (mobile.length !== 10) {
             showError('Invalid mobile number.');
@@ -89,13 +90,17 @@ document.addEventListener('DOMContentLoaded', () => {
             showError('Please enter your name and select a city.');
             return;
         }
+        if (!addressLine) {
+            showError('Please enter your delivery address (street or landmark).');
+            return;
+        }
 
         registerBtn.disabled = true;
         try {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mobile, name, city })
+                body: JSON.stringify({ mobile, name, city, addressLine })
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Could not register');
