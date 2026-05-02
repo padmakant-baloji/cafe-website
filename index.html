@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <link rel="preload" href="/api/menu" as="fetch" crossorigin>
     <script>
       (function () {
         if (window.location.pathname === '/menu') {
@@ -340,7 +341,7 @@
             
             <!-- Menu Items Container -->
             <div class="menu-items-container" id="menuItemsContainer">
-                <!-- Menu will be loaded dynamically from menu.json -->
+                <!-- Menu loads from /api/menu (see script.js) -->
             </div>
         </div>
     </section>

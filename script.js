@@ -2138,20 +2138,37 @@ const FALLBACK_MENU_JSON = `{
 `;
 const fallbackMenuData = JSON.parse(FALLBACK_MENU_JSON);
 
+/** Started on DOMContentLoaded so the menu downloads in parallel with session restore. */
+let menuBootstrapFetch = null;
 
 async function loadMenu() {
     try {
-        const response = await fetch('menu.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        let res = menuBootstrapFetch ? await menuBootstrapFetch : null;
+        menuBootstrapFetch = null;
+        if (!res || !res.ok) {
+            res = await fetch('/api/menu', { priority: 'high', cache: 'default' });
         }
-        menuData = await response.json();
-        renderMenu();
-    } catch (error) {
-        console.warn('Could not load menu.json, using embedded menu data:', error);
-        // Use fallback menu data if fetch fails (e.g., when opening file directly)
-        menuData = fallbackMenuData;
-        renderMenu();
+        if (res.ok) {
+            menuData = await res.json();
+            if (menuData && Array.isArray(menuData.categories) && menuData.categories.length) {
+                renderMenu();
+                return;
+            }
+        }
+        throw new Error('API menu empty or unavailable');
+    } catch {
+        try {
+            const response = await fetch('menu.json', { cache: 'default' });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            menuData = await response.json();
+            renderMenu();
+        } catch (error) {
+            console.warn('Could not load menu from API or menu.json, using embedded data:', error);
+            menuData = fallbackMenuData;
+            renderMenu();
+        }
     }
 }
 
@@ -2181,6 +2198,10 @@ function buildCategoryTabs() {
     }).join('');
 }
 
+function itemIsListed(item) {
+    return item && item.enabled !== false;
+}
+
 function renderMenu(searchQuery = '') {
     if (!menuData) return;
     
@@ -2207,7 +2228,11 @@ function renderMenu(searchQuery = '') {
         if (hasSubsections) {
             let subsectionsRender = category.subsections.map((sub) => ({
                 ...sub,
-                items: query ? sub.items.filter(itemMatchesQuery) : [...sub.items]
+                items: query
+                    ? (sub.items || []).filter(
+                          (item) => itemIsListed(item) && itemMatchesQuery(item)
+                      )
+                    : (sub.items || []).filter(itemIsListed)
             }));
             if (query) {
                 subsectionsRender = subsectionsRender.filter((sub) => sub.items.length > 0);
@@ -2215,7 +2240,7 @@ function renderMenu(searchQuery = '') {
             }
 
             const sellableCount = category.subsections.reduce(
-                (n, sub) => n + sub.items.length,
+                (n, sub) => n + (sub.items || []).filter(itemIsListed).length,
                 0
             );
             const matchedCount = subsectionsRender.reduce((n, sub) => n + sub.items.length, 0);
@@ -2285,7 +2310,7 @@ function renderMenu(searchQuery = '') {
             return;
         }
 
-        let filteredItems = category.items || [];
+        let filteredItems = (category.items || []).filter(itemIsListed);
         if (query) {
             filteredItems = filteredItems.filter(itemMatchesQuery);
         }
@@ -2908,6 +2933,10 @@ function initPerformanceOptimizations() {
 // Initialize Everything
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
+    menuBootstrapFetch = fetch('/api/menu', { priority: 'high', cache: 'default' }).catch(
+        () => null
+    );
+
     currentCustomer = getCustomerProfile();
     updateCheckoutProfileUI();
 

@@ -21,6 +21,7 @@ const {
 const { placeOrderForCustomer } = require('./lib/place-order');
 const { upsertPushSubscription, notifyCustomerOfOrderStatus } = require('./lib/push-service');
 const { validateCoupon } = require('./lib/coupon-service');
+const { readMenu, applyMenuAction } = require('./lib/menu-store');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -315,6 +316,47 @@ app.get('/api/admin/session', requireAdmin, (req, res) => {
     return res.json({ ok: true });
 });
 
+app.get('/api/menu', async (req, res) => {
+    try {
+        await ensureSchema();
+        const menu = await readMenu();
+        res.setHeader(
+            'Cache-Control',
+            'public, max-age=120, s-maxage=300, stale-while-revalidate=86400'
+        );
+        return res.json(menu);
+    } catch (err) {
+        console.error('public menu:', err.message);
+        return res.status(503).json({ error: 'Menu temporarily unavailable.' });
+    }
+});
+
+app.get('/api/admin/menu', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const menu = await readMenu();
+        return res.json(menu);
+    } catch (err) {
+        console.error('admin menu get:', err.message);
+        return res.status(500).json({ error: 'Could not load menu.' });
+    }
+});
+
+app.post('/api/admin/menu', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const result = await applyMenuAction(req.body || {});
+        return res.json(result);
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) {
+            console.error('admin menu post:', err.message);
+        }
+        return res.status(code).json({ error: err.message || 'Menu update failed.' });
+    }
+});
+
 app.get('/api/push/vapid-public-key', async (req, res) => {
     const publicKey = process.env.VAPID_PUBLIC_KEY;
     if (!publicKey) return res.status(501).json({ error: 'Push is not configured (VAPID_PUBLIC_KEY missing).' });
@@ -341,6 +383,14 @@ app.get('/admin', (req, res) => {
 
 app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(ROOT, 'admin.html'));
+});
+
+app.get('/admin/menu', (req, res) => {
+    res.sendFile(path.join(ROOT, 'admin-menu.html'));
+});
+
+app.get('/admin-menu.html', (req, res) => {
+    res.sendFile(path.join(ROOT, 'admin-menu.html'));
 });
 
 app.get('/', (req, res) => {

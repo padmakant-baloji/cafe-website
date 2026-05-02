@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Menu — Baloji's Cafe Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0f1a;
+            --bg-elev: #111827;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --accent: #34d399;
+            --accent-dim: rgba(52, 211, 153, 0.12);
+            --danger: #ef4444;
+            --border: rgba(51, 65, 85, 0.85);
+            --ring: rgba(52, 211, 153, 0.35);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background: radial-gradient(1200px 600px at 10% -10%, rgba(52, 211, 153, 0.08), transparent),
+                radial-gradient(800px 400px at 90% 20%, rgba(99, 102, 241, 0.06), transparent),
+                var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 1.25rem;
+            padding-bottom: 2.5rem;
+        }
+        .admin-menu-shell {
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+        .admin-auth-gate {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.92);
+            z-index: 100;
+            padding: 1rem;
+        }
+        .admin-auth-gate[hidden] { display: none; }
+        .admin-auth-card {
+            width: min(100%, 380px);
+            padding: 1.5rem;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--card);
+        }
+        .admin-auth-card h2 { margin-bottom: 0.75rem; font-size: 1.15rem; }
+        .admin-auth-card label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.25rem; }
+        .admin-auth-card input {
+            width: 100%;
+            padding: 0.55rem 0.65rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #0f172a;
+            color: var(--text);
+            margin-bottom: 0.65rem;
+        }
+        .admin-auth-actions { margin-top: 0.5rem; }
+        .admin-auth-actions button {
+            width: 100%;
+            padding: 0.6rem;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent);
+            color: #052e16;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .admin-auth-error { color: #fecaca; font-size: 0.85rem; margin-top: 0.5rem; }
+        .admin-auth-error[hidden] { display: none; }
+
+        .admin-menu-hero {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            padding: 1.1rem 1.25rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.85));
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+        .admin-menu-hero h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .admin-menu-hero p {
+            font-size: 0.875rem;
+            color: var(--muted);
+            margin-top: 0.35rem;
+            max-width: 36rem;
+            line-height: 1.5;
+        }
+        .admin-menu-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-top: 0.6rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #a7f3d0;
+            background: var(--accent-dim);
+            border: 1px solid rgba(52, 211, 153, 0.25);
+            padding: 0.25rem 0.55rem;
+            border-radius: 999px;
+        }
+
+        .admin-menu-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.65rem;
+            margin-bottom: 1.15rem;
+        }
+        .stat-card {
+            padding: 0.85rem 1rem;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(17, 24, 39, 0.65);
+            backdrop-filter: blur(8px);
+        }
+        .stat-card-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--muted);
+        }
+        .stat-card-value {
+            font-size: 1.45rem;
+            font-weight: 700;
+            margin-top: 0.2rem;
+            letter-spacing: -0.03em;
+        }
+        .stat-card-hint {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-top: 0.15rem;
+        }
+
+        .admin-menu-hero .admin-menu-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .admin-menu-nav a, .admin-menu-nav button {
+            font: inherit;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            padding: 0.45rem 0.85rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #334155;
+            color: var(--text);
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+        .admin-menu-nav a:hover, .admin-menu-nav button:hover { background: #475569; }
+        .admin-menu-nav .admin-menu-nav--danger {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.12);
+            color: #fecaca;
+        }
+
+        .admin-menu-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .admin-menu-toolbar input[type="search"] {
+            flex: 1 1 200px;
+            min-width: 140px;
+            padding: 0.62rem 0.85rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.85);
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .admin-menu-toolbar input[type="search"]:focus {
+            border-color: rgba(52, 211, 153, 0.45);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+        .admin-menu-toolbar button.primary {
+            background: linear-gradient(180deg, #4ade80, var(--accent));
+            color: #052e16;
+            border: none;
+            font-weight: 700;
+            padding: 0.62rem 1.1rem;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(52, 211, 153, 0.25);
+        }
+        .admin-menu-toolbar button.primary:active {
+            transform: scale(0.98);
+        }
+
+        .admin-menu-table-wrap {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: auto;
+            background: rgba(17, 24, 39, 0.5);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+        }
+        table.admin-menu-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .admin-menu-table th,
+        .admin-menu-table td {
+            padding: 0.65rem 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.65);
+            vertical-align: middle;
+        }
+        .admin-menu-table th {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            background: rgba(15, 23, 42, 0.75);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        .admin-menu-table tbody tr {
+            transition: background 0.12s ease;
+        }
+        .admin-menu-table tbody tr:hover {
+            background: rgba(52, 211, 153, 0.04);
+        }
+        .admin-menu-thumb img {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #0f172a;
+        }
+        .admin-menu-id {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-top: 0.15rem;
+        }
+        .admin-menu-sub {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 0.15rem;
+        }
+        .admin-menu-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.2rem 0.45rem;
+            border-radius: 6px;
+        }
+        .admin-menu-badge--on { background: #14532d; color: #bbf7d0; }
+        .admin-menu-badge--off { background: #451a03; color: #fde68a; }
+        .admin-menu-row--off { opacity: 0.72; }
+        .admin-menu-actions { white-space: nowrap; }
+        .admin-menu-btn {
+            font: inherit;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.35rem 0.55rem;
+            margin-right: 0.35rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #334155;
+            color: var(--text);
+            cursor: pointer;
+        }
+        .admin-menu-btn--toggle { border-color: rgba(245, 158, 11, 0.45); color: #fde68a; }
+        .admin-menu-empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 2rem !important;
+        }
+
+        .admin-menu-modal[hidden] { display: none; }
+        .admin-menu-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 90;
+            background: rgba(10, 15, 26, 0.72);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 1.25rem;
+            overflow-y: auto;
+        }
+        .admin-menu-modal-card {
+            width: min(100%, 480px);
+            margin-top: 4vh;
+            margin-bottom: 4vh;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.96));
+            padding: 1.35rem;
+            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(52, 211, 153, 0.08);
+        }
+        .admin-menu-modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .admin-menu-modal-head h2 { font-size: 1.05rem; }
+        .admin-menu-modal-close {
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.25rem;
+        }
+        .menu-field { margin-bottom: 0.85rem; }
+        .menu-field label {
+            display: block;
+            font-size: 0.78rem;
+            color: var(--muted);
+            margin-bottom: 0.25rem;
+        }
+        .menu-field input, .menu-field select {
+            width: 100%;
+            padding: 0.55rem 0.65rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #0f172a;
+            color: var(--text);
+            font: inherit;
+        }
+        .menu-field-hint { font-size: 0.72rem; color: var(--muted); margin-top: 0.25rem; }
+        .menu-price-modes {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.65rem;
+            font-size: 0.85rem;
+        }
+        .menu-price-modes label { display: flex; align-items: center; gap: 0.35rem; cursor: pointer; }
+        .menu-size-row {
+            display: grid;
+            grid-template-columns: 1fr 100px;
+            gap: 0.5rem;
+            margin-bottom: 0.45rem;
+        }
+        .menu-modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .menu-modal-actions button {
+            font: inherit;
+            font-weight: 600;
+            padding: 0.55rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: #334155;
+            color: var(--text);
+        }
+        .menu-modal-actions .primary {
+            background: var(--accent);
+            color: #052e16;
+            border: none;
+        }
+
+        .admin-menu-toast {
+            position: fixed;
+            bottom: 1.25rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(140%);
+            max-width: min(90vw, 400px);
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            z-index: 200;
+            transition: transform 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        }
+        .admin-menu-toast.admin-menu-toast--show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 640px) {
+            .admin-menu-table th:nth-child(4),
+            .admin-menu-table td:nth-child(4) { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-auth-gate" id="adminAuthGate" hidden>
+        <form class="admin-auth-card" id="adminAuthForm">
+            <h2>Admin access</h2>
+            <label for="adminUsername">Username</label>
+            <input type="text" id="adminUsername" autocomplete="username" required>
+            <label for="adminPassword">Password</label>
+            <input type="password" id="adminPassword" autocomplete="current-password" required>
+            <div class="admin-auth-actions">
+                <button type="submit" id="adminAuthSubmit">Continue</button>
+            </div>
+            <p class="admin-auth-error" id="adminAuthError" hidden></p>
+        </form>
+    </div>
+
+    <div class="admin-menu-shell">
+        <header class="admin-menu-hero">
+            <div>
+                <h1>Menu catalog</h1>
+                <p>Add and edit dishes, set prices, and hide items without deleting them. Changes save to your Postgres database.</p>
+                <span class="admin-menu-pill" aria-hidden="true">● Live DB</span>
+            </div>
+            <div class="admin-menu-nav">
+                <a href="/admin">Orders</a>
+                <button type="button" id="adminMenuLogoutBtn" class="admin-menu-nav--danger">Logout</button>
+            </div>
+        </header>
+
+        <section class="admin-menu-stats" aria-label="Menu summary">
+            <div class="stat-card">
+                <div class="stat-card-label">Menu items</div>
+                <div class="stat-card-value" id="menuStatTotal">—</div>
+                <div class="stat-card-hint">All rows in catalog</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Live on site</div>
+                <div class="stat-card-value" id="menuStatLive">—</div>
+                <div class="stat-card-hint">Visible to customers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Hidden</div>
+                <div class="stat-card-value" id="menuStatHidden">—</div>
+                <div class="stat-card-hint">Disabled items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-label">Categories</div>
+                <div class="stat-card-value" id="menuStatCats">—</div>
+                <div class="stat-card-hint">Top-level groups</div>
+            </div>
+        </section>
+
+        <div class="admin-menu-toolbar">
+            <input type="search" id="menuAdminSearch" placeholder="Search name, category, id…" autocomplete="off" aria-label="Filter menu items">
+            <button type="button" id="menuAddBtn" class="primary">+ Add item</button>
+        </div>
+
+    <div class="admin-menu-table-wrap">
+        <table class="admin-menu-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Item</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="menuAdminBody">
+                <tr><td colspan="6" class="admin-menu-empty">Loading…</td></tr>
+            </tbody>
+        </table>
+    </div>
+    </div>
+
+    <div class="admin-menu-modal" id="menuItemModal" hidden>
+        <div class="admin-menu-modal-card" role="dialog" aria-modal="true" aria-labelledby="menuModalTitle">
+            <div class="admin-menu-modal-head">
+                <h2 id="menuModalTitle">Add menu item</h2>
+                <button type="button" class="admin-menu-modal-close" id="menuModalCloseBtn" aria-label="Close">✕</button>
+            </div>
+            <div class="menu-field" id="menuItemIdWrap">
+                <label for="menuItemId">Item id (optional)</label>
+                <input type="text" id="menuItemId" placeholder="e.g. iced-latte" autocomplete="off" pattern="[a-z0-9]+(-[a-z0-9]+)*">
+                <p class="menu-field-hint">Lowercase, numbers, hyphens. Leave blank to auto-generate from the name.</p>
+            </div>
+            <div class="menu-field">
+                <label for="menuCategorySelect">Category</label>
+                <select id="menuCategorySelect" aria-label="Category"></select>
+            </div>
+            <div class="menu-field" id="menuSubsectionWrap" hidden>
+                <label for="menuSubsectionSelect">Section</label>
+                <select id="menuSubsectionSelect" aria-label="Subsection"></select>
+            </div>
+            <div class="menu-field">
+                <label for="menuItemName">Name</label>
+                <input type="text" id="menuItemName" required autocomplete="off">
+            </div>
+            <div class="menu-field">
+                <label for="menuItemImage">Image path</label>
+                <input type="text" id="menuItemImage" placeholder="images/My Dish.jpg" required autocomplete="off">
+                <p class="menu-field-hint">Site-relative path (e.g. <code>images/Tea.jpg</code>). Upload files into <code>/images</code>; run <code>yarn images:compress</code> to shrink photos.</p>
+            </div>
+            <div class="menu-field">
+                <label for="menuItemAlt">Image alt text</label>
+                <input type="text" id="menuItemAlt" placeholder="Describe the dish for accessibility" autocomplete="off">
+            </div>
+            <div class="menu-price-modes">
+                <label><input type="radio" name="menuPriceMode" value="single" checked> Single price</label>
+                <label><input type="radio" name="menuPriceMode" value="sizes"> Size options</label>
+            </div>
+            <div id="menuPriceSingleWrap">
+                <div class="menu-field">
+                    <label for="menuItemPrice">Price (₹)</label>
+                    <input type="number" id="menuItemPrice" min="0" step="1" placeholder="99">
+                </div>
+            </div>
+            <div id="menuPriceSizesWrap" hidden>
+                <div id="menuSizeRows"></div>
+                <button type="button" id="menuAddSizeRowBtn" class="admin-menu-btn" style="margin-top:0.35rem;">+ Add size row</button>
+            </div>
+            <div class="menu-modal-actions">
+                <button type="button" id="menuModalCancelBtn">Cancel</button>
+                <button type="button" class="primary" id="menuModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin-menu.js"></script>
+</body>
+</html>
