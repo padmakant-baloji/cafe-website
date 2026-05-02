@@ -264,6 +264,7 @@
     </script>
 </head>
 <body class="order-app app-mobile app-four-tabs">
+    <a class="skip-link" href="#menu">Skip to menu</a>
     <div class="app-shell">
     <div class="app-topbar" id="navbar" role="banner">
         <div class="app-topbar-inner">
@@ -304,7 +305,7 @@
         </div>
     </section>
 
-    <section class="menu-section order-menu" id="menu" itemscope itemtype="https://schema.org/Menu">
+    <section class="menu-section order-menu" id="menu" itemscope itemtype="https://schema.org/Menu" tabindex="-1">
         <div class="container">
             <h2 class="section-title order-menu-title" itemprop="name">Menu</h2>
             <p class="section-subtitle order-menu-sub">Search, choose a category, add items — checkout saves your order and the kitchen gets notified.</p>
@@ -631,8 +632,8 @@
     </nav>
 
     <!-- Scripts -->
-    <script src="script.js"></script>
-    <script src="/push-client.js"></script>
-    <script src="/pwa-client.js"></script>
+    <script src="script.js" defer></script>
+    <script src="/push-client.js" defer></script>
+    <script src="/pwa-client.js" defer></script>
 </body>
 </html>

@@ -121,9 +121,23 @@ async function initPushNotifications() {
     localStorage.setItem(PUSH_SUBSCRIBED_KEY, '1');
 }
 
+function showOrdersLoadingState() {
+    const list = document.getElementById('ordersList');
+    if (!list) return;
+    list.setAttribute('aria-busy', 'true');
+    list.innerHTML = `<div class="orders-loading" role="status">
+        <span class="visually-hidden">Loading your orders…</span>
+        <div class="orders-skeleton-stack" aria-hidden="true">
+            ${Array.from({ length: 4 }, () => '<div class="orders-skeleton-card"></div>').join('')}
+        </div>
+    </div>`;
+}
+
 function renderMyOrders(orders) {
     const list = document.getElementById('ordersList');
     if (!list) return;
+
+    list.removeAttribute('aria-busy');
 
     if (!orders || orders.length === 0) {
         list.innerHTML =
@@ -197,12 +211,15 @@ async function fetchMyOrders() {
     } catch {
         const list = document.getElementById('ordersList');
         if (!list) return;
+        list.removeAttribute('aria-busy');
         list.innerHTML =
             '<p class="my-orders-placeholder">Could not load your orders right now. Please try again.</p>';
     }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    showOrdersLoadingState();
+
     const restored = await restoreSession();
     if (!restored) {
         window.location.replace('/login');

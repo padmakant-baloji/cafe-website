@@ -2141,34 +2141,61 @@ const fallbackMenuData = JSON.parse(FALLBACK_MENU_JSON);
 /** Started on DOMContentLoaded so the menu downloads in parallel with session restore. */
 let menuBootstrapFetch = null;
 
+function setMenuLoading(loading) {
+    const container = document.getElementById('menuItemsContainer');
+    const menuSection = document.getElementById('menu');
+    if (menuSection) {
+        menuSection.setAttribute('aria-busy', loading ? 'true' : 'false');
+    }
+    if (!container) return;
+    if (!loading) {
+        if (menuSection) menuSection.removeAttribute('aria-busy');
+        container.removeAttribute('aria-busy');
+        container.classList.remove('menu-items-container--loading');
+        return;
+    }
+    container.setAttribute('aria-busy', 'true');
+    container.classList.add('menu-items-container--loading');
+    const bars = Array.from({ length: 6 }, () => '<div class="menu-skeleton-card" aria-hidden="true"></div>').join('');
+    container.innerHTML = `<div class="menu-loading-root" role="status">
+            <span class="visually-hidden">Loading menu…</span>
+            <div class="menu-skeleton-grid">${bars}</div>
+        </div>`;
+}
+
 async function loadMenu() {
+    setMenuLoading(true);
     try {
-        let res = menuBootstrapFetch ? await menuBootstrapFetch : null;
-        menuBootstrapFetch = null;
-        if (!res || !res.ok) {
-            res = await fetch('/api/menu', { priority: 'high', cache: 'default' });
-        }
-        if (res.ok) {
-            menuData = await res.json();
-            if (menuData && Array.isArray(menuData.categories) && menuData.categories.length) {
-                renderMenu();
-                return;
-            }
-        }
-        throw new Error('API menu empty or unavailable');
-    } catch {
         try {
-            const response = await fetch('menu.json', { cache: 'default' });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            let res = menuBootstrapFetch ? await menuBootstrapFetch : null;
+            menuBootstrapFetch = null;
+            if (!res || !res.ok) {
+                res = await fetch('/api/menu', { priority: 'high', cache: 'default' });
             }
-            menuData = await response.json();
-            renderMenu();
-        } catch (error) {
-            console.warn('Could not load menu from API or menu.json, using embedded data:', error);
-            menuData = fallbackMenuData;
-            renderMenu();
+            if (res.ok) {
+                menuData = await res.json();
+                if (menuData && Array.isArray(menuData.categories) && menuData.categories.length) {
+                    renderMenu();
+                    return;
+                }
+            }
+            throw new Error('API menu empty or unavailable');
+        } catch {
+            try {
+                const response = await fetch('menu.json', { cache: 'default' });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                menuData = await response.json();
+                renderMenu();
+            } catch (error) {
+                console.warn('Could not load menu from API or menu.json, using embedded data:', error);
+                menuData = fallbackMenuData;
+                renderMenu();
+            }
         }
+    } finally {
+        setMenuLoading(false);
     }
 }
 
@@ -2998,7 +3025,7 @@ function initMenuSearch() {
             searchClearBtn.style.display = 'none';
         }
         
-        // Debounce search
+        // Debounce search (balance responsiveness vs work per keystroke)
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             renderMenu(query);
@@ -3006,7 +3033,7 @@ function initMenuSearch() {
             getCategoryTabs().forEach((tab) => {
                 tab.style.display = query ? 'none' : '';
             });
-        }, 300);
+        }, 200);
     });
     
     // Clear button handler
