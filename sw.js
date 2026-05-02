@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 self.addEventListener('install', (event) => {
-  const cacheName = 'baloji-pwa-cache-v1';
+  const cacheName = 'baloji-pwa-cache-v2';
   const assets = [
     '/',
     '/menu',
@@ -14,7 +14,9 @@ self.addEventListener('install', (event) => {
     '/profile.js',
     '/script.js',
     '/sw.js',
-    '/manifest.json'
+    '/manifest.json',
+    '/images/logo/logo-large.png',
+    '/images/logo/logo-small.png'
   ];
 
   event.waitUntil(
@@ -37,7 +39,7 @@ self.addEventListener('activate', (event) => {
         await Promise.all(
           keys.map((k) => {
             if (!k.startsWith('baloji-pwa-cache-')) return Promise.resolve();
-            if (k !== 'baloji-pwa-cache-v1') return caches.delete(k);
+            if (k !== 'baloji-pwa-cache-v2') return caches.delete(k);
             return Promise.resolve();
           })
         );
