@@ -200,25 +200,6 @@ app.patch('/api/auth/profile', requireCustomer, async (req, res) => {
     }
 });
 
-app.post('/api/customer-addresses', requireCustomer, async (req, res) => {
-    try {
-        await ensureSchema();
-        const address = await upsertDefaultCustomerAddress(req.customerSession.mobile, req.body || {});
-        const customer = await getCustomerByMobile(req.customerSession.mobile);
-        return res.status(201).json({
-            address,
-            customer: customer ? await serializeCustomer(customer) : null
-        });
-    } catch (err) {
-        const code =
-            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
-        if (code >= 500) {
-            console.error('customer-addresses:', err.message);
-        }
-        return res.status(code).json({ error: err.message || 'Could not save address.' });
-    }
-});
-
 app.get('/api/orders/my', requireCustomer, async (req, res) => {
     try {
         await ensureSchema();

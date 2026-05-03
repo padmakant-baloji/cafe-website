@@ -242,7 +242,6 @@ function initSessionGate() {
                 currentCustomer = data.customer;
                 hideSessionGate();
                 updateCheckoutProfileUI();
-                startMyOrdersPoll();
                 goToMenuScreen();
                 return;
             }
@@ -288,7 +287,6 @@ function initSessionGate() {
             currentCustomer = data.customer;
             hideSessionGate();
             updateCheckoutProfileUI();
-            startMyOrdersPoll();
             goToMenuScreen();
         } catch (e) {
             showGateError(e.message || 'Registration failed.');
@@ -296,134 +294,6 @@ function initSessionGate() {
             gateRegisterBtn.disabled = false;
         }
     });
-}
-
-let myOrdersPollTimer = null;
-
-function formatOrderStatus(status) {
-    const map = {
-        pending: 'Waiting for restaurant',
-        accepted: 'Order accepted',
-        rejected: 'Order declined',
-        cancelled: 'You cancelled this order',
-        preparing: 'Preparing your order',
-        out_for_delivery: 'Out for delivery',
-        completed: 'Order completed'
-    };
-    return map[status] || status;
-}
-
-function normalizeOrderItems(raw) {
-    if (Array.isArray(raw)) return raw;
-    if (typeof raw === 'string') {
-        try {
-            return JSON.parse(raw);
-        } catch {
-            return [];
-        }
-    }
-    return [];
-}
-
-function escapeHtmlAttr(s) {
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-}
-
-function formatFriendlyPlacedAt(iso) {
-    if (!iso) return 'Recent order';
-    const d = new Date(iso);
-    if (!Number.isFinite(d.getTime())) return 'Recent order';
-    const diffM = Math.floor((Date.now() - d.getTime()) / 60000);
-    if (diffM < 1) return 'Placed just now';
-    if (diffM < 60) return `Placed ${diffM} min ago`;
-    return d.toLocaleString(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-    });
-}
-
-function renderMyOrders(orders) {
-    const list = document.getElementById('ordersList');
-    if (!list) return;
-    if (!orders || orders.length === 0) {
-        list.innerHTML = `
-            <div class="my-orders-empty">
-                <div class="my-orders-empty-visual" aria-hidden="true">
-                    <svg class="my-orders-empty-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 11V6a3 3 0 0 1 6 0v5"/><rect x="5" y="11" width="14" height="10" rx="2"/></svg>
-                </div>
-                <p class="my-orders-empty-title">No orders yet</p>
-                <p class="my-orders-empty-text">Pick something from the menu—we’ll show progress here after you check out.</p>
-                <a href="/menu" class="btn btn-primary my-orders-empty-cta">Browse menu</a>
-            </div>`;
-        return;
-    }
-    list.innerHTML = orders
-        .map((o) => {
-            const items = normalizeOrderItems(o.items);
-            const lines = items
-                .map(
-                    (row) =>
-                        `<li class="my-order-item">
-                        <span class="my-order-item-name">${escapeHtmlAttr(row.name)}</span>
-                        <span class="my-order-item-meta"><span class="my-order-item-qty">×${escapeHtmlAttr(String(row.quantity))}</span><span class="my-order-item-price">₹${row.price * row.quantity}</span></span>
-                    </li>`
-                )
-                .join('');
-            const createdRaw = o.created_at ?? o.createdAt;
-            const placedDtIso =
-                createdRaw && Number.isFinite(new Date(createdRaw).getTime())
-                    ? new Date(createdRaw).toISOString()
-                    : '';
-            const placedLabel = formatFriendlyPlacedAt(createdRaw);
-            const st = o.status || '';
-            const dtAttr = placedDtIso ? ` datetime="${escapeHtmlAttr(placedDtIso)}"` : '';
-            return `
-        <article class="my-order-card my-order-card--${escapeHtmlAttr(st)}">
-          <div class="my-order-card-inner">
-            <header class="my-order-card-top">
-              <span class="my-order-status my-order-status--${escapeHtmlAttr(st)}">${escapeHtmlAttr(formatOrderStatus(st))}</span>
-              <time class="my-order-placed"${dtAttr}>${escapeHtmlAttr(placedLabel)}</time>
-            </header>
-            <div class="my-order-items-block">
-              <p class="my-order-items-heading">Items</p>
-              <ul class="my-order-items-list">${lines}</ul>
-            </div>
-            <div class="my-order-total-row">
-              <span class="my-order-total-label">Total</span>
-              <span class="my-order-total-amt">₹${Number(o.total) || 0}</span>
-            </div>
-          </div>
-        </article>
-      `;
-        })
-        .join('');
-}
-
-async function fetchMyOrders() {
-    const list = document.getElementById('ordersList');
-    if (!list) return;
-    const token = getCustomerToken();
-    if (!token) return;
-    try {
-        const res = await fetch('/api/orders/my', { headers: { Authorization: `Bearer ${token}` } });
-        if (!res.ok) return;
-        const data = await res.json();
-        renderMyOrders(data.orders || []);
-    } catch {
-        /* ignore */
-    }
-}
-
-function startMyOrdersPoll() {
-    if (!document.getElementById('ordersList')) return;
-    if (myOrdersPollTimer) clearInterval(myOrdersPollTimer);
-    fetchMyOrders();
-    myOrdersPollTimer = setInterval(fetchMyOrders, 3000);
 }
 
 // ============================================
@@ -3117,14 +2987,6 @@ function initLazyLoading() {
 }
 
 // ============================================
-// Performance Optimization
-// ============================================
-function initPerformanceOptimizations() {
-    // Functions are now defined at module level and used throughout
-    // This function can be used for additional optimizations if needed
-}
-
-// ============================================
 // Initialize Everything
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
@@ -3139,7 +3001,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     document.documentElement.classList.remove('route-menu-auth-pending');
-    startMyOrdersPoll();
     updateCheckoutProfileUI();
 
     initStickyNav();
@@ -3159,7 +3020,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCheckoutModal();
     initOrderSuccessModal();
     initLazyLoading();
-    initPerformanceOptimizations();
 
     // Add loaded class to body for CSS transitions
     document.body.classList.add('loaded');
@@ -3244,12 +3104,4 @@ function initMenuSearch() {
 // ============================================
 window.addEventListener('error', (e) => {
     console.error('Error:', e.error);
-});
-
-// Handle video loading errors
-document.querySelectorAll('video').forEach(video => {
-    video.addEventListener('error', () => {
-        console.warn('Video failed to load, using fallback');
-        // You could add a fallback image here
-    });
 });
