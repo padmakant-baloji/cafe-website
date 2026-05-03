@@ -4,6 +4,7 @@ const { ensureSchema } = require('../lib/schema');
 const { verifyCustomerSession } = require('../lib/customer-session');
 const { placeOrderForCustomer } = require('../lib/place-order');
 const { normalizeMobile, getCustomerByMobile } = require('../lib/order-service');
+const { notifyCustomerOfOrderStatus } = require('../lib/push-service');
 
 /**
  * Vercel serverless: POST /api/order
@@ -37,6 +38,7 @@ module.exports = async (req, res) => {
         await ensureSchema();
         const order = await placeOrderForCustomer(session.mobile, req.body || {});
         const id = typeof order.id === 'string' ? parseInt(order.id, 10) : Number(order.id);
+        await notifyCustomerOfOrderStatus({ customerMobile: session.mobile, order });
         return res.status(200).json({ ok: true, orderId: id, status: order.status });
     } catch (err) {
         const code =

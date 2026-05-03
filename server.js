@@ -3,6 +3,7 @@
 require('dotenv').config();
 
 const path = require('path');
+const compression = require('compression');
 const express = require('express');
 const { ensureSchema } = require('./lib/schema');
 const { signCustomerSession, verifyCustomerSession } = require('./lib/customer-session');
@@ -29,6 +30,7 @@ const ROOT = __dirname;
 const ADMIN_USER = process.env.ADMIN_USER || 'balojicafe';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin';
 
+app.use(compression());
 app.use(express.json({ limit: '256kb' }));
 
 function requireAdmin(req, res, next) {
@@ -363,7 +365,15 @@ app.get('/profile', (req, res) => {
     res.sendFile(path.join(ROOT, 'profile.html'));
 });
 
-app.use(express.static(ROOT));
+app.use(
+    express.static(ROOT, {
+        setHeaders(res, filePath) {
+            if (/\.(css|js|mjs|png|jpe?g|gif|webp|svg|ico|json|woff2?)$/i.test(filePath)) {
+                res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+            }
+        }
+    })
+);
 
 app.listen(PORT, () => {
     console.log(`Server http://localhost:${PORT}`);
