@@ -3,7 +3,6 @@
 const { ensureSchema } = require('../../../lib/schema');
 const { cancelOrderByCustomer } = require('../../../lib/order-service');
 const { resolveCustomerSession } = require('../../../lib/api-auth');
-const { notifyCustomerOfOrderStatus } = require('../../../lib/push-service');
 
 module.exports = async (req, res) => {
     if (req.method !== 'POST') {
@@ -21,7 +20,6 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'Invalid order id.' });
         }
         const updated = await cancelOrderByCustomer(orderId, session.mobile);
-        await notifyCustomerOfOrderStatus({ customerMobile: updated.customer_mobile, order: updated });
         return res.status(200).json({ ok: true, order: updated });
     } catch (err) {
         const code =

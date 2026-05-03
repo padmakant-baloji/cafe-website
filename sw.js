@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 
-const PRECACHE = 'baloji-pwa-cache-v4';
+const PRECACHE = 'baloji-pwa-cache-v5';
 const RUNTIME = 'baloji-pwa-runtime-v1';
 
 self.addEventListener('install', (event) => {
@@ -10,7 +10,6 @@ self.addEventListener('install', (event) => {
     '/orders',
     '/profile',
     '/styles.css',
-    '/push-client.js',
     '/pwa-client.js',
     '/orders.js',
     '/profile.js',
@@ -95,50 +94,6 @@ self.addEventListener('fetch', (event) => {
       } catch {
         return cached;
       }
-    })()
-  );
-});
-
-self.addEventListener('push', (event) => {
-  let payload = null;
-  try {
-    payload = event.data ? event.data.json() : null;
-  } catch {
-    payload = null;
-  }
-
-  const title = payload && typeof payload.title === 'string' ? payload.title : "Baloji's Cafe";
-  const body = payload && typeof payload.body === 'string' ? payload.body : 'You have an order update.';
-  const tag = payload && typeof payload.tag === 'string' ? payload.tag : 'order-update';
-  const data = payload && payload.data && typeof payload.data === 'object' ? payload.data : {};
-
-  event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      tag,
-      data,
-      renotify: true
-    })
-  );
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  const url =
-    event.notification && event.notification.data && event.notification.data.url
-      ? String(event.notification.data.url)
-      : '/orders';
-
-  event.waitUntil(
-    (async () => {
-      const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      const existing = allClients.find((c) => c.url && c.url.includes(url));
-      if (existing) {
-        existing.focus();
-        return;
-      }
-      await self.clients.openWindow(url);
     })()
   );
 });
