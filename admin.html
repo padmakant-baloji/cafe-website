@@ -507,7 +507,7 @@
             background: var(--accent);
             color: #052e16;
         }
-        .admin-popup-actions .admin-btn--reject {
+        .admin-popup-actions .admin-btn--cancel {
             background: var(--danger);
             color: #fff;
         }
@@ -542,6 +542,7 @@
         .admin-order--pending { background: #2b190b; border-color: #7c2d12; }
         .admin-order--accepted { background: #0f2418; border-color: #166534; }
         .admin-order--rejected { background: #2a1212; border-color: #991b1b; }
+        .admin-order--cancelled { background: #1e293b; border-color: #64748b; }
         .admin-order--preparing { background: #122236; border-color: #1d4ed8; }
         .admin-order--out_for_delivery { background: #1d1638; border-color: #6d28d9; }
         .admin-order--completed { background: #0c1f16; border-color: #15803d; }
@@ -567,6 +568,7 @@
         .admin-order-status--pending { background: #422006; color: #fde68a; }
         .admin-order-status--accepted { background: #14532d; color: #bbf7d0; }
         .admin-order-status--rejected { background: #450a0a; color: #fecaca; }
+        .admin-order-status--cancelled { background: #334155; color: #e2e8f0; }
         .admin-order-status--preparing { background: #1e3a5f; color: #bfdbfe; }
         .admin-order-status--out_for_delivery { background: #312e81; color: #e0e7ff; }
         .admin-order-status--completed { background: #052e16; color: #bbf7d0; }
@@ -607,7 +609,7 @@
         }
         .admin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .admin-btn--accept { background: var(--accent); color: #052e16; }
-        .admin-btn--reject { background: var(--danger); color: #fff; }
+        .admin-btn--cancel { background: var(--danger); color: #fff; }
         .admin-btn--prep { background: #2563eb; color: #fff; }
         .admin-btn--out { background: #7c3aed; color: #fff; }
         .admin-btn--complete { background: #15803d; color: #fff; }
@@ -885,12 +887,12 @@
             </div>
             <div class="admin-modal-sub" id="adminNewOrderDetails"></div>
             <div class="admin-popup-actions">
-                <button type="button" id="adminNewOrderRejectBtn" class="admin-btn admin-btn--reject">Reject</button>
+                <button type="button" id="adminNewOrderCancelBtn" class="admin-btn admin-btn--cancel">Cancel</button>
                 <button type="button" id="adminNewOrderAcceptBtn" class="admin-btn admin-btn--accept">Accept</button>
             </div>
         </div>
     </div>
 
-    <script src="/admin.js"></script>
+    <script src="/admin.js?v=3"></script>
 </body>
 </html>

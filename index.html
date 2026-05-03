@@ -563,12 +563,26 @@
 
     <div class="checkout-modal order-success-modal" id="orderSuccessModal" aria-hidden="true">
         <div class="checkout-modal-content order-success-modal-content" role="dialog" aria-modal="true" aria-labelledby="orderSuccessTitle">
-            <div class="order-success-icon" aria-hidden="true">✓</div>
-            <h2 id="orderSuccessTitle">Order successful</h2>
-            <p class="order-success-copy" id="orderSuccessCopy">Your order has been placed successfully. You can track its live status on the My orders page.</p>
-            <div class="form-actions order-success-actions">
-                <button type="button" class="btn btn-secondary" id="orderSuccessCloseBtn">Keep browsing</button>
+            <div class="order-success-hero">
+                <div class="order-success-icon" aria-hidden="true">✓</div>
+                <p class="order-success-eyebrow" id="orderSuccessEyebrow">You’re all set</p>
+                <h2 id="orderSuccessTitle">Order placed</h2>
+                <div class="order-success-wait" id="orderSuccessWaitBlock" aria-label="Typical delivery wait">
+                    <p class="order-success-wait-label">Typical wait</p>
+                    <p class="order-success-wait-range" id="orderSuccessWaitRange">15–20 min</p>
+                    <p class="order-success-wait-hint" id="orderSuccessWaitHint">Delivery in your area</p>
+                </div>
+                <p class="order-success-copy" id="orderSuccessCopy">We’ll show each step as the kitchen works on it. Open My orders anytime for live status.</p>
+            </div>
+            <div class="order-success-cancel-panel" id="orderSuccessCancelPanel" hidden>
+                <p class="order-success-cancel-hint" id="orderSuccessCancelHint">
+                    Change your mind? You can cancel within <strong id="orderSuccessCancelCountdown">1:00</strong> (while the restaurant hasn’t started).
+                </p>
+                <button type="button" class="btn btn-cancel-order order-success-cancel-btn" id="orderSuccessCancelBtn">Cancel order</button>
+            </div>
+            <div class="order-success-actions order-success-actions--stack">
                 <button type="button" class="btn btn-primary" id="trackOrderBtn">Track order</button>
+                <button type="button" class="btn btn-secondary" id="orderSuccessCloseBtn">Keep browsing menu</button>
             </div>
         </div>
     </div>
@@ -633,7 +647,7 @@
     </nav>
 
     <!-- Scripts -->
-    <script src="script.js" defer></script>
+    <script src="script.js?v=9" defer></script>
     <script src="/push-client.js" defer></script>
     <script src="/pwa-client.js" defer></script>
 </body>

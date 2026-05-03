@@ -19,7 +19,8 @@ const ORDER_STATUS_TABS = [
     { key: 'preparing', label: 'Preparing', emptyText: 'preparing orders' },
     { key: 'out_for_delivery', label: 'Out for delivery', emptyText: 'out for delivery orders' },
     { key: 'completed', label: 'Completed', emptyText: 'completed orders' },
-    { key: 'rejected', label: 'Rejected', emptyText: 'rejected orders' }
+    { key: 'rejected', label: 'Restaurant cancelled', emptyText: 'restaurant-cancelled orders' },
+    { key: 'cancelled', label: 'Customer cancelled', emptyText: 'customer-cancelled orders' }
 ];
 
 let activeOrderTab = 'all';
@@ -104,7 +105,8 @@ function statusLabel(status) {
     const map = {
         pending: 'Awaiting action',
         accepted: 'Accepted',
-        rejected: 'Rejected',
+        rejected: 'Cancelled',
+        cancelled: 'Customer cancelled',
         preparing: 'Preparing',
         out_for_delivery: 'Out for delivery',
         completed: 'Completed'
@@ -137,12 +139,22 @@ function saveLastOrderId(id) {
     sessionStorage.setItem(SESSION_STORAGE_LAST_ORDER, String(id));
 }
 
+function normalizeOrdersFromApi(orders) {
+    return (orders || []).map((o) => {
+        if (!o || typeof o !== 'object') return o;
+        const status = String(o.status ?? '')
+            .trim()
+            .toLowerCase();
+        return { ...o, status };
+    });
+}
+
 async function fetchOrders() {
     const res = await fetch('/api/admin/orders', { headers: adminHeaders() });
     if (res.status === 401) throw Object.assign(new Error('Authentication required'), { code: 401 });
     if (!res.ok) throw new Error(`Could not load orders (${res.status})`);
     const data = await res.json();
-    return data.orders || [];
+    return normalizeOrdersFromApi(data.orders || []);
 }
 
 async function patchOrder(orderId, action) {
@@ -413,18 +425,22 @@ function renderOrders(orders, container, emptyText = 'orders') {
             if (o.status === 'pending') {
                 statusActions = `
                     <button type="button" class="admin-btn admin-btn--accept" data-action="accept" data-id="${id}">Accept</button>
-                    <button type="button" class="admin-btn admin-btn--reject" data-action="reject" data-id="${id}">Reject</button>
+                    <button type="button" class="admin-btn admin-btn--cancel" data-action="cancel" data-id="${id}">Cancel</button>
                 `;
             } else if (o.status === 'accepted') {
+                // Cancel before "Preparing" so it stays easy to spot (Copy is first in the row).
                 statusActions = `
+                    <button type="button" class="admin-btn admin-btn--cancel" data-action="cancel" data-id="${id}">Cancel</button>
                     <button type="button" class="admin-btn admin-btn--prep" data-action="preparing" data-id="${id}">Preparing order</button>
                 `;
             } else if (o.status === 'preparing') {
                 statusActions = `
+                    <button type="button" class="admin-btn admin-btn--cancel" data-action="cancel" data-id="${id}">Cancel</button>
                     <button type="button" class="admin-btn admin-btn--out" data-action="out_for_delivery" data-id="${id}">Out for delivery</button>
                 `;
             } else if (o.status === 'out_for_delivery') {
                 statusActions = `
+                    <button type="button" class="admin-btn admin-btn--cancel" data-action="cancel" data-id="${id}">Cancel</button>
                     <button type="button" class="admin-btn admin-btn--complete" data-action="completed" data-id="${id}">Complete order</button>
                 `;
             }
@@ -698,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const popupDetailsEl = document.getElementById('adminNewOrderDetails');
     const popupCloseBtn = document.getElementById('adminNewOrderCloseBtn');
     const popupAcceptBtn = document.getElementById('adminNewOrderAcceptBtn');
-    const popupRejectBtn = document.getElementById('adminNewOrderRejectBtn');
+    const popupCancelBtn = document.getElementById('adminNewOrderCancelBtn');
 
     fillAdminDefaults();
 
@@ -709,6 +725,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!window.location.hash) {
         window.location.hash = `#${activeOrderTab}`;
     }
+
+    window.addEventListener('hashchange', () => {
+        const key = String(window.location.hash || '')
+            .replace(/^#/, '')
+            .trim();
+        if (ORDER_STATUS_TABS.some((t) => t.key === key)) {
+            activeOrderTab = key;
+            renderTabsAndActiveList(lastOrders);
+        }
+    });
 
     function hideNewOrderPopup() {
         if (modalEl) modalEl.hidden = true;
@@ -917,10 +943,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!id) return;
 
         if (popupAcceptBtn) popupAcceptBtn.disabled = true;
-        if (popupRejectBtn) popupRejectBtn.disabled = true;
+        if (popupCancelBtn) popupCancelBtn.disabled = true;
 
         try {
             await patchOrder(id, action);
+            if (action === 'accept') {
+                activeOrderTab = 'accepted';
+                window.location.hash = '#accepted';
+            }
             hideNewOrderPopup();
             await refresh();
         } catch (err) {
@@ -932,12 +962,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } finally {
             if (popupAcceptBtn) popupAcceptBtn.disabled = false;
-            if (popupRejectBtn) popupRejectBtn.disabled = false;
+            if (popupCancelBtn) popupCancelBtn.disabled = false;
         }
     }
 
     popupAcceptBtn?.addEventListener('click', () => handleNewOrderPopupAction('accept'));
-    popupRejectBtn?.addEventListener('click', () => handleNewOrderPopupAction('reject'));
+    popupCancelBtn?.addEventListener('click', () => handleNewOrderPopupAction('cancel'));
 
     const seenPending = loadSeenIds();
     let lastOrderId = loadLastOrderId();
@@ -1086,6 +1116,10 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
         try {
             await patchOrder(id, action);
+            if (action === 'accept') {
+                activeOrderTab = 'accepted';
+                window.location.hash = '#accepted';
+            }
             await refresh();
         } catch (err) {
             if (err && err.code === 401) {

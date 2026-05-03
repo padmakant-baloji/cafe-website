@@ -37,7 +37,12 @@ module.exports = async (req, res) => {
         await ensureSchema();
         const order = await placeOrderForCustomer(session.mobile, req.body || {});
         const id = typeof order.id === 'string' ? parseInt(order.id, 10) : Number(order.id);
-        return res.status(200).json({ ok: true, orderId: id, status: order.status });
+        return res.status(200).json({
+            ok: true,
+            orderId: id,
+            status: order.status,
+            created_at: order.created_at
+        });
     } catch (err) {
         const code =
             err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;

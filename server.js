@@ -16,7 +16,8 @@ const {
     updateCustomerProfile,
     listOrdersForCustomer,
     listAllOrdersForAdmin,
-    applyAdminOrderAction
+    applyAdminOrderAction,
+    cancelOrderByCustomer
 } = require('./lib/order-service');
 const { placeOrderForCustomer } = require('./lib/place-order');
 const { upsertPushSubscription, notifyCustomerOfOrderStatus } = require('./lib/push-service');
@@ -236,7 +237,12 @@ app.post('/api/order', requireCustomer, async (req, res) => {
         const order = await placeOrderForCustomer(req.customerSession.mobile, req.body || {});
         const id = typeof order.id === 'string' ? parseInt(order.id, 10) : Number(order.id);
         await notifyCustomerOfOrderStatus({ customerMobile: req.customerSession.mobile, order });
-        return res.json({ ok: true, orderId: id, status: order.status });
+        return res.json({
+            ok: true,
+            orderId: id,
+            status: order.status,
+            created_at: order.created_at
+        });
     } catch (err) {
         const code =
             err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
@@ -246,6 +252,26 @@ app.post('/api/order', requireCustomer, async (req, res) => {
         return res.status(code).json({
             error: err.message || 'Could not place order.'
         });
+    }
+});
+
+app.post('/api/orders/:id/cancel', requireCustomer, async (req, res) => {
+    try {
+        await ensureSchema();
+        const orderId = parseId(req.params.id);
+        if (Number.isNaN(orderId)) {
+            return res.status(400).json({ error: 'Invalid order id.' });
+        }
+        const updated = await cancelOrderByCustomer(orderId, req.customerSession.mobile);
+        await notifyCustomerOfOrderStatus({ customerMobile: updated.customer_mobile, order: updated });
+        return res.json({ ok: true, order: updated });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) {
+            console.error('cancel order:', err.message);
+        }
+        return res.status(code).json({ error: err.message || 'Could not cancel order.' });
     }
 });
 

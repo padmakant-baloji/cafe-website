@@ -305,6 +305,7 @@ function formatOrderStatus(status) {
         pending: 'Waiting for restaurant',
         accepted: 'Order accepted',
         rejected: 'Order declined',
+        cancelled: 'You cancelled this order',
         preparing: 'Preparing your order',
         out_for_delivery: 'Out for delivery',
         completed: 'Order completed'
@@ -330,12 +331,35 @@ function escapeHtmlAttr(s) {
     return d.innerHTML;
 }
 
+function formatFriendlyPlacedAt(iso) {
+    if (!iso) return 'Recent order';
+    const d = new Date(iso);
+    if (!Number.isFinite(d.getTime())) return 'Recent order';
+    const diffM = Math.floor((Date.now() - d.getTime()) / 60000);
+    if (diffM < 1) return 'Placed just now';
+    if (diffM < 60) return `Placed ${diffM} min ago`;
+    return d.toLocaleString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+    });
+}
+
 function renderMyOrders(orders) {
     const list = document.getElementById('ordersList');
     if (!list) return;
     if (!orders || orders.length === 0) {
-        list.innerHTML =
-            '<p class="my-orders-placeholder">Your orders will appear here after you place one.</p>';
+        list.innerHTML = `
+            <div class="my-orders-empty">
+                <div class="my-orders-empty-visual" aria-hidden="true">
+                    <svg class="my-orders-empty-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 11V6a3 3 0 0 1 6 0v5"/><rect x="5" y="11" width="14" height="10" rx="2"/></svg>
+                </div>
+                <p class="my-orders-empty-title">No orders yet</p>
+                <p class="my-orders-empty-text">Pick something from the menu—we’ll show progress here after you check out.</p>
+                <a href="/menu" class="btn btn-primary my-orders-empty-cta">Browse menu</a>
+            </div>`;
         return;
     }
     list.innerHTML = orders
@@ -344,22 +368,37 @@ function renderMyOrders(orders) {
             const lines = items
                 .map(
                     (row) =>
-                        `<div class="my-order-line">${escapeHtmlAttr(row.name)} × ${row.quantity} · ₹${row.price * row.quantity}</div>`
+                        `<li class="my-order-item">
+                        <span class="my-order-item-name">${escapeHtmlAttr(row.name)}</span>
+                        <span class="my-order-item-meta"><span class="my-order-item-qty">×${escapeHtmlAttr(String(row.quantity))}</span><span class="my-order-item-price">₹${row.price * row.quantity}</span></span>
+                    </li>`
                 )
                 .join('');
-            const when = o.created_at ? new Date(o.created_at).toLocaleString() : '';
-            const id = o.id;
+            const createdRaw = o.created_at ?? o.createdAt;
+            const placedDtIso =
+                createdRaw && Number.isFinite(new Date(createdRaw).getTime())
+                    ? new Date(createdRaw).toISOString()
+                    : '';
+            const placedLabel = formatFriendlyPlacedAt(createdRaw);
             const st = o.status || '';
+            const dtAttr = placedDtIso ? ` datetime="${escapeHtmlAttr(placedDtIso)}"` : '';
             return `
-        <div class="my-order-card my-order-card--${escapeHtmlAttr(st)}">
-          <div class="my-order-top">
-            <span class="my-order-id">#${escapeHtmlAttr(String(id))}</span>
-            <span class="my-order-status my-order-status--${escapeHtmlAttr(st)}">${escapeHtmlAttr(formatOrderStatus(st))}</span>
+        <article class="my-order-card my-order-card--${escapeHtmlAttr(st)}">
+          <div class="my-order-card-inner">
+            <header class="my-order-card-top">
+              <span class="my-order-status my-order-status--${escapeHtmlAttr(st)}">${escapeHtmlAttr(formatOrderStatus(st))}</span>
+              <time class="my-order-placed"${dtAttr}>${escapeHtmlAttr(placedLabel)}</time>
+            </header>
+            <div class="my-order-items-block">
+              <p class="my-order-items-heading">Items</p>
+              <ul class="my-order-items-list">${lines}</ul>
+            </div>
+            <div class="my-order-total-row">
+              <span class="my-order-total-label">Total</span>
+              <span class="my-order-total-amt">₹${Number(o.total) || 0}</span>
+            </div>
           </div>
-          <div class="my-order-meta">${escapeHtmlAttr(when)}</div>
-          <div class="my-order-items">${lines}</div>
-          <div class="my-order-total">₹${Number(o.total) || 0}</div>
-        </div>
+        </article>
       `;
         })
         .join('');
@@ -2745,12 +2784,62 @@ function initCheckoutModal() {
 
 }
 
-function getOrderSuccessMessage() {
+function getOrderSuccessWaitInfo() {
     const city = getNormalizedCustomerCity();
     if (city === 'kudachi') {
-        return 'Your order is confirmed and our kitchen has started preparing it. Delivery in Kudachi usually takes about 15 to 20 minutes. You can track every update live on the My orders page.';
+        return { range: '15–20 min', hint: 'Typical time in Kudachi' };
     }
-    return 'Your order is confirmed and our kitchen has started preparing it. Delivery to your area usually takes about 30 to 40 minutes. You can track every update live on the My orders page.';
+    return { range: '30–40 min', hint: 'Typical time outside Kudachi' };
+}
+
+function getOrderSuccessMessage() {
+    return 'We’ll notify you as your order moves along. Open My orders anytime to see each step.';
+}
+
+const CUSTOMER_CANCEL_WINDOW_MS = 1 * 60 * 1000;
+
+/** @type {{ orderId: number, deadlineMs: number } | null} */
+let orderSuccessCancelContext = null;
+let orderSuccessCancelIntervalId = null;
+
+function clearOrderSuccessCancelTimer() {
+    if (orderSuccessCancelIntervalId != null) {
+        clearInterval(orderSuccessCancelIntervalId);
+        orderSuccessCancelIntervalId = null;
+    }
+}
+
+function formatCancelCountdownMmSs(ms) {
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${String(r).padStart(2, '0')}`;
+}
+
+function tickOrderSuccessCancelCountdown() {
+    const countdownEl = document.getElementById('orderSuccessCancelCountdown');
+    const panel = document.getElementById('orderSuccessCancelPanel');
+    const cancelBtn = document.getElementById('orderSuccessCancelBtn');
+    if (!orderSuccessCancelContext) return;
+    if (!countdownEl) return;
+    const left = orderSuccessCancelContext.deadlineMs - Date.now();
+    if (left <= 0) {
+        clearOrderSuccessCancelTimer();
+        orderSuccessCancelContext = null;
+        if (panel) panel.hidden = true;
+        if (cancelBtn) cancelBtn.disabled = false;
+        return;
+    }
+    countdownEl.textContent = formatCancelCountdownMmSs(left);
+}
+
+function resetOrderSuccessModalChrome() {
+    const title = document.getElementById('orderSuccessTitle');
+    const eyebrow = document.getElementById('orderSuccessEyebrow');
+    const icon = document.querySelector('#orderSuccessModal .order-success-icon');
+    if (title) title.textContent = 'Order placed';
+    if (eyebrow) eyebrow.textContent = 'You’re all set';
+    if (icon) icon.removeAttribute('hidden');
 }
 
 function showOrderSuccessModal() {
@@ -2760,15 +2849,50 @@ function showOrderSuccessModal() {
         window.location.assign('/orders');
         return;
     }
+    resetOrderSuccessModalChrome();
+    const waitBlock = document.getElementById('orderSuccessWaitBlock');
+    const waitRange = document.getElementById('orderSuccessWaitRange');
+    const waitHint = document.getElementById('orderSuccessWaitHint');
+    if (waitBlock && waitRange && waitHint) {
+        const wait = getOrderSuccessWaitInfo();
+        waitRange.textContent = wait.range;
+        waitHint.textContent = wait.hint;
+        waitBlock.hidden = false;
+    }
     if (successCopy) {
         successCopy.textContent = getOrderSuccessMessage();
     }
+
+    const cancelPanel = document.getElementById('orderSuccessCancelPanel');
+    const cancelBtn = document.getElementById('orderSuccessCancelBtn');
+    clearOrderSuccessCancelTimer();
+
+    if (orderSuccessCancelContext && cancelPanel && cancelBtn) {
+        if (!Number.isFinite(orderSuccessCancelContext.deadlineMs)) {
+            orderSuccessCancelContext.deadlineMs = Date.now() + CUSTOMER_CANCEL_WINDOW_MS;
+        }
+        const left = orderSuccessCancelContext.deadlineMs - Date.now();
+        if (left > 0) {
+            cancelPanel.hidden = false;
+            cancelBtn.disabled = false;
+            tickOrderSuccessCancelCountdown();
+            orderSuccessCancelIntervalId = setInterval(tickOrderSuccessCancelCountdown, 1000);
+        } else {
+            cancelPanel.hidden = true;
+            orderSuccessCancelContext = null;
+        }
+    } else if (cancelPanel) {
+        cancelPanel.hidden = true;
+    }
+
     successModal.classList.add('active');
     successModal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
 }
 
 function closeOrderSuccessModal() {
+    clearOrderSuccessCancelTimer();
+    orderSuccessCancelContext = null;
     const successModal = document.getElementById('orderSuccessModal');
     if (!successModal) return;
     successModal.classList.remove('active');
@@ -2780,6 +2904,7 @@ function initOrderSuccessModal() {
     const successModal = document.getElementById('orderSuccessModal');
     const closeBtn = document.getElementById('orderSuccessCloseBtn');
     const trackBtn = document.getElementById('trackOrderBtn');
+    const cancelBtn = document.getElementById('orderSuccessCancelBtn');
     if (!successModal) return;
 
     closeBtn?.addEventListener('click', () => {
@@ -2788,6 +2913,42 @@ function initOrderSuccessModal() {
 
     trackBtn?.addEventListener('click', () => {
         window.location.assign('/orders');
+    });
+
+    cancelBtn?.addEventListener('click', async () => {
+        if (!orderSuccessCancelContext) return;
+        if (!window.confirm('Cancel this order? You can place a new order from the menu anytime.')) {
+            return;
+        }
+        cancelBtn.disabled = true;
+        try {
+            const res = await fetch(
+                `/api/orders/${encodeURIComponent(orderSuccessCancelContext.orderId)}/cancel`,
+                { method: 'POST', headers: getAuthHeaders() }
+            );
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Could not cancel order.');
+            clearOrderSuccessCancelTimer();
+            orderSuccessCancelContext = null;
+            const cancelPanel = document.getElementById('orderSuccessCancelPanel');
+            const waitBlock = document.getElementById('orderSuccessWaitBlock');
+            const eyebrow = document.getElementById('orderSuccessEyebrow');
+            const successCopy = document.getElementById('orderSuccessCopy');
+            const title = document.getElementById('orderSuccessTitle');
+            const icon = document.querySelector('#orderSuccessModal .order-success-icon');
+            if (cancelPanel) cancelPanel.hidden = true;
+            if (waitBlock) waitBlock.hidden = true;
+            if (eyebrow) eyebrow.textContent = 'Cancelled';
+            if (title) title.textContent = 'Order cancelled';
+            if (icon) icon.setAttribute('hidden', 'true');
+            if (successCopy) {
+                successCopy.textContent =
+                    'Your order was cancelled. Head back to the menu whenever you’re ready to order again.';
+            }
+        } catch (err) {
+            alert(err && err.message ? err.message : 'Could not cancel order.');
+            cancelBtn.disabled = false;
+        }
     });
 
     successModal.addEventListener('click', (e) => {
@@ -2897,6 +3058,24 @@ async function placeOrder() {
         document.getElementById('checkoutForm').reset();
         updateCheckoutProfileUI();
 
+        const rawOrderId = data.orderId ?? data.order_id ?? data.id;
+        const orderNum =
+            rawOrderId != null && rawOrderId !== ''
+                ? Number(typeof rawOrderId === 'string' ? rawOrderId.trim() : rawOrderId)
+                : NaN;
+        const createdRaw = data.created_at ?? data.createdAt;
+        let createdMs =
+            createdRaw != null && createdRaw !== ''
+                ? new Date(createdRaw).getTime()
+                : Date.now();
+        if (!Number.isFinite(createdMs)) {
+            createdMs = Date.now();
+        }
+        const deadlineMs = createdMs + CUSTOMER_CANCEL_WINDOW_MS;
+        orderSuccessCancelContext =
+            Number.isFinite(orderNum) && orderNum > 0
+                ? { orderId: orderNum, deadlineMs }
+                : null;
         showOrderSuccessModal();
     } catch (err) {
         const hint =
