@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 
-const PRECACHE = 'baloji-pwa-cache-v6';
+const PRECACHE = 'baloji-pwa-cache-v4';
 const RUNTIME = 'baloji-pwa-runtime-v1';
 
 self.addEventListener('install', (event) => {
@@ -17,8 +17,6 @@ self.addEventListener('install', (event) => {
     '/script.js',
     '/sw.js',
     '/manifest.json',
-    '/menu.json',
-    '/fallback-menu.json',
     '/images/logo/pwa-192.png',
     '/images/logo/pwa-512.png',
     '/images/logo/pwa-maskable-512.png',
@@ -119,9 +117,7 @@ self.addEventListener('push', (event) => {
       body,
       tag,
       data,
-      renotify: true,
-      icon: '/images/logo/pwa-192.png',
-      badge: '/images/logo/pwa-192.png'
+      renotify: true
     })
   );
 });

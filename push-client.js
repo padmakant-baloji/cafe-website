@@ -2,6 +2,7 @@
 
 const SESSION_STORAGE_KEY = 'balojiCustomerToken';
 const CUSTOMER_PROFILE_KEY = 'balojiCustomerProfile';
+const PUSH_SUBSCRIBED_KEY = 'balojiPushSubscribed';
 
 function getCustomerToken() {
     return localStorage.getItem(SESSION_STORAGE_KEY);
@@ -36,6 +37,7 @@ async function initPushNotifications() {
     const customerMobile = profile && profile.mobile ? String(profile.mobile) : '';
 
     if (!token || !customerMobile) return;
+    if (localStorage.getItem(PUSH_SUBSCRIBED_KEY) === '1') return;
 
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     if (!('Notification' in window)) return;
@@ -72,6 +74,8 @@ async function initPushNotifications() {
         },
         body: JSON.stringify({ subscription })
     });
+
+    localStorage.setItem(PUSH_SUBSCRIBED_KEY, '1');
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -20,7 +20,7 @@
     
     /* Typography */
     --font-display: 'Playfair Display', serif;
-    --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-body: 'Poppins', sans-serif;
     
     /* Spacing */
     --spacing-xs: 0.5rem;
@@ -6641,7 +6641,7 @@ body.session-gate-open {
 }
 
 .session-gate-title {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Poppins', sans-serif;
     font-size: 1.5rem;
     font-weight: 700;
     margin: 0 0 0.35rem;

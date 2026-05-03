@@ -3,7 +3,6 @@
 const { ensureSchema } = require('../../../lib/schema');
 const { applyAdminOrderAction } = require('../../../lib/order-service');
 const { requireAdminApi } = require('../../../lib/api-auth');
-const { notifyCustomerOfOrderStatus } = require('../../../lib/push-service');
 
 module.exports = async (req, res) => {
     if (req.method !== 'PATCH') {
@@ -22,9 +21,6 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'Missing action.' });
         }
         const updated = await applyAdminOrderAction(orderId, action);
-        if (updated && updated.customer_mobile) {
-            await notifyCustomerOfOrderStatus({ customerMobile: updated.customer_mobile, order: updated });
-        }
         return res.status(200).json({ ok: true, order: updated });
     } catch (err) {
         const code =
