@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
-    <link rel="preload" href="/api/menu" as="fetch" crossorigin>
+    <link rel="preload" href="menu.json" as="fetch" crossorigin>
     <script>
       (function () {
         if (window.location.pathname === '/menu') {
@@ -342,7 +342,7 @@
             
             <!-- Menu Items Container -->
             <div class="menu-items-container" id="menuItemsContainer">
-                <!-- Menu loads from /api/menu (see script.js) -->
+                <!-- Menu loads from menu.json (see script.js loadMenu) -->
             </div>
         </div>
     </section>

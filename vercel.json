@@ -8,9 +8,6 @@
     { "source": "/admin", "destination": "/api/admin/page" },
     { "source": "/admin/", "destination": "/api/admin/page" },
 
-    { "source": "/admin/menu", "destination": "/api/admin/menu-page" },
-    { "source": "/admin/menu/", "destination": "/api/admin/menu-page" },
-
     { "source": "/admin.html", "destination": "/api/admin/page" },
     { "source": "/orders", "destination": "/orders.html" },
     { "source": "/orders/", "destination": "/orders.html" },

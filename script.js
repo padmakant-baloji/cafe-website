@@ -2138,7 +2138,7 @@ const FALLBACK_MENU_JSON = `{
 `;
 const fallbackMenuData = JSON.parse(FALLBACK_MENU_JSON);
 
-/** Started on DOMContentLoaded so the menu downloads in parallel with session restore. */
+/** Started on DOMContentLoaded so `menu.json` downloads in parallel with session restore. */
 let menuBootstrapFetch = null;
 
 function setMenuLoading(loading) {
@@ -2166,34 +2166,23 @@ function setMenuLoading(loading) {
 async function loadMenu() {
     setMenuLoading(true);
     try {
-        try {
-            let res = menuBootstrapFetch ? await menuBootstrapFetch : null;
-            menuBootstrapFetch = null;
-            if (!res || !res.ok) {
-                res = await fetch('/api/menu', { priority: 'high', cache: 'default' });
-            }
-            if (res.ok) {
-                menuData = await res.json();
-                if (menuData && Array.isArray(menuData.categories) && menuData.categories.length) {
-                    renderMenu();
-                    return;
-                }
-            }
-            throw new Error('API menu empty or unavailable');
-        } catch {
-            try {
-                const response = await fetch('menu.json', { cache: 'default' });
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                menuData = await response.json();
+        let res = menuBootstrapFetch ? await menuBootstrapFetch : null;
+        menuBootstrapFetch = null;
+        if (!res || !res.ok) {
+            res = await fetch('menu.json', { priority: 'high', cache: 'default' });
+        }
+        if (res.ok) {
+            menuData = await res.json();
+            if (menuData && Array.isArray(menuData.categories) && menuData.categories.length) {
                 renderMenu();
-            } catch (error) {
-                console.warn('Could not load menu from API or menu.json, using embedded data:', error);
-                menuData = fallbackMenuData;
-                renderMenu();
+                return;
             }
         }
+        throw new Error('menu.json empty or unavailable');
+    } catch (error) {
+        console.warn('Could not load menu.json, using embedded data:', error);
+        menuData = fallbackMenuData;
+        renderMenu();
     } finally {
         setMenuLoading(false);
     }
@@ -2960,9 +2949,7 @@ function initPerformanceOptimizations() {
 // Initialize Everything
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
-    menuBootstrapFetch = fetch('/api/menu', { priority: 'high', cache: 'default' }).catch(
-        () => null
-    );
+    menuBootstrapFetch = fetch('menu.json', { priority: 'high', cache: 'default' }).catch(() => null);
 
     currentCustomer = getCustomerProfile();
     updateCheckoutProfileUI();
