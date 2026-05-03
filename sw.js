@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 
-const PRECACHE = 'baloji-pwa-cache-v3';
+const PRECACHE = 'baloji-pwa-cache-v4';
 const RUNTIME = 'baloji-pwa-runtime-v1';
 
 self.addEventListener('install', (event) => {
@@ -17,7 +17,9 @@ self.addEventListener('install', (event) => {
     '/script.js',
     '/sw.js',
     '/manifest.json',
-    '/images/logo/logo-large.png',
+    '/images/logo/pwa-192.png',
+    '/images/logo/pwa-512.png',
+    '/images/logo/pwa-maskable-512.png',
     '/images/logo/logo-small.png'
   ];
 

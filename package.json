@@ -7,7 +7,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "db:test": "node scripts/db-test.js",
-    "images:compress": "node scripts/compress-images.js"
+    "images:compress": "node scripts/compress-images.js",
+    "pwa:icons": "node scripts/generate-pwa-icons.js"
   },
   "engines": {
     "node": ">=18"
