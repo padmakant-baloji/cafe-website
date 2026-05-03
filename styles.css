@@ -1287,6 +1287,152 @@ button {
     margin-bottom: 3rem;
 }
 
+/* Combo offers (bundled pricing) */
+.combo-section {
+    position: relative;
+    padding: 3rem 0 3.5rem;
+    background: linear-gradient(180deg, rgba(21, 128, 61, 0.06) 0%, rgba(255, 255, 255, 0.92) 45%, #fafafa 100%);
+    border-top: 1px solid rgba(21, 128, 61, 0.12);
+    border-bottom: 1px solid rgba(21, 128, 61, 0.1);
+}
+
+.combo-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(34, 197, 94, 0.14), transparent 55%);
+    pointer-events: none;
+}
+
+.combo-section .container {
+    position: relative;
+    z-index: 1;
+}
+
+.combo-section-head {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.combo-pill {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #15803d;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(234, 179, 8, 0.18));
+    border: 1px solid rgba(21, 128, 61, 0.25);
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    margin-bottom: 0.75rem;
+}
+
+.combo-section-title {
+    margin-bottom: 0.5rem;
+}
+
+.combo-section-sub {
+    margin-bottom: 0;
+    max-width: 36rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.combo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    gap: 1.25rem;
+}
+
+.combo-card {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 2px solid rgba(21, 128, 61, 0.18);
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.combo-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(34, 197, 94, 0.45);
+    box-shadow: 0 14px 36px rgba(21, 128, 61, 0.18);
+}
+
+.combo-card-image-wrap {
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(145deg, #f1f5f9, #e2e8f0);
+    overflow: hidden;
+}
+
+.combo-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.combo-card-body {
+    padding: 1rem 1.1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 0.35rem;
+}
+
+.combo-card-title {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--logo-dark-blue);
+    margin: 0;
+    line-height: 1.25;
+}
+
+.combo-card-meta {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    margin: 0 0 0.5rem;
+    flex: 1;
+}
+
+.combo-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.combo-card-price {
+    font-family: var(--font-body);
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #15803d;
+}
+
+.combo-card-footer .btn {
+    flex-shrink: 0;
+    min-height: 44px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+body.app-mobile .combo-section {
+    padding: var(--fo-space-7) 0;
+}
+
+body.app-mobile .combo-section-title {
+    font-size: 1.375rem;
+}
+
+body.app-mobile .combo-grid {
+    gap: var(--fo-space-4);
+}
+
 /* Menu Search Box */
 .menu-search-container {
     max-width: 800px;

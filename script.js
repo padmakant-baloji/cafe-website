@@ -906,6 +906,20 @@ function addToCart(itemName, price, options = {}) {
     showCartNotification();
 }
 
+function initComboCartButtons() {
+    const section = document.getElementById('combos');
+    if (!section) return;
+    section.addEventListener('click', (e) => {
+        const btn = e.target.closest('.combo-add-btn');
+        if (!btn) return;
+        const name = btn.dataset.comboName;
+        const price = parseInt(btn.dataset.comboPrice, 10);
+        if (name && !Number.isNaN(price)) {
+            addToCart(name, price);
+        }
+    });
+}
+
 function getCartQuantityForLine(lineName) {
     const row = cart.find((c) => c.name === lineName);
     return row ? row.quantity : 0;
@@ -3013,6 +3027,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initMenuSearch();
     initMenuItemActions();
     initOrderingAvailability();
+    initComboCartButtons();
     initGallery();
     initTestimonials();
     loadCart();
