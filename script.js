@@ -1304,6 +1304,8 @@ function getCartTotal() {
 const MIN_NON_KUDACHI_ORDER_VALUE = 200;
 const MIN_FREE_DELIVERY_ORDER_VALUE = 500;
 const NON_KUDACHI_DELIVERY_FEE = 40;
+const MIN_KUDACHI_FREE_DELIVERY_VALUE = 80;
+const KUDACHI_DELIVERY_FEE = 20;
 
 function getNormalizedCustomerCity() {
     return String(currentCustomer?.city || getCustomerProfile()?.city || '').trim().toLowerCase();
@@ -1317,7 +1319,12 @@ function getCheckoutSelectedCity() {
 
 function getDeliveryFee(subtotal, cityLower) {
     if (!cityLower) return 0;
-    if (cityLower === 'kudachi') return 0;
+    if (cityLower === 'kudachi') {
+        // Kudachi: free delivery when subtotal hits the minimum, small fee below.
+        if (subtotal <= 0) return 0;
+        if (subtotal < MIN_KUDACHI_FREE_DELIVERY_VALUE) return KUDACHI_DELIVERY_FEE;
+        return 0;
+    }
     // For non-Kudachi, delivery fee applies only once minimum order is met.
     if (subtotal < MIN_NON_KUDACHI_ORDER_VALUE) return 0;
     if (subtotal >= MIN_FREE_DELIVERY_ORDER_VALUE) return 0;
@@ -1443,7 +1450,12 @@ function renderCartDeliveryNote() {
     }
 
     if (cityLower === 'kudachi') {
-        el.innerHTML = 'Free delivery in <strong>Kudachi</strong>.';
+        if (subtotal < MIN_KUDACHI_FREE_DELIVERY_VALUE) {
+            const remaining = MIN_KUDACHI_FREE_DELIVERY_VALUE - subtotal;
+            el.innerHTML = `₹${KUDACHI_DELIVERY_FEE} delivery charge in <strong>Kudachi</strong> for orders under ₹${MIN_KUDACHI_FREE_DELIVERY_VALUE}. Add <strong>₹${remaining}</strong> more for <strong>free delivery</strong>.`;
+        } else {
+            el.innerHTML = 'Free delivery in <strong>Kudachi</strong>.';
+        }
         el.hidden = false;
         return;
     }
@@ -1510,6 +1522,10 @@ function renderCheckoutTotals() {
     if (noteEl) {
         if (!cityLower) {
             noteEl.textContent = 'Select your city to see delivery charges.';
+            noteEl.hidden = false;
+        } else if (cityLower === 'kudachi' && subtotal > 0 && subtotal < MIN_KUDACHI_FREE_DELIVERY_VALUE) {
+            const remaining = MIN_KUDACHI_FREE_DELIVERY_VALUE - subtotal;
+            noteEl.textContent = `₹${KUDACHI_DELIVERY_FEE} delivery charge for Kudachi orders under ₹${MIN_KUDACHI_FREE_DELIVERY_VALUE}. Add ₹${remaining} more for free delivery.`;
             noteEl.hidden = false;
         } else if (cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
             const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
