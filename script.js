@@ -1445,11 +1445,18 @@ const FALLBACK_MENU_JSON = `{
           "price": 15
         },
         {
-          "id": "badam-milk",
-          "name": "Badam Milk",
+          "id": "hot-badam-milk",
+          "name": "Hot Badam Milk",
           "image": "images/Badam%20Milk.jpg",
-          "alt": "Badam Milk",
+          "alt": "Hot Badam Milk",
           "price": 20
+        },
+        {
+          "id": "cold-badam-milk",
+          "name": "Cold Badam Milk",
+          "image": "images/Badam%20Milk.jpg",
+          "alt": "Cold Badam Milk",
+          "price": 40
         },
         {
           "id": "boost",
@@ -1457,6 +1464,26 @@ const FALLBACK_MENU_JSON = `{
           "image": "images/Boost.jpg",
           "alt": "Boost",
           "price": 20
+        }
+      ]
+    },
+    {
+      "id": "maggie",
+      "name": "Maggie",
+      "items": [
+        {
+          "id": "vegetable-maggie",
+          "name": "Vegetable Maggie",
+          "image": "images/Veg%20Fried%20Noodles.jpg",
+          "alt": "Vegetable Maggie",
+          "price": 45
+        },
+        {
+          "id": "cheese-maggie",
+          "name": "Cheese Maggie",
+          "image": "images/Special%20Noodles.jpg",
+          "alt": "Cheese Maggie",
+          "price": 55
         }
       ]
     },
