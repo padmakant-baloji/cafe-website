@@ -937,20 +937,7 @@ function adjustCartLineQuantity(lineName, delta) {
     updateCartUI();
 }
 
-function collectSelectedAddons(menuItem, itemId) {
-    const selectedAddons = [];
-    if (!menuItem) return selectedAddons;
-    menuItem.querySelectorAll(`input[type="checkbox"][data-item-id="${itemId}"]:checked`).forEach((checkbox) => {
-        selectedAddons.push({
-            label: checkbox.dataset.label,
-            price: parseInt(checkbox.value, 10) || 0
-        });
-    });
-    return selectedAddons;
-}
-
-function buildCartLineName(item, selectedSize, menuItem) {
-    const selectedAddons = collectSelectedAddons(menuItem, item.id);
+function buildCartLineName(item, selectedSize, selectedAddons = []) {
     let itemName = item.name;
     if (selectedSize) {
         itemName += ` (${selectedSize.label})`;
@@ -962,13 +949,123 @@ function buildCartLineName(item, selectedSize, menuItem) {
     return itemName;
 }
 
-function buildCartLinePrice(item, selectedSize, menuItem) {
-    const selectedAddons = collectSelectedAddons(menuItem, item.id);
+function buildCartLinePrice(item, selectedSize, selectedAddons = []) {
     let totalPrice = selectedSize ? selectedSize.price : item.price;
     selectedAddons.forEach((addon) => {
         totalPrice += addon.price;
     });
     return totalPrice;
+}
+
+function ensureAddonsModal() {
+    if (document.getElementById('addonsModal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'addonsModal';
+    // Reuse existing modal styling (cart modal) so it actually displays.
+    modal.className = 'cart-modal';
+    modal.innerHTML = `
+        <div class="cart-modal-content" role="dialog" aria-modal="true" aria-labelledby="addonsModalTitle">
+            <div class="cart-modal-header">
+                <h2 id="addonsModalTitle">Customize</h2>
+                <button type="button" class="cart-close" id="addonsModalClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="cart-items" style="max-height: 55vh;">
+                <p id="addonsModalSubtitle" style="margin: 0 0 12px; color: var(--text-light);"></p>
+                <div id="addonsModalOptions" style="display:grid; gap:10px;"></div>
+            </div>
+            <div class="cart-footer" style="padding: 1rem; border-top: 2px solid var(--beige-bg); display:flex; gap:10px; justify-content:flex-end;">
+                <button type="button" class="btn" id="addonsModalCancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="addonsModalAdd">Add to cart</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const close = () => modal.classList.remove('active');
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) close();
+    });
+    modal.querySelector('#addonsModalClose')?.addEventListener('click', close);
+    modal.querySelector('#addonsModalCancel')?.addEventListener('click', close);
+}
+
+function openAddonsModal({ title, subtitle, addons, onConfirm }) {
+    ensureAddonsModal();
+    const modal = document.getElementById('addonsModal');
+    const titleEl = document.getElementById('addonsModalTitle');
+    const subEl = document.getElementById('addonsModalSubtitle');
+    const optionsEl = document.getElementById('addonsModalOptions');
+    const addBtn = document.getElementById('addonsModalAdd');
+
+    if (!modal || !titleEl || !subEl || !optionsEl || !addBtn) return;
+
+    titleEl.textContent = title || 'Customize';
+    subEl.textContent = subtitle || '';
+
+    optionsEl.innerHTML = (addons || [])
+        .map((a, idx) => {
+            const price = Number(a.price) || 0;
+            const label = String(a.label || '').trim();
+            const id = `addonModalOpt_${idx}`;
+            return `
+                <label class="addon-option" for="${id}">
+                    <input type="checkbox" id="${id}" data-label="${label}" data-price="${price}">
+                    <span class="addon-option-text">
+                        <span class="addon-option-title">${label}${price > 0 ? ` · +₹${price}` : ''}</span>
+                        <button type="button" class="addon-option-cta" data-for="${id}">Add</button>
+                    </span>
+                </label>
+            `;
+        })
+        .join('');
+
+    // Keep CTA button text in sync and allow clicking the CTA to toggle.
+    const syncCtas = () => {
+        optionsEl.querySelectorAll('.addon-option').forEach((wrap) => {
+            const cb = wrap.querySelector('input[type="checkbox"]');
+            const btn = wrap.querySelector('.addon-option-cta');
+            if (!cb || !btn) return;
+            btn.textContent = cb.checked ? 'Added' : 'Add';
+            btn.setAttribute('aria-pressed', cb.checked ? 'true' : 'false');
+        });
+    };
+    syncCtas();
+    optionsEl.onchange = (e) => {
+        const t = e.target;
+        if (t && t.matches && t.matches('input[type="checkbox"]')) {
+            syncCtas();
+        }
+    };
+    optionsEl.onclick = (e) => {
+        const btn = e.target.closest('.addon-option-cta');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.getAttribute('data-for');
+        const cb = id ? optionsEl.querySelector(`#${CSS.escape(id)}`) : null;
+        if (cb) {
+            cb.checked = !cb.checked;
+            cb.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    };
+
+    const close = () => modal.classList.remove('active');
+    const handleConfirm = () => {
+        const selected = [];
+        optionsEl.querySelectorAll('input[type="checkbox"]:checked').forEach((cb) => {
+            selected.push({
+                label: cb.dataset.label || '',
+                price: parseInt(cb.dataset.price, 10) || 0
+            });
+        });
+        close();
+        onConfirm && onConfirm(selected);
+    };
+
+    // Replace any previous click handler safely
+    addBtn.onclick = handleConfirm;
+
+    modal.classList.add('active');
 }
 
 function parseSizeLabelFromLine(itemName, lineName) {
@@ -977,6 +1074,15 @@ function parseSizeLabelFromLine(itemName, lineName) {
     const inner = lineName.slice(prefix.length);
     const close = inner.indexOf(')');
     return close >= 0 ? inner.slice(0, close) : '';
+}
+
+function parseAddonLabelFromLine(itemName, lineName) {
+    // Example: "Margherita (Small) [Extra cheese]" or "Veg Burger [Extra cheese]"
+    if (!lineName || !lineName.startsWith(itemName)) return '';
+    const open = lineName.indexOf('[');
+    const close = lineName.indexOf(']');
+    if (open < 0 || close < 0 || close <= open) return '';
+    return lineName.slice(open + 1, close).trim();
 }
 
 function syncMenuItemSteppers() {
@@ -991,12 +1097,115 @@ function syncMenuItemSteppers() {
         const hasSizes = item.sizes && item.sizes.length > 0;
 
         if (!hasSizes) {
-            const lineName = buildCartLineName(item, null, row);
-            const qty = getCartQuantityForLine(lineName);
             const control = row.querySelector('.menu-cart-control');
             const addBtn = control && control.querySelector('.menu-cart-add');
             const qtyBar = control && control.querySelector('.menu-cart-qty-bar');
+            const addonLines = row.querySelector('.menu-item-addon-lines');
             if (!addBtn || !qtyBar) return;
+
+            const hasAddons = Array.isArray(item.addons) && item.addons.length > 0;
+            if (hasAddons && addonLines) {
+                addonLines.innerHTML = '';
+                const entries = cart.filter(
+                    (c) => c.name === item.name || c.name.startsWith(`${item.name} [`)
+                );
+                if (entries.length <= 1) {
+                    // If there's only one variant in cart, behave like normal: Add -> Qty bar.
+                    const only = entries[0] || null;
+                    const lineName = only ? only.name : buildCartLineName(item, null, []);
+                    const qty = only ? only.quantity : getCartQuantityForLine(lineName);
+                    const minusBtn = qtyBar.querySelector('.menu-qty-minus');
+                    const plusBtn = qtyBar.querySelector('.menu-qty-plus');
+                    const qtyNum = qtyBar.querySelector('.menu-cart-qty-middle');
+
+                    if (qty > 0) {
+                        addBtn.hidden = true;
+                        qtyBar.hidden = false;
+                        qtyBar.setAttribute('aria-hidden', 'false');
+                        qtyBar.dataset.cartLine = lineName;
+                        qtyBar.setAttribute('aria-label', `Quantity in cart: ${qty}`);
+                        if (qtyNum) qtyNum.textContent = String(qty);
+                        if (minusBtn) {
+                            minusBtn.setAttribute('aria-label', `Decrease quantity (${qty} in cart)`);
+                        }
+                        if (plusBtn) {
+                            plusBtn.setAttribute('aria-label', `Increase quantity (${qty} in cart)`);
+                        }
+                    } else {
+                        addBtn.hidden = false;
+                        qtyBar.hidden = true;
+                        qtyBar.setAttribute('aria-hidden', 'true');
+                        delete qtyBar.dataset.cartLine;
+                        qtyBar.removeAttribute('aria-label');
+                        if (qtyNum) qtyNum.textContent = '0';
+                        if (minusBtn) minusBtn.setAttribute('aria-label', 'Decrease quantity');
+                        if (plusBtn) plusBtn.setAttribute('aria-label', 'Increase quantity');
+                    }
+                    return;
+                }
+
+                // Multiple variants in cart: show separate qty rows per variant (plain vs add-on).
+                if (entries.length) {
+                    entries.forEach((entry) => {
+                        const addonLabel = parseAddonLabelFromLine(item.name, entry.name);
+                        const labText = addonLabel ? addonLabel : 'Regular';
+
+                        const wrap = document.createElement('div');
+                        wrap.className = 'menu-size-qty-row';
+
+                        const lab = document.createElement('span');
+                        lab.className = 'menu-size-qty-label';
+                        lab.textContent = labText;
+
+                        const q = document.createElement('div');
+                        q.className = 'menu-cart-qty-bar menu-cart-qty-bar--compact';
+                        q.setAttribute('role', 'group');
+                        q.dataset.cartLine = entry.name;
+                        q.setAttribute('aria-label', `${labText}, ${entry.quantity} in cart`);
+
+                        const minusBtn = document.createElement('button');
+                        minusBtn.type = 'button';
+                        minusBtn.className = 'menu-qty-minus';
+                        minusBtn.setAttribute(
+                            'aria-label',
+                            `Decrease quantity (${entry.quantity} in cart)`
+                        );
+                        minusBtn.textContent = '−';
+
+                        const qtyMid = document.createElement('span');
+                        qtyMid.className = 'menu-cart-qty-middle';
+                        qtyMid.setAttribute('aria-live', 'polite');
+                        qtyMid.textContent = String(entry.quantity);
+
+                        const plusBtn = document.createElement('button');
+                        plusBtn.type = 'button';
+                        plusBtn.className = 'menu-qty-plus';
+                        plusBtn.setAttribute(
+                            'aria-label',
+                            `Increase quantity (${entry.quantity} in cart)`
+                        );
+                        plusBtn.textContent = '+';
+
+                        q.append(minusBtn, qtyMid, plusBtn);
+                        wrap.append(lab, q);
+                        addonLines.appendChild(wrap);
+                    });
+                }
+
+                // Multiple variants: keep Add button visible (opens customize popup),
+                // and hide the single-line qty bar (we show per-variant rows instead).
+                addBtn.hidden = false;
+                qtyBar.hidden = true;
+                qtyBar.setAttribute('aria-hidden', 'true');
+                delete qtyBar.dataset.cartLine;
+                qtyBar.removeAttribute('aria-label');
+                const qtyNum = qtyBar.querySelector('.menu-cart-qty-middle');
+                if (qtyNum) qtyNum.textContent = '0';
+                return;
+            }
+
+            const lineName = buildCartLineName(item, null, []);
+            const qty = getCartQuantityForLine(lineName);
             const minusBtn = qtyBar.querySelector('.menu-qty-minus');
             const plusBtn = qtyBar.querySelector('.menu-qty-plus');
             const qtyNum = qtyBar.querySelector('.menu-cart-qty-middle');
@@ -1496,6 +1705,9 @@ const FALLBACK_MENU_JSON = `{
           "name": "Margherita",
           "image": "images/Margherita%20pizza.jpg",
           "alt": "Margherita",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "sizes": [
             {
               "label": "Small",
@@ -1512,6 +1724,9 @@ const FALLBACK_MENU_JSON = `{
           "name": "Farmhouse & Cheese",
           "image": "images/Farmhouse%20%26%20Cheese%20pizza.jpg",
           "alt": "Farmhouse & Cheese",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "sizes": [
             {
               "label": "Small",
@@ -1528,6 +1743,9 @@ const FALLBACK_MENU_JSON = `{
           "name": "Paneer & Cheese",
           "image": "images/Paneer%20%26%20Cheese%20pizza.jpg",
           "alt": "Paneer & Cheese",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "sizes": [
             {
               "label": "Small",
@@ -1544,6 +1762,9 @@ const FALLBACK_MENU_JSON = `{
           "name": "Corn & Cheese",
           "image": "images/Corn%20%26%20Cheese%20pizza.jpg",
           "alt": "Corn & Cheese",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "sizes": [
             {
               "label": "Small",
@@ -1560,6 +1781,9 @@ const FALLBACK_MENU_JSON = `{
           "name": "Gobi manchuri pizza",
           "image": "images/Gobi%20Manchuri%20Pizza.jpg",
           "alt": "Gobi manchuri pizza",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "sizes": [
             {
               "label": "Small",
@@ -1576,6 +1800,9 @@ const FALLBACK_MENU_JSON = `{
           "name": "Special Pizza",
           "image": "images/Special%20Pizza.jpg",
           "alt": "Special Pizza",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "price": 200
         }
       ]
@@ -1880,6 +2107,9 @@ const FALLBACK_MENU_JSON = `{
           "name": "Vegetable Sandwich",
           "image": "images/Vegetable%20Sandwich.jpg",
           "alt": "Vegetable Sandwich",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "price": 60
         },
         {
@@ -1887,6 +2117,9 @@ const FALLBACK_MENU_JSON = `{
           "name": "Paneer Sandwich",
           "image": "images/Paneer%20Sandwich.jpg",
           "alt": "Paneer Sandwich",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "price": 70
         },
         {
@@ -1894,6 +2127,9 @@ const FALLBACK_MENU_JSON = `{
           "name": "Veg Burger",
           "image": "images/Veg%20Burger.jpg",
           "alt": "Veg Burger",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "price": 90
         },
         {
@@ -1901,6 +2137,9 @@ const FALLBACK_MENU_JSON = `{
           "name": "Paneer Burger",
           "image": "images/Paneer%20Burger.jpg",
           "alt": "Paneer Burger",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "price": 100
         }
       ]
@@ -2359,7 +2598,6 @@ function createMenuItem(item, categoryId) {
     menuItem.dataset.itemId = item.id;
 
     let priceHTML = '';
-    let addonSelectorHTML = '';
     const hasSizes = item.sizes && item.sizes.length > 0;
 
     if (hasSizes) {
@@ -2374,24 +2612,6 @@ function createMenuItem(item, categoryId) {
             <p class="price">
                 <span class="price-main">₹${item.price}</span>
             </p>
-        `;
-    }
-
-    if (item.addons && item.addons.length > 0) {
-        const addonOptions = item.addons.map((addon) =>
-            `<label class="addon-option">
-                <input type="checkbox" value="${addon.price}" data-label="${addon.label}" data-item-id="${item.id}">
-                <span class="addon-option-text">${addon.label}${addon.price > 0 ? ` · +₹${addon.price}` : ''}</span>
-            </label>`
-        ).join('');
-
-        addonSelectorHTML = `
-            <div class="addon-selector">
-                <p class="addons-label">Extras <span class="addons-hint">(optional)</span></p>
-                <div class="addon-options">
-                    ${addonOptions}
-                </div>
-            </div>
         `;
     }
 
@@ -2413,6 +2633,7 @@ function createMenuItem(item, categoryId) {
                         <button type="button" class="menu-qty-plus" aria-label="Increase quantity">+</button>
                     </div>
                 </div>
+                <div class="menu-item-addon-lines" aria-live="polite"></div>
             </div>`;
 
     menuItem.innerHTML = `
@@ -2424,7 +2645,6 @@ function createMenuItem(item, categoryId) {
                 <h3 class="menu-item-name">${item.name}</h3>
                 ${priceHTML}
             </div>
-            ${addonSelectorHTML}
             ${actionsBlock}
         </div>
     `;
@@ -2462,9 +2682,25 @@ function handleAddToCart(item, selectedSize = null) {
     const menuItem = document.querySelector(`[data-item-id="${item.id}"]`);
     if (!menuItem) return;
 
-    const itemName = buildCartLineName(item, selectedSize, menuItem);
-    const totalPrice = buildCartLinePrice(item, selectedSize, menuItem);
+    const addons = Array.isArray(item.addons) ? item.addons : [];
+    if (addons.length > 0) {
+        const title = selectedSize || (item.sizes && item.sizes.length) ? 'Customize pizza' : 'Customize';
+        const subtitle = selectedSize ? `${item.name} · ${selectedSize.label}` : item.name;
+        openAddonsModal({
+            title,
+            subtitle,
+            addons,
+            onConfirm: (selectedAddons) => {
+                const itemName = buildCartLineName(item, selectedSize, selectedAddons);
+                const totalPrice = buildCartLinePrice(item, selectedSize, selectedAddons);
+                addToCart(itemName, totalPrice);
+            }
+        });
+        return;
+    }
 
+    const itemName = buildCartLineName(item, selectedSize, []);
+    const totalPrice = buildCartLinePrice(item, selectedSize, []);
     addToCart(itemName, totalPrice);
 }
 
@@ -2532,12 +2768,7 @@ function initMenuItemActions() {
         }
     });
 
-    container.addEventListener('change', (e) => {
-        const t = e.target;
-        if (t && t.matches && t.matches('.addon-option input[type="checkbox"]')) {
-            syncMenuItemSteppers();
-        }
-    });
+    // (No inline add-ons selector; pizza add-ons are chosen after clicking add.)
 }
 
 // ============================================

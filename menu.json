@@ -77,6 +77,9 @@
           "name": "Margherita",
           "image": "images/Margherita%20pizza.jpg",
           "alt": "Margherita",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "sizes": [
             {
               "label": "Small",
@@ -93,6 +96,9 @@
           "name": "Farmhouse & Cheese",
           "image": "images/Farmhouse%20%26%20Cheese%20pizza.jpg",
           "alt": "Farmhouse & Cheese",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "sizes": [
             {
               "label": "Small",
@@ -109,6 +115,9 @@
           "name": "Paneer & Cheese",
           "image": "images/Paneer%20%26%20Cheese%20pizza.jpg",
           "alt": "Paneer & Cheese",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "sizes": [
             {
               "label": "Small",
@@ -125,6 +134,9 @@
           "name": "Corn & Cheese",
           "image": "images/Corn%20%26%20Cheese%20pizza.jpg",
           "alt": "Corn & Cheese",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "sizes": [
             {
               "label": "Small",
@@ -141,6 +153,9 @@
           "name": "Gobi manchuri pizza",
           "image": "images/Gobi%20Manchuri%20Pizza.jpg",
           "alt": "Gobi manchuri pizza",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "sizes": [
             {
               "label": "Small",
@@ -157,6 +172,9 @@
           "name": "Special Pizza",
           "image": "images/Special%20Pizza.jpg",
           "alt": "Special Pizza",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "price": 200
         }
       ]
@@ -461,6 +479,9 @@
           "name": "Vegetable Sandwich",
           "image": "images/Vegetable%20Sandwich.jpg",
           "alt": "Vegetable Sandwich",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "price": 60
         },
         {
@@ -468,6 +489,9 @@
           "name": "Paneer Sandwich",
           "image": "images/Paneer%20Sandwich.jpg",
           "alt": "Paneer Sandwich",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "price": 70
         },
         {
@@ -475,6 +499,9 @@
           "name": "Veg Burger",
           "image": "images/Veg%20Burger.jpg",
           "alt": "Veg Burger",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "price": 90
         },
         {
@@ -482,6 +509,9 @@
           "name": "Paneer Burger",
           "image": "images/Paneer%20Burger.jpg",
           "alt": "Paneer Burger",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
           "price": 100
         }
       ]
