@@ -7052,6 +7052,72 @@ body.session-gate-open {
     color: #166534;
 }
 
+.my-order-arrival {
+    margin: 0 0 0.85rem;
+    padding: 0.85rem 0.95rem 0.9rem;
+    border-radius: 14px;
+    background: linear-gradient(155deg, #fffbeb 0%, #fef3c7 45%, #fff7ed 100%);
+    border: 1.5px solid rgba(245, 158, 11, 0.55);
+    box-shadow: 0 2px 10px rgba(180, 83, 9, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.my-order-arrival-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.my-order-arrival-label {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #b45309;
+}
+
+.my-order-arrival-time {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #92400e;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+.my-order-arrival-count {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.my-order-arrival-count-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #78350f;
+}
+
+.my-order-arrival-countdown {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #b45309;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+.my-order-arrival-hint {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: #78350f;
+    font-weight: 500;
+}
+
 .my-order-items-block {
     margin-bottom: 0.25rem;
 }
@@ -7357,13 +7423,23 @@ body.session-gate-open {
 
 .order-success-wait {
     width: 100%;
-    max-width: 18rem;
+    max-width: 20rem;
     margin: 0.35rem auto 0;
-    padding: 0.85rem 1rem 0.95rem;
+    padding: 1rem 1.1rem 1.05rem;
     border-radius: 16px;
     background: linear-gradient(165deg, #ecfdf5 0%, #f0fdf4 55%, #fff 100%);
     border: 1px solid rgba(34, 197, 94, 0.28);
     box-shadow: 0 4px 16px rgba(21, 128, 61, 0.08);
+}
+
+.order-success-wait--arrival {
+    max-width: 22rem;
+    padding: 1.15rem 1.15rem 1.1rem;
+    background: linear-gradient(155deg, #fffbeb 0%, #fef3c7 38%, #fff7ed 100%);
+    border: 2px solid rgba(245, 158, 11, 0.55);
+    box-shadow:
+        0 0 0 1px rgba(251, 191, 36, 0.35),
+        0 10px 28px rgba(180, 83, 9, 0.14);
 }
 
 .order-success-wait-label {
@@ -7373,6 +7449,10 @@ body.session-gate-open {
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #15803d;
+}
+
+.order-success-wait--arrival .order-success-wait-label {
+    color: #b45309;
 }
 
 .order-success-wait-range {
@@ -7385,12 +7465,41 @@ body.session-gate-open {
     font-variant-numeric: tabular-nums;
 }
 
+.order-success-wait--arrival .order-success-wait-range {
+    color: #92400e;
+    font-size: clamp(1.85rem, 5.8vw, 2.25rem);
+}
+
+.order-success-wait-countdown-label {
+    margin: 0.65rem 0 0.15rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #a16207;
+}
+
+.order-success-wait-countdown {
+    margin: 0;
+    font-size: clamp(1.35rem, 4.2vw, 1.65rem);
+    font-weight: 800;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    color: #b45309;
+    letter-spacing: -0.02em;
+}
+
 .order-success-wait-hint {
     margin: 0.35rem 0 0;
     font-size: 0.8125rem;
     font-weight: 500;
     color: #3f6212;
     line-height: 1.35;
+}
+
+.order-success-wait--arrival .order-success-wait-hint {
+    color: #78350f;
+    font-weight: 600;
 }
 
 .order-success-cancel-hint strong {

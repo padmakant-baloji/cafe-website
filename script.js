@@ -2979,16 +2979,60 @@ function initCheckoutModal() {
 
 }
 
-function getOrderSuccessWaitInfo() {
-    const city = getNormalizedCustomerCity();
-    if (city === 'kudachi') {
-        return { range: '15–20 min', hint: 'Typical time in Kudachi' };
+/** Seconds from local midnight; used so “before 2 PM” is strictly before 14:00:00. */
+function getLocalSecondsFromMidnight(d) {
+    return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+}
+
+/**
+ * @param {number | Date} placedAt
+ * @returns {{ deadlineMs: number, arrivalLabel: string, hint: string }}
+ */
+function getOrderArrivalPlan(placedAt) {
+    const placed = placedAt instanceof Date ? placedAt : new Date(Number(placedAt) || Date.now());
+    const sec = getLocalSecondsFromMidnight(placed);
+    const twoPmSec = 14 * 3600;
+    if (sec < twoPmSec) {
+        const deadline = new Date(placed);
+        deadline.setHours(14, 40, 0, 0);
+        const arrivalLabel = deadline.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+        return {
+            deadlineMs: deadline.getTime(),
+            arrivalLabel,
+            hint: 'We open at 2 PM — your order is queued for one of the first deliveries after opening.'
+        };
     }
-    return { range: '30–40 min', hint: 'Typical time outside Kudachi' };
+    const deadlineMs = placed.getTime() + 30 * 60 * 1000;
+    const arrivalLabel = new Date(deadlineMs).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+    return {
+        deadlineMs,
+        arrivalLabel,
+        hint: 'Usually within about 30 minutes from when you placed this order.'
+    };
+}
+
+function formatTimeUntilArrival(deadlineMs) {
+    const ms = deadlineMs - Date.now();
+    if (ms <= 0) return 'Any moment now';
+    const sTotal = Math.floor(ms / 1000);
+    const h = Math.floor(sTotal / 3600);
+    const m = Math.floor((sTotal % 3600) / 60);
+    const s = sTotal % 60;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
 }
 
 function getOrderSuccessMessage() {
-    return 'We’ll notify you as your order moves along. Open My orders anytime to see each step.';
+    return 'We’ll notify you as your order moves along. The countdown above is a friendly estimate — open My orders anytime for live status.';
 }
 
 const CUSTOMER_CANCEL_WINDOW_MS = 1 * 60 * 1000;
@@ -2997,11 +3041,29 @@ const CUSTOMER_CANCEL_WINDOW_MS = 1 * 60 * 1000;
 let orderSuccessCancelContext = null;
 let orderSuccessCancelIntervalId = null;
 
+/** Target time (ms) for the order-success arrival countdown. */
+let orderSuccessArrivalDeadlineMs = 0;
+let orderSuccessArrivalIntervalId = null;
+
 function clearOrderSuccessCancelTimer() {
     if (orderSuccessCancelIntervalId != null) {
         clearInterval(orderSuccessCancelIntervalId);
         orderSuccessCancelIntervalId = null;
     }
+}
+
+function clearOrderSuccessArrivalTimer() {
+    if (orderSuccessArrivalIntervalId != null) {
+        clearInterval(orderSuccessArrivalIntervalId);
+        orderSuccessArrivalIntervalId = null;
+    }
+    orderSuccessArrivalDeadlineMs = 0;
+}
+
+function tickOrderSuccessArrivalCountdown() {
+    const el = document.getElementById('orderSuccessArrivalCountdown');
+    if (!el || !orderSuccessArrivalDeadlineMs) return;
+    el.textContent = formatTimeUntilArrival(orderSuccessArrivalDeadlineMs);
 }
 
 function formatCancelCountdownMmSs(ms) {
@@ -3037,7 +3099,7 @@ function resetOrderSuccessModalChrome() {
     if (icon) icon.removeAttribute('hidden');
 }
 
-function showOrderSuccessModal() {
+function showOrderSuccessModal(placedAtMs) {
     const successModal = document.getElementById('orderSuccessModal');
     const successCopy = document.getElementById('orderSuccessCopy');
     if (!successModal) {
@@ -3045,15 +3107,24 @@ function showOrderSuccessModal() {
         return;
     }
     resetOrderSuccessModalChrome();
+    clearOrderSuccessArrivalTimer();
+
+    const placedMs = Number.isFinite(Number(placedAtMs)) ? Number(placedAtMs) : Date.now();
+    const plan = getOrderArrivalPlan(placedMs);
+    orderSuccessArrivalDeadlineMs = plan.deadlineMs;
+
     const waitBlock = document.getElementById('orderSuccessWaitBlock');
     const waitRange = document.getElementById('orderSuccessWaitRange');
     const waitHint = document.getElementById('orderSuccessWaitHint');
+    const arrivalLabelEl = document.getElementById('orderSuccessArrivalLabel');
     if (waitBlock && waitRange && waitHint) {
-        const wait = getOrderSuccessWaitInfo();
-        waitRange.textContent = wait.range;
-        waitHint.textContent = wait.hint;
+        waitRange.textContent = plan.arrivalLabel;
+        waitHint.textContent = plan.hint;
         waitBlock.hidden = false;
+        if (arrivalLabelEl) arrivalLabelEl.textContent = 'Estimated arrival';
     }
+    tickOrderSuccessArrivalCountdown();
+    orderSuccessArrivalIntervalId = setInterval(tickOrderSuccessArrivalCountdown, 1000);
     if (successCopy) {
         successCopy.textContent = getOrderSuccessMessage();
     }
@@ -3087,6 +3158,7 @@ function showOrderSuccessModal() {
 
 function closeOrderSuccessModal() {
     clearOrderSuccessCancelTimer();
+    clearOrderSuccessArrivalTimer();
     orderSuccessCancelContext = null;
     const successModal = document.getElementById('orderSuccessModal');
     if (!successModal) return;
@@ -3124,6 +3196,7 @@ function initOrderSuccessModal() {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Could not cancel order.');
             clearOrderSuccessCancelTimer();
+            clearOrderSuccessArrivalTimer();
             orderSuccessCancelContext = null;
             const cancelPanel = document.getElementById('orderSuccessCancelPanel');
             const waitBlock = document.getElementById('orderSuccessWaitBlock');
@@ -3271,7 +3344,7 @@ async function placeOrder() {
             Number.isFinite(orderNum) && orderNum > 0
                 ? { orderId: orderNum, deadlineMs }
                 : null;
-        showOrderSuccessModal();
+        showOrderSuccessModal(createdMs);
     } catch (err) {
         const hint =
             window.location.protocol === 'file:'

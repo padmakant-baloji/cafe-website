@@ -659,12 +659,14 @@
                 <div class="order-success-icon" aria-hidden="true">✓</div>
                 <p class="order-success-eyebrow" id="orderSuccessEyebrow">You’re all set</p>
                 <h2 id="orderSuccessTitle">Order placed</h2>
-                <div class="order-success-wait" id="orderSuccessWaitBlock" aria-label="Typical delivery wait">
-                    <p class="order-success-wait-label">Typical wait</p>
-                    <p class="order-success-wait-range" id="orderSuccessWaitRange">15–20 min</p>
-                    <p class="order-success-wait-hint" id="orderSuccessWaitHint">Delivery in your area</p>
+                <div class="order-success-wait order-success-wait--arrival" id="orderSuccessWaitBlock" aria-label="Estimated delivery arrival">
+                    <p class="order-success-wait-label" id="orderSuccessArrivalLabel">Estimated arrival</p>
+                    <p class="order-success-wait-range" id="orderSuccessWaitRange">2:40 PM</p>
+                    <p class="order-success-wait-countdown-label">Your order arrives in</p>
+                    <p class="order-success-wait-countdown" id="orderSuccessArrivalCountdown" aria-live="polite">—</p>
+                    <p class="order-success-wait-hint" id="orderSuccessWaitHint"></p>
                 </div>
-                <p class="order-success-copy" id="orderSuccessCopy">We’ll show each step as the kitchen works on it. Open My orders anytime for live status.</p>
+                <p class="order-success-copy" id="orderSuccessCopy">We’ll notify you as your order moves along. The countdown above is a friendly estimate — open My orders anytime for live status.</p>
             </div>
             <div class="order-success-cancel-panel" id="orderSuccessCancelPanel" hidden>
                 <p class="order-success-cancel-hint" id="orderSuccessCancelHint">
