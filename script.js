@@ -2351,13 +2351,6 @@ const FALLBACK_MENU_JSON = `{
           "image": "images/Stuffing%20Mushroom.jpg",
           "alt": "Stuffing Mushroom",
           "price": 105
-        },
-        {
-          "id": "smokey-brownie",
-          "name": "Smokey Brownie with Ice Cream",
-          "image": "images/Smokeybrownie.png",
-          "alt": "Smokey Brownie with Ice Cream",
-          "price": 135
         }
       ]
     }
