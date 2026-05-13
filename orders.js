@@ -94,6 +94,9 @@ function formatCancelTimeLabel(msLeft) {
 
 const ACTIVE_ORDER_STATUSES = new Set(['pending', 'accepted', 'preparing', 'out_for_delivery']);
 
+/** order id (string) → last seen normalized status (for detecting transitions to completed) */
+let lastOrderStatusById = new Map();
+
 /** Seconds from local midnight; same as menu page, used so “before 2 PM” is strictly before 14:00:00. */
 function getLocalSecondsFromMidnight(d) {
     return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
@@ -222,6 +225,37 @@ async function cancelOrderRequest(orderId) {
     return data.order;
 }
 
+function maybePromptGoogleReviewAfterOrdersRender(orders) {
+    if (!orders || !orders.length) return;
+    const newlyCompleted = [];
+    for (const o of orders) {
+        const id = String(o.id);
+        const st = String(o.status || '')
+            .trim()
+            .toLowerCase();
+        const prev = lastOrderStatusById.get(id);
+        if (st === 'completed' && prev !== undefined && prev !== 'completed') {
+            newlyCompleted.push(o);
+        }
+    }
+    for (const o of orders) {
+        lastOrderStatusById.set(
+            String(o.id),
+            String(o.status || '')
+                .trim()
+                .toLowerCase()
+        );
+    }
+    const idsNow = new Set(orders.map((o) => String(o.id)));
+    for (const key of [...lastOrderStatusById.keys()]) {
+        if (!idsNow.has(key)) lastOrderStatusById.delete(key);
+    }
+    if (newlyCompleted.length > 0 && window.GoogleReviewPrompt) {
+        const o = newlyCompleted[0];
+        window.GoogleReviewPrompt.markPending({ orderId: o.id, completedAt: Date.now() });
+    }
+}
+
 function normalizeOrderItems(raw) {
     if (Array.isArray(raw)) return raw;
     if (typeof raw === 'string') {
@@ -290,6 +324,7 @@ function renderMyOrders(orders) {
     list.removeAttribute('aria-busy');
 
     if (!orders || orders.length === 0) {
+        lastOrderStatusById.clear();
         list.innerHTML = `
             <div class="my-orders-empty">
                 <div class="my-orders-empty-visual" aria-hidden="true">
@@ -381,6 +416,7 @@ function renderMyOrders(orders) {
 
     scheduleOrdersCancelTick();
     scheduleOrdersArrivalTick();
+    maybePromptGoogleReviewAfterOrdersRender(orders);
 }
 
 async function restoreSession() {

@@ -7118,6 +7118,65 @@ body.session-gate-open {
     font-weight: 500;
 }
 
+/* Google review prompt (My orders — when an order becomes completed) */
+.google-review-modal .google-review-modal-content {
+    max-width: 22rem;
+    width: min(100%, calc(100vw - 2rem));
+    margin: auto;
+    padding: 0;
+    overflow: visible;
+    text-align: center;
+    border-radius: 20px;
+}
+
+.google-review-modal-inner {
+    padding: 1.75rem 1.35rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    align-items: stretch;
+}
+
+.google-review-eyebrow {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.google-review-modal-inner h2 {
+    margin: 0;
+    font-size: clamp(1.35rem, 4vw, 1.65rem);
+    line-height: 1.2;
+    color: #0f172a;
+}
+
+.google-review-lead {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #475569;
+}
+
+.google-review-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.google-review-actions .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 48px;
+}
+
+.google-review-link {
+    text-decoration: none;
+}
+
 .my-order-items-block {
     margin-bottom: 0.25rem;
 }
