@@ -1670,18 +1670,11 @@ const FALLBACK_MENU_JSON = `{
           "price": 15
         },
         {
-          "id": "hot-badam-milk",
-          "name": "Hot Badam Milk",
+          "id": "badam-milk",
+          "name": "Badam Milk",
           "image": "images/Badam%20Milk.jpg",
-          "alt": "Hot Badam Milk",
+          "alt": "Badam Milk",
           "price": 20
-        },
-        {
-          "id": "cold-badam-milk",
-          "name": "Cold Badam Milk",
-          "image": "images/Badam%20Milk.jpg",
-          "alt": "Cold Badam Milk",
-          "price": 40
         },
         {
           "id": "boost",
@@ -1689,26 +1682,6 @@ const FALLBACK_MENU_JSON = `{
           "image": "images/Boost.jpg",
           "alt": "Boost",
           "price": 20
-        }
-      ]
-    },
-    {
-      "id": "maggie",
-      "name": "Maggie",
-      "items": [
-        {
-          "id": "vegetable-maggie",
-          "name": "Vegetable Maggie",
-          "image": "images/Veg%20Fried%20Noodles.jpg",
-          "alt": "Vegetable Maggie",
-          "price": 45
-        },
-        {
-          "id": "cheese-maggie",
-          "name": "Cheese Maggie",
-          "image": "images/Special%20Noodles.jpg",
-          "alt": "Cheese Maggie",
-          "price": 55
         }
       ]
     },
@@ -1725,14 +1698,8 @@ const FALLBACK_MENU_JSON = `{
             { "label": "Extra cheese", "price": 25 }
           ],
           "sizes": [
-            {
-              "label": "Small",
-              "price": 100
-            },
-            {
-              "label": "Regular",
-              "price": 150
-            }
+            { "label": "Small", "price": 120 },
+            { "label": "Regular", "price": 170 }
           ]
         },
         {
@@ -1744,14 +1711,8 @@ const FALLBACK_MENU_JSON = `{
             { "label": "Extra cheese", "price": 25 }
           ],
           "sizes": [
-            {
-              "label": "Small",
-              "price": 130
-            },
-            {
-              "label": "Regular",
-              "price": 180
-            }
+            { "label": "Small", "price": 160 },
+            { "label": "Regular", "price": 210 }
           ]
         },
         {
@@ -1763,14 +1724,8 @@ const FALLBACK_MENU_JSON = `{
             { "label": "Extra cheese", "price": 25 }
           ],
           "sizes": [
-            {
-              "label": "Small",
-              "price": 130
-            },
-            {
-              "label": "Regular",
-              "price": 180
-            }
+            { "label": "Small", "price": 150 },
+            { "label": "Regular", "price": 200 }
           ]
         },
         {
@@ -1782,44 +1737,45 @@ const FALLBACK_MENU_JSON = `{
             { "label": "Extra cheese", "price": 25 }
           ],
           "sizes": [
-            {
-              "label": "Small",
-              "price": 130
-            },
-            {
-              "label": "Regular",
-              "price": 180
-            }
+            { "label": "Small", "price": 140 },
+            { "label": "Regular", "price": 190 }
           ]
         },
         {
           "id": "gobi-manchuri-pizza",
-          "name": "Gobi manchuri pizza",
+          "name": "Gobi Manchuri Pizza",
           "image": "images/Gobi%20Manchuri%20Pizza.jpg",
-          "alt": "Gobi manchuri pizza",
+          "alt": "Gobi Manchuri Pizza",
           "addons": [
             { "label": "Extra cheese", "price": 25 }
           ],
           "sizes": [
-            {
-              "label": "Small",
-              "price": 130
-            },
-            {
-              "label": "Regular",
-              "price": 180
-            }
+            { "label": "Small", "price": 150 },
+            { "label": "Regular", "price": 200 }
           ]
         },
         {
-          "id": "special-pizza",
-          "name": "Special Pizza",
-          "image": "images/Special%20Pizza.jpg",
-          "alt": "Special Pizza",
+          "id": "mushroom-cheese-pizza",
+          "name": "Mushroom & Cheese Pizza",
+          "image": "images/mushroompizza.png",
+          "alt": "Mushroom & Cheese Pizza",
           "addons": [
             { "label": "Extra cheese", "price": 25 }
           ],
-          "price": 200
+          "sizes": [
+            { "label": "Small", "price": 150 },
+            { "label": "Regular", "price": 200 }
+          ]
+        },
+        {
+          "id": "mini-pizza",
+          "name": "Mini Pizza",
+          "image": "images/Margherita%20pizza.jpg",
+          "alt": "Mini Pizza",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
+          "price": 90
         }
       ]
     },
@@ -1860,97 +1816,90 @@ const FALLBACK_MENU_JSON = `{
           "name": "Paneer Manchuri",
           "image": "images/Paneer%20Manchuri.jpg",
           "alt": "Paneer Manchuri",
-          "price": 80
+          "price": 90
         },
         {
           "id": "paneer-chilly",
           "name": "Paneer Chilly",
           "image": "images/Paneer%20Chilly.jpg",
           "alt": "Paneer Chilly",
-          "price": 80
+          "price": 90
         },
         {
           "id": "paneer-65",
           "name": "Paneer 65",
           "image": "images/Paneer%2065.jpg",
           "alt": "Paneer 65",
-          "price": 80
+          "price": 90
         },
         {
           "id": "paneer-schezwan",
           "name": "Paneer Schezwan",
           "image": "images/Paneer%20Schezwan.jpg",
           "alt": "Paneer Schezwan",
-          "price": 80
+          "price": 90
         },
         {
           "id": "baby-corn-manchuri",
           "name": "Baby Corn Manchuri",
           "image": "images/Baby%20Corn%20Manchuri.jpg",
           "alt": "Baby Corn Manchuri",
-          "price": 80
+          "price": 90
         },
         {
           "id": "baby-corn-chilly",
           "name": "Baby Corn Chilly",
           "image": "images/Baby%20Corn%20Chilly.jpg",
           "alt": "Baby Corn Chilly",
-          "price": 80
+          "price": 90
         },
         {
           "id": "baby-corn-65",
           "name": "Baby Corn 65",
           "image": "images/Baby%20Corn%2065.jpg",
           "alt": "Baby Corn 65",
-          "price": 80
+          "price": 90
         },
         {
           "id": "baby-corn-schezwan",
           "name": "Baby Corn Schezwan",
           "image": "images/Baby%20Corn%20Schezwan.jpg",
           "alt": "Baby Corn Schezwan",
-          "price": 80
-        },
-        {
-          "id": "baby-corn-crispy",
-          "name": "Baby Corn Crispy",
-          "image": "images/Baby%20Corn%20Crispy.jpg",
-          "alt": "Baby Corn Crispy",
-          "price": 80
+          "price": 90
         },
         {
           "id": "mushroom-manchuri",
           "name": "Mushroom Manchuri",
           "image": "images/Mushroom%20Manchuri.jpg",
           "alt": "Mushroom Manchuri",
-          "price": 80
+          "price": 90
         },
         {
           "id": "mushroom-chilly",
           "name": "Mushroom Chilly",
           "image": "images/Mushroom%20Chilly.jpg",
           "alt": "Mushroom Chilly",
-          "price": 80
+          "price": 90
         },
         {
           "id": "mushroom-65",
           "name": "Mushroom 65",
           "image": "images/Mushroom%2065.jpg",
           "alt": "Mushroom 65",
-          "price": 80
+          "price": 90
         },
         {
           "id": "mushroom-schezwan",
           "name": "Mushroom Schezwan",
           "image": "images/Mushroom%20Schezwan.jpg",
           "alt": "Mushroom Schezwan",
-          "price": 80
+          "price": 90
         },
         {
-          "id": "crispy-corn",
-          "name": "Crispy Corn",
+          "id": "kurkure-corn",
+          "name": "Kurkure Corn",
           "image": "images/Crispy%20Corn.jpg",
-          "alt": "Crispy Corn",
+          "alt": "Kurkure Corn",
           "price": 70
         },
         {
@@ -1958,14 +1907,14 @@ const FALLBACK_MENU_JSON = `{
           "name": "French Fries Salted",
           "image": "images/French%20Fries%20Salted.jpg",
           "alt": "French Fries Salted",
-          "price": 60
+          "price": 70
         },
         {
           "id": "peri-peri-french-fries",
           "name": "Peri Peri French Fries",
           "image": "images/Peri%20Peri%20French%20Fries.jpg",
           "alt": "Peri Peri French Fries",
-          "price": 70
+          "price": 80
         }
       ]
     },
@@ -2031,7 +1980,7 @@ const FALLBACK_MENU_JSON = `{
               "name": "Paneer Fried Rice",
               "image": "images/Paneer%20Fried%20Rice.jpg",
               "alt": "Paneer Fried Rice",
-              "price": 80
+              "price": 90
             },
             {
               "id": "manchurian-rice",
@@ -2039,13 +1988,6 @@ const FALLBACK_MENU_JSON = `{
               "image": "images/Manchurian%20Rice.jpg",
               "alt": "Manchurian Rice",
               "price": 80
-            },
-            {
-              "id": "triple-fried-rice",
-              "name": "Triple Fried Rice",
-              "image": "images/Triple%20Fried%20Rice.jpg",
-              "alt": "Triple Fried Rice",
-              "price": 100
             },
             {
               "id": "special-rice",
@@ -2087,14 +2029,7 @@ const FALLBACK_MENU_JSON = `{
               "name": "Paneer Fried Noodles",
               "image": "images/Paneer%20Fried%20Noodles.jpg",
               "alt": "Paneer Fried Noodles",
-              "price": 80
-            },
-            {
-              "id": "manchurian-noodles",
-              "name": "Manchurian Noodles",
-              "image": "images/Manchurian%20Noodles.jpg",
-              "alt": "Manchurian Noodles",
-              "price": 80
+              "price": 90
             },
             {
               "id": "rice-noodles-combo",
@@ -2115,8 +2050,8 @@ const FALLBACK_MENU_JSON = `{
       ]
     },
     {
-      "id": "sandwich-burger",
-      "name": "Sandwich & Burger",
+      "id": "sandwich",
+      "name": "Sandwich",
       "items": [
         {
           "id": "vegetable-sandwich",
@@ -2126,7 +2061,7 @@ const FALLBACK_MENU_JSON = `{
           "addons": [
             { "label": "Extra cheese", "price": 25 }
           ],
-          "price": 60
+          "price": 70
         },
         {
           "id": "paneer-sandwich",
@@ -2136,8 +2071,14 @@ const FALLBACK_MENU_JSON = `{
           "addons": [
             { "label": "Extra cheese", "price": 25 }
           ],
-          "price": 70
-        },
+          "price": 80
+        }
+      ]
+    },
+    {
+      "id": "burger",
+      "name": "Burger",
+      "items": [
         {
           "id": "veg-burger",
           "name": "Veg Burger",
@@ -2161,91 +2102,77 @@ const FALLBACK_MENU_JSON = `{
       ]
     },
     {
+      "id": "combo-offers",
+      "name": "Combo Offers",
+      "items": [
+        {
+          "id": "combo-noodles-rice-gobi-manchurian",
+          "name": "Noodles / Rice + Gobi Manchurian",
+          "image": "images/combos/combo-noodles-campa.png",
+          "alt": "Noodles or Rice with Gobi Manchurian",
+          "price": 100
+        },
+        {
+          "id": "combo-burger-french-fries",
+          "name": "Burger + French Fries",
+          "image": "images/combos/combo-burger-fries.png",
+          "alt": "Burger with French Fries",
+          "price": 120
+        },
+        {
+          "id": "combo-sandwich-french-fries",
+          "name": "Sandwich + French Fries",
+          "image": "images/combos/combo-fries-campa.png",
+          "alt": "Sandwich with French Fries",
+          "price": 100
+        },
+        {
+          "id": "combo-burger-cold-coffee",
+          "name": "Burger + Cold Coffee",
+          "image": "images/combos/combo-burger-cold-coffee.png",
+          "alt": "Burger with Cold Coffee",
+          "price": 130
+        },
+        {
+          "id": "combo-momo",
+          "name": "Momo Combo (2pc Kurkure + 2pc Cheesy + 2pc Schezwan Momo)",
+          "image": "images/Cheesy%20Momo.jpg",
+          "alt": "Momo Combo",
+          "price": 130
+        },
+        {
+          "id": "combo-meals",
+          "name": "Meals (Burger / Sandwich + French Fries + Cold Drink)",
+          "image": "images/combos/combo-burger-fries.png",
+          "alt": "Meals combo with burger or sandwich, fries and cold drink",
+          "price": 130
+        }
+      ]
+    },
+    {
       "id": "momo",
       "name": "Momo",
       "items": [
         {
-          "id": "steamed-momo",
-          "name": "Steamed Momo",
+          "id": "steam-momo",
+          "name": "Steam Momo",
           "image": "images/Steamed%20Momo.jpg",
-          "alt": "Steamed Momo",
-          "price": 60
+          "alt": "Steam Momo",
+          "price": 80
         },
         {
-          "id": "crispy-momo",
-          "name": "Crispy Momo",
+          "id": "kurkure-momo",
+          "name": "Kurkure Momo",
           "image": "images/Crispy%20Momo.jpg",
-          "alt": "Crispy Momo",
-          "price": 80
+          "alt": "Kurkure Momo",
+          "price": 90
         },
         {
           "id": "cheesy-momo",
           "name": "Cheesy Momo",
           "image": "images/Cheesy%20Momo.jpg",
           "alt": "Cheesy Momo",
-          "price": 90
-        }
-      ]
-    },
-    {
-      "id": "bun-special",
-      "name": "Bun Special",
-      "items": [
-        {
-          "id": "bun-maska",
-          "name": "Bun Maska",
-          "image": "images/Bun%20Maska.jpg",
-          "alt": "Bun Maska",
-          "price": 15
-        },
-        {
-          "id": "bun-gulkan",
-          "name": "Bun Gulkan",
-          "image": "images/Bun%20Gulkan.jpg",
-          "alt": "Bun Gulkan",
-          "price": 15
-        },
-        {
-          "id": "bun-jaam",
-          "name": "Bun Jaam",
-          "image": "images/Bun%20Jaam.jpg",
-          "alt": "Bun Jaam",
-          "price": 15
-        },
-        {
-          "id": "bun-maska-gulkan",
-          "name": "Bun Maska Gulkan",
-          "image": "images/Bun%20Maska%20Gulkan.jpg",
-          "alt": "Bun Maska Gulkan",
-          "price": 30
-        },
-        {
-          "id": "bun-maska-jaam",
-          "name": "Bun Maska Jaam",
-          "image": "images/Bun%20Maska%20Jaam.jpg",
-          "alt": "Bun Maska Jaam",
-          "price": 30
-        },
-        {
-          "id": "bun-gobi",
-          "name": "Bun Gobi",
-          "image": "images/Bun%20Gobi.jpg",
-          "alt": "Bun Gobi",
-          "price": 40
-        },
-        {
-          "id": "bun-masala",
-          "name": "Bun Masala",
-          "image": "images/Bun%20Masala.jpg",
-          "alt": "Bun Masala",
-          "price": 40
-        },
-        {
-          "id": "bun-cutlet",
-          "name": "Bun Cutlet",
-          "image": "images/Bun%20Cutlet.jpeg",
-          "alt": "Bun Cutlet",
-          "price": 40
+          "price": 100
         }
       ]
     },
@@ -2265,7 +2192,14 @@ const FALLBACK_MENU_JSON = `{
           "name": "Lassi",
           "image": "images/Lassi.jpg",
           "alt": "Lassi",
-          "price": 30
+          "price": 40
+        },
+        {
+          "id": "cold-badam-milk",
+          "name": "Cold Badam Milk",
+          "image": "images/Badam%20Milk.jpg",
+          "alt": "Cold Badam Milk",
+          "price": 40
         },
         {
           "id": "masala-cold-drinks",
@@ -2282,10 +2216,10 @@ const FALLBACK_MENU_JSON = `{
           "price": 40
         },
         {
-          "id": "special-mojito",
-          "name": "Special Mojito",
-          "image": "images/Special%20Mojito.jpg",
-          "alt": "Special Mojito",
+          "id": "cold-coffee",
+          "name": "Cold Coffee",
+          "image": "images/cold%20coffee.jpg",
+          "alt": "Cold Coffee",
           "price": 50
         }
       ]
@@ -2295,25 +2229,49 @@ const FALLBACK_MENU_JSON = `{
       "name": "Cafe Special",
       "items": [
         {
-          "id": "crispy-paneer",
-          "name": "Crispy Paneer",
+          "id": "kurkure-paneer",
+          "name": "Kurkure Paneer",
           "image": "images/Crispy%20Paneer.jpg",
-          "alt": "Crispy Paneer",
-          "price": 100
+          "alt": "Kurkure Paneer",
+          "price": 110
         },
         {
           "id": "paneer-finger",
           "name": "Paneer Finger",
           "image": "images/Paneer%20Finger.jpg",
           "alt": "Paneer Finger",
-          "price": 100
+          "price": 110
+        },
+        {
+          "id": "baby-corn-finger",
+          "name": "Baby Corn Finger",
+          "image": "images/Baby%20Corn%20Manchuri.jpg",
+          "alt": "Baby Corn Finger",
+          "price": 110
         },
         {
           "id": "paneer-saute",
           "name": "Paneer Saute",
           "image": "images/Paneer%20Saute.jpg",
           "alt": "Paneer Saute",
-          "price": 100
+          "price": 110
+        },
+        {
+          "id": "triple-fried-rice",
+          "name": "Triple Fried Rice",
+          "image": "images/Triple%20Fried%20Rice.jpg",
+          "alt": "Triple Fried Rice",
+          "price": 110
+        },
+        {
+          "id": "special-pizza",
+          "name": "Special Pizza",
+          "image": "images/Special%20Pizza.jpg",
+          "alt": "Special Pizza",
+          "addons": [
+            { "label": "Extra cheese", "price": 25 }
+          ],
+          "price": 250
         },
         {
           "id": "honey-chilly-potato",
@@ -2323,10 +2281,10 @@ const FALLBACK_MENU_JSON = `{
           "price": 100
         },
         {
-          "id": "crispy-chilly-potato",
-          "name": "Crispy Chilly Potato",
+          "id": "kurkure-chilly-potato",
+          "name": "Kurkure Chilly Potato",
           "image": "images/Crispy%20Chilly%20Potato.jpg",
-          "alt": "Crispy Chilly Potato",
+          "alt": "Kurkure Chilly Potato",
           "price": 100
         },
         {
@@ -2335,6 +2293,13 @@ const FALLBACK_MENU_JSON = `{
           "image": "images/Stuffing%20Mushroom.jpg",
           "alt": "Stuffing Mushroom",
           "price": 100
+        },
+        {
+          "id": "smokey-brownie",
+          "name": "Smokey Brownie with Ice Cream",
+          "image": "images/Smokeybrownie.png",
+          "alt": "Smokey Brownie with Ice Cream",
+          "price": 130
         }
       ]
     }
