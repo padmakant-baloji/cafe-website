@@ -9,28 +9,28 @@
           "name": "Tea",
           "image": "images/tea.jpg",
           "alt": "Tea",
-          "price": 10
+          "price": 15
         },
         {
           "id": "coffee",
           "name": "Coffee",
           "image": "images/cofee.jpg",
           "alt": "Coffee",
-          "price": 15
+          "price": 20
         },
         {
           "id": "badam-milk",
           "name": "Badam Milk",
           "image": "images/Badam%20Milk.jpg",
           "alt": "Badam Milk",
-          "price": 20
+          "price": 25
         },
         {
           "id": "boost",
           "name": "Boost",
           "image": "images/Boost.jpg",
           "alt": "Boost",
-          "price": 20
+          "price": 25
         }
       ]
     },
@@ -44,11 +44,20 @@
           "image": "images/Margherita%20pizza.jpg",
           "alt": "Margherita",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
           "sizes": [
-            { "label": "Small", "price": 120 },
-            { "label": "Regular", "price": 170 }
+            {
+              "label": "Small",
+              "price": 125
+            },
+            {
+              "label": "Regular",
+              "price": 175
+            }
           ]
         },
         {
@@ -57,11 +66,20 @@
           "image": "images/Farmhouse%20%26%20Cheese%20pizza.jpg",
           "alt": "Farmhouse & Cheese",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
           "sizes": [
-            { "label": "Small", "price": 160 },
-            { "label": "Regular", "price": 210 }
+            {
+              "label": "Small",
+              "price": 165
+            },
+            {
+              "label": "Regular",
+              "price": 215
+            }
           ]
         },
         {
@@ -70,11 +88,20 @@
           "image": "images/Paneer%20%26%20Cheese%20pizza.jpg",
           "alt": "Paneer & Cheese",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
           "sizes": [
-            { "label": "Small", "price": 150 },
-            { "label": "Regular", "price": 200 }
+            {
+              "label": "Small",
+              "price": 155
+            },
+            {
+              "label": "Regular",
+              "price": 205
+            }
           ]
         },
         {
@@ -83,11 +110,20 @@
           "image": "images/Corn%20%26%20Cheese%20pizza.jpg",
           "alt": "Corn & Cheese",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
           "sizes": [
-            { "label": "Small", "price": 140 },
-            { "label": "Regular", "price": 190 }
+            {
+              "label": "Small",
+              "price": 145
+            },
+            {
+              "label": "Regular",
+              "price": 195
+            }
           ]
         },
         {
@@ -96,11 +132,20 @@
           "image": "images/Gobi%20Manchuri%20Pizza.jpg",
           "alt": "Gobi Manchuri Pizza",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
           "sizes": [
-            { "label": "Small", "price": 150 },
-            { "label": "Regular", "price": 200 }
+            {
+              "label": "Small",
+              "price": 155
+            },
+            {
+              "label": "Regular",
+              "price": 205
+            }
           ]
         },
         {
@@ -109,11 +154,20 @@
           "image": "images/mushroompizza.png",
           "alt": "Mushroom & Cheese Pizza",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
           "sizes": [
-            { "label": "Small", "price": 150 },
-            { "label": "Regular", "price": 200 }
+            {
+              "label": "Small",
+              "price": 155
+            },
+            {
+              "label": "Regular",
+              "price": 205
+            }
           ]
         },
         {
@@ -122,9 +176,12 @@
           "image": "images/Margherita%20pizza.jpg",
           "alt": "Mini Pizza",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
-          "price": 90
+          "price": 95
         }
       ]
     },
@@ -137,133 +194,133 @@
           "name": "Gobi Manchuri",
           "image": "images/Gobi%20Manchuri.jpg",
           "alt": "Gobi Manchuri",
-          "price": 60
+          "price": 65
         },
         {
           "id": "gobi-chilly",
           "name": "Gobi Chilly",
           "image": "images/Gobi%20Chilly.jpg",
           "alt": "Gobi Chilly",
-          "price": 60
+          "price": 65
         },
         {
           "id": "gobi-65",
           "name": "Gobi 65",
           "image": "images/Gobi%2065.jpg",
           "alt": "Gobi 65",
-          "price": 60
+          "price": 65
         },
         {
           "id": "gobi-schezwan",
           "name": "Gobi Schezwan",
           "image": "images/Gobi%20Schezwan.jpg",
           "alt": "Gobi Schezwan",
-          "price": 60
+          "price": 65
         },
         {
           "id": "paneer-manchuri",
           "name": "Paneer Manchuri",
           "image": "images/Paneer%20Manchuri.jpg",
           "alt": "Paneer Manchuri",
-          "price": 90
+          "price": 95
         },
         {
           "id": "paneer-chilly",
           "name": "Paneer Chilly",
           "image": "images/Paneer%20Chilly.jpg",
           "alt": "Paneer Chilly",
-          "price": 90
+          "price": 95
         },
         {
           "id": "paneer-65",
           "name": "Paneer 65",
           "image": "images/Paneer%2065.jpg",
           "alt": "Paneer 65",
-          "price": 90
+          "price": 95
         },
         {
           "id": "paneer-schezwan",
           "name": "Paneer Schezwan",
           "image": "images/Paneer%20Schezwan.jpg",
           "alt": "Paneer Schezwan",
-          "price": 90
+          "price": 95
         },
         {
           "id": "baby-corn-manchuri",
           "name": "Baby Corn Manchuri",
           "image": "images/Baby%20Corn%20Manchuri.jpg",
           "alt": "Baby Corn Manchuri",
-          "price": 90
+          "price": 95
         },
         {
           "id": "baby-corn-chilly",
           "name": "Baby Corn Chilly",
           "image": "images/Baby%20Corn%20Chilly.jpg",
           "alt": "Baby Corn Chilly",
-          "price": 90
+          "price": 95
         },
         {
           "id": "baby-corn-65",
           "name": "Baby Corn 65",
           "image": "images/Baby%20Corn%2065.jpg",
           "alt": "Baby Corn 65",
-          "price": 90
+          "price": 95
         },
         {
           "id": "baby-corn-schezwan",
           "name": "Baby Corn Schezwan",
           "image": "images/Baby%20Corn%20Schezwan.jpg",
           "alt": "Baby Corn Schezwan",
-          "price": 90
+          "price": 95
         },
         {
           "id": "mushroom-manchuri",
           "name": "Mushroom Manchuri",
           "image": "images/Mushroom%20Manchuri.jpg",
           "alt": "Mushroom Manchuri",
-          "price": 90
+          "price": 95
         },
         {
           "id": "mushroom-chilly",
           "name": "Mushroom Chilly",
           "image": "images/Mushroom%20Chilly.jpg",
           "alt": "Mushroom Chilly",
-          "price": 90
+          "price": 95
         },
         {
           "id": "mushroom-65",
           "name": "Mushroom 65",
           "image": "images/Mushroom%2065.jpg",
           "alt": "Mushroom 65",
-          "price": 90
+          "price": 95
         },
         {
           "id": "mushroom-schezwan",
           "name": "Mushroom Schezwan",
           "image": "images/Mushroom%20Schezwan.jpg",
           "alt": "Mushroom Schezwan",
-          "price": 90
+          "price": 95
         },
         {
           "id": "kurkure-corn",
           "name": "Kurkure Corn",
           "image": "images/Crispy%20Corn.jpg",
           "alt": "Kurkure Corn",
-          "price": 70
+          "price": 75
         },
         {
           "id": "french-fries-salted",
           "name": "French Fries Salted",
           "image": "images/French%20Fries%20Salted.jpg",
           "alt": "French Fries Salted",
-          "price": 70
+          "price": 75
         },
         {
           "id": "peri-peri-french-fries",
           "name": "Peri Peri French Fries",
           "image": "images/Peri%20Peri%20French%20Fries.jpg",
           "alt": "Peri Peri French Fries",
-          "price": 80
+          "price": 85
         }
       ]
     },
@@ -276,21 +333,21 @@
           "name": "Manchow Soup",
           "image": "images/Manchow%20Soup.jpg",
           "alt": "Manchow Soup",
-          "price": 50
+          "price": 55
         },
         {
           "id": "roasted-garlic-soup",
           "name": "Roasted Garlic Soup",
           "image": "images/Roasted%20Garlic%20Soup.jpg",
           "alt": "Roasted Garlic Soup",
-          "price": 50
+          "price": 55
         },
         {
           "id": "vegetable-soup",
           "name": "Vegetable Soup",
           "image": "images/Vegetable%20Soup.jpg",
           "alt": "Vegetable Soup",
-          "price": 50
+          "price": 55
         }
       ]
     },
@@ -308,42 +365,42 @@
               "name": "Veg Fried Rice",
               "image": "images/Veg%20Fried%20Rice.jpg",
               "alt": "Veg Fried Rice",
-              "price": 60
+              "price": 65
             },
             {
               "id": "schezwan-rice",
               "name": "Schezwan Rice",
               "image": "images/Schezwan%20Rice.jpg",
               "alt": "Schezwan Rice",
-              "price": 60
+              "price": 65
             },
             {
               "id": "butter-garlic-rice",
               "name": "Butter Garlic Rice",
               "image": "images/Butter%20Garlic%20Rice.jpg",
               "alt": "Butter Garlic Rice",
-              "price": 80
+              "price": 85
             },
             {
               "id": "paneer-fried-rice",
               "name": "Paneer Fried Rice",
               "image": "images/Paneer%20Fried%20Rice.jpg",
               "alt": "Paneer Fried Rice",
-              "price": 90
+              "price": 95
             },
             {
               "id": "manchurian-rice",
               "name": "Manchurian Rice",
               "image": "images/Manchurian%20Rice.jpg",
               "alt": "Manchurian Rice",
-              "price": 80
+              "price": 85
             },
             {
               "id": "special-rice",
               "name": "Special Rice",
               "image": "images/Special%20Rice.jpg",
               "alt": "Special Rice",
-              "price": 90
+              "price": 95
             }
           ]
         },
@@ -357,42 +414,42 @@
               "name": "Veg Fried Noodles",
               "image": "images/Veg%20Fried%20Noodles.jpg",
               "alt": "Veg Fried Noodles",
-              "price": 60
+              "price": 65
             },
             {
               "id": "schezwan-noodles",
               "name": "Schezwan Noodles",
               "image": "images/Schezwan%20Noodles.jpg",
               "alt": "Schezwan Noodles",
-              "price": 60
+              "price": 65
             },
             {
               "id": "butter-garlic-noodles",
               "name": "Butter Garlic Noodles",
               "image": "images/Butter%20Garlic%20Noodles.jpg",
               "alt": "Butter Garlic Noodles",
-              "price": 80
+              "price": 85
             },
             {
               "id": "paneer-fried-noodles",
               "name": "Paneer Fried Noodles",
               "image": "images/Paneer%20Fried%20Noodles.jpg",
               "alt": "Paneer Fried Noodles",
-              "price": 90
+              "price": 95
             },
             {
               "id": "rice-noodles-combo",
               "name": "Rice Noodles Combo",
               "image": "images/Rice%20Noodles%20Combo.jpg",
               "alt": "Rice Noodles Combo",
-              "price": 80
+              "price": 85
             },
             {
               "id": "special-noodles",
               "name": "Special Noodles",
               "image": "images/Special%20Noodles.jpg",
               "alt": "Special Noodles",
-              "price": 90
+              "price": 95
             }
           ]
         }
@@ -408,9 +465,12 @@
           "image": "images/Vegetable%20Sandwich.jpg",
           "alt": "Vegetable Sandwich",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
-          "price": 70
+          "price": 75
         },
         {
           "id": "paneer-sandwich",
@@ -418,9 +478,12 @@
           "image": "images/Paneer%20Sandwich.jpg",
           "alt": "Paneer Sandwich",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
-          "price": 80
+          "price": 85
         }
       ]
     },
@@ -434,9 +497,12 @@
           "image": "images/Veg%20Burger.jpg",
           "alt": "Veg Burger",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
-          "price": 90
+          "price": 95
         },
         {
           "id": "paneer-burger",
@@ -444,9 +510,12 @@
           "image": "images/Paneer%20Burger.jpg",
           "alt": "Paneer Burger",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
-          "price": 100
+          "price": 105
         }
       ]
     },
@@ -459,42 +528,42 @@
           "name": "Noodles / Rice + Gobi Manchurian",
           "image": "images/combos/combo-noodles-campa.png",
           "alt": "Noodles or Rice with Gobi Manchurian",
-          "price": 100
+          "price": 105
         },
         {
           "id": "combo-burger-french-fries",
           "name": "Burger + French Fries",
           "image": "images/combos/combo-burger-fries.png",
           "alt": "Burger with French Fries",
-          "price": 120
+          "price": 125
         },
         {
           "id": "combo-sandwich-french-fries",
           "name": "Sandwich + French Fries",
           "image": "images/combos/combo-fries-campa.png",
           "alt": "Sandwich with French Fries",
-          "price": 100
+          "price": 105
         },
         {
           "id": "combo-burger-cold-coffee",
           "name": "Burger + Cold Coffee",
           "image": "images/combos/combo-burger-cold-coffee.png",
           "alt": "Burger with Cold Coffee",
-          "price": 130
+          "price": 135
         },
         {
           "id": "combo-momo",
           "name": "Momo Combo (2pc Kurkure + 2pc Cheesy + 2pc Schezwan Momo)",
           "image": "images/Cheesy%20Momo.jpg",
           "alt": "Momo Combo",
-          "price": 130
+          "price": 135
         },
         {
           "id": "combo-meals",
           "name": "Meals (Burger / Sandwich + French Fries + Cold Drink)",
           "image": "images/combos/combo-burger-fries.png",
           "alt": "Meals combo with burger or sandwich, fries and cold drink",
-          "price": 130
+          "price": 135
         }
       ]
     },
@@ -507,21 +576,21 @@
           "name": "Steam Momo",
           "image": "images/Steamed%20Momo.jpg",
           "alt": "Steam Momo",
-          "price": 80
+          "price": 85
         },
         {
           "id": "kurkure-momo",
           "name": "Kurkure Momo",
           "image": "images/Crispy%20Momo.jpg",
           "alt": "Kurkure Momo",
-          "price": 90
+          "price": 95
         },
         {
           "id": "cheesy-momo",
           "name": "Cheesy Momo",
           "image": "images/Cheesy%20Momo.jpg",
           "alt": "Cheesy Momo",
-          "price": 100
+          "price": 105
         }
       ]
     },
@@ -534,42 +603,42 @@
           "name": "Softy Ice Cream",
           "image": "images/Softy%20Ice%20Cream.jpg",
           "alt": "Softy Ice Cream",
-          "price": 20
+          "price": 25
         },
         {
           "id": "lassi",
           "name": "Lassi",
           "image": "images/Lassi.jpg",
           "alt": "Lassi",
-          "price": 40
+          "price": 45
         },
         {
           "id": "cold-badam-milk",
           "name": "Cold Badam Milk",
           "image": "images/Badam%20Milk.jpg",
           "alt": "Cold Badam Milk",
-          "price": 40
+          "price": 45
         },
         {
           "id": "masala-cold-drinks",
           "name": "Masala Cold Drinks",
           "image": "images/Masala%20Cold%20Drinks.jpg",
           "alt": "Masala Cold Drinks",
-          "price": 40
+          "price": 45
         },
         {
           "id": "mint-mojito",
           "name": "Mint Mojito",
           "image": "images/Mint%20Mojito.jpg",
           "alt": "Mint Mojito",
-          "price": 40
+          "price": 45
         },
         {
           "id": "cold-coffee",
           "name": "Cold Coffee",
           "image": "images/cold%20coffee.jpg",
           "alt": "Cold Coffee",
-          "price": 50
+          "price": 55
         }
       ]
     },
@@ -582,35 +651,35 @@
           "name": "Kurkure Paneer",
           "image": "images/Crispy%20Paneer.jpg",
           "alt": "Kurkure Paneer",
-          "price": 110
+          "price": 115
         },
         {
           "id": "paneer-finger",
           "name": "Paneer Finger",
           "image": "images/Paneer%20Finger.jpg",
           "alt": "Paneer Finger",
-          "price": 110
+          "price": 115
         },
         {
           "id": "baby-corn-finger",
           "name": "Baby Corn Finger",
           "image": "images/Baby%20Corn%20Manchuri.jpg",
           "alt": "Baby Corn Finger",
-          "price": 110
+          "price": 115
         },
         {
           "id": "paneer-saute",
           "name": "Paneer Saute",
           "image": "images/Paneer%20Saute.jpg",
           "alt": "Paneer Saute",
-          "price": 110
+          "price": 115
         },
         {
           "id": "triple-fried-rice",
           "name": "Triple Fried Rice",
           "image": "images/Triple%20Fried%20Rice.jpg",
           "alt": "Triple Fried Rice",
-          "price": 110
+          "price": 115
         },
         {
           "id": "special-pizza",
@@ -618,37 +687,40 @@
           "image": "images/Special%20Pizza.jpg",
           "alt": "Special Pizza",
           "addons": [
-            { "label": "Extra cheese", "price": 25 }
+            {
+              "label": "Extra cheese",
+              "price": 30
+            }
           ],
-          "price": 250
+          "price": 255
         },
         {
           "id": "honey-chilly-potato",
           "name": "Honey Chilly Potato",
           "image": "images/Honey%20Chilly%20Potato.jpg",
           "alt": "Honey Chilly Potato",
-          "price": 100
+          "price": 105
         },
         {
           "id": "kurkure-chilly-potato",
           "name": "Kurkure Chilly Potato",
           "image": "images/Crispy%20Chilly%20Potato.jpg",
           "alt": "Kurkure Chilly Potato",
-          "price": 100
+          "price": 105
         },
         {
           "id": "stuffing-mushroom",
           "name": "Stuffing Mushroom",
           "image": "images/Stuffing%20Mushroom.jpg",
           "alt": "Stuffing Mushroom",
-          "price": 100
+          "price": 105
         },
         {
           "id": "smokey-brownie",
           "name": "Smokey Brownie with Ice Cream",
           "image": "images/Smokeybrownie.png",
           "alt": "Smokey Brownie with Ice Cream",
-          "price": 130
+          "price": 135
         }
       ]
     }
