@@ -2196,11 +2196,18 @@ const FALLBACK_MENU_JSON = `{
           "price": 135
         },
         {
-          "id": "combo-meals",
-          "name": "Meals (Burger / Sandwich + French Fries + Cold Drink)",
+          "id": "combo-burger-meal",
+          "name": "Burger Meal (Burger + French Fries + Cold drinks)",
           "image": "images/combos/combo-burger-fries.png",
-          "alt": "Meals combo with burger or sandwich, fries and cold drink",
+          "alt": "Burger meal with French fries and cold drink",
           "price": 135
+        },
+        {
+          "id": "combo-sandwich-meal",
+          "name": "Sandwich Meal (Sandwich + French Fries + cold drinks)",
+          "image": "images/combos/combo-fries-campa.png",
+          "alt": "Sandwich meal with French fries and cold drink",
+          "price": 125
         }
       ]
     },
