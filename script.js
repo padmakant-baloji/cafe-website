@@ -1638,6 +1638,68 @@ let menuData = null;
 const FALLBACK_MENU_JSON = `{
   "categories": [
     {
+      "id": "combo-offers",
+      "name": "Combo Offers",
+      "items": [
+        {
+          "id": "combo-rice-gobi-manchurian",
+          "name": "Rice + Gobi Manchurian",
+          "image": "images/combos/combo-rice-campa.png",
+          "alt": "Fried rice with Gobi Manchurian",
+          "price": 105
+        },
+        {
+          "id": "combo-noodles-gobi-manchurian",
+          "name": "Noodles + Gobi Manchurian",
+          "image": "images/combos/combo-noodles-campa.png",
+          "alt": "Noodles with Gobi Manchurian",
+          "price": 105
+        },
+        {
+          "id": "combo-burger-french-fries",
+          "name": "Burger + French Fries",
+          "image": "images/combos/combo-burger-fries.png",
+          "alt": "Burger with French Fries",
+          "price": 125
+        },
+        {
+          "id": "combo-sandwich-french-fries",
+          "name": "Sandwich + French Fries",
+          "image": "images/combos/combo-fries-campa.png",
+          "alt": "Sandwich with French Fries",
+          "price": 105
+        },
+        {
+          "id": "combo-burger-cold-coffee",
+          "name": "Burger + Cold Coffee",
+          "image": "images/combos/combo-burger-cold-coffee.png",
+          "alt": "Burger with Cold Coffee",
+          "price": 135
+        },
+        {
+          "id": "combo-momo",
+          "name": "Momo Combo (2pc Kurkure + 2pc Cheesy + 2pc Schezwan Momo)",
+          "image": "images/Cheesy%20Momo.jpg",
+          "alt": "Momo Combo",
+          "price": 135
+        },
+        {
+          "id": "combo-burger-meal",
+          "name": "Burger Meal (Burger + French Fries + Cold drinks)",
+          "image": "images/combos/combo-burger-fries.png",
+          "alt": "Burger meal with French fries and cold drink",
+          "price": 135
+        },
+        {
+          "id": "combo-sandwich-meal",
+          "name": "Sandwich Meal (Sandwich + French Fries + cold drinks)",
+          "image": "images/combos/combo-fries-campa.png",
+          "alt": "Sandwich meal with French fries and cold drink",
+          "price": 125
+        }
+      ]
+    },
+    {
       "id": "coffee-tea",
       "name": "Coffee & Tea",
       "items": [
@@ -2153,61 +2215,6 @@ const FALLBACK_MENU_JSON = `{
             }
           ],
           "price": 105
-        }
-      ]
-    },
-    {
-      "id": "combo-offers",
-      "name": "Combo Offers",
-      "items": [
-        {
-          "id": "combo-noodles-rice-gobi-manchurian",
-          "name": "Noodles / Rice + Gobi Manchurian",
-          "image": "images/combos/combo-noodles-campa.png",
-          "alt": "Noodles or Rice with Gobi Manchurian",
-          "price": 105
-        },
-        {
-          "id": "combo-burger-french-fries",
-          "name": "Burger + French Fries",
-          "image": "images/combos/combo-burger-fries.png",
-          "alt": "Burger with French Fries",
-          "price": 125
-        },
-        {
-          "id": "combo-sandwich-french-fries",
-          "name": "Sandwich + French Fries",
-          "image": "images/combos/combo-fries-campa.png",
-          "alt": "Sandwich with French Fries",
-          "price": 105
-        },
-        {
-          "id": "combo-burger-cold-coffee",
-          "name": "Burger + Cold Coffee",
-          "image": "images/combos/combo-burger-cold-coffee.png",
-          "alt": "Burger with Cold Coffee",
-          "price": 135
-        },
-        {
-          "id": "combo-momo",
-          "name": "Momo Combo (2pc Kurkure + 2pc Cheesy + 2pc Schezwan Momo)",
-          "image": "images/Cheesy%20Momo.jpg",
-          "alt": "Momo Combo",
-          "price": 135
-        },
-        {
-          "id": "combo-burger-meal",
-          "name": "Burger Meal (Burger + French Fries + Cold drinks)",
-          "image": "images/combos/combo-burger-fries.png",
-          "alt": "Burger meal with French fries and cold drink",
-          "price": 135
-        },
-        {
-          "id": "combo-sandwich-meal",
-          "name": "Sandwich Meal (Sandwich + French Fries + cold drinks)",
-          "image": "images/combos/combo-fries-campa.png",
-          "alt": "Sandwich meal with French fries and cold drink",
-          "price": 125
         }
       ]
     },
