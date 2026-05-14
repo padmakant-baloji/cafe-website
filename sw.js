@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
-const PRECACHE = 'baloji-pwa-cache-v5';
-const RUNTIME = 'baloji-pwa-runtime-v1';
+const PRECACHE = 'baloji-pwa-cache-v6';
+const RUNTIME = 'baloji-pwa-runtime-v2';
 
 self.addEventListener('install', (event) => {
   const assets = [
@@ -11,6 +11,7 @@ self.addEventListener('install', (event) => {
     '/profile',
     '/styles.css',
     '/pwa-client.js',
+    '/review-prompt.js',
     '/orders.js',
     '/profile.js',
     '/script.js',
@@ -59,7 +60,7 @@ self.addEventListener('activate', (event) => {
 
 /**
  * Cache-first for same-origin static assets (JS/CSS/images), update in background.
- * Skips navigations and API so HTML and JSON stay fresh.
+ * Skips navigations and API. `menu.json` is never cached so the menu/prices stay current.
  */
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
@@ -68,6 +69,11 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
+
+  if (url.pathname === '/menu.json') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
 
   event.respondWith(
     (async () => {

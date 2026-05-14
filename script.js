@@ -2397,7 +2397,7 @@ async function loadMenu() {
         let res = menuBootstrapFetch ? await menuBootstrapFetch : null;
         menuBootstrapFetch = null;
         if (!res || !res.ok) {
-            res = await fetch('menu.json', { priority: 'high', cache: 'default' });
+            res = await fetch('menu.json', { priority: 'high', cache: 'no-store' });
         }
         if (res.ok) {
             menuData = await res.json();
@@ -3374,7 +3374,7 @@ function initLazyLoading() {
 // Initialize Everything
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
-    menuBootstrapFetch = fetch('menu.json', { priority: 'high', cache: 'default' }).catch(() => null);
+    menuBootstrapFetch = fetch('menu.json', { priority: 'high', cache: 'no-store' }).catch(() => null);
 
     currentCustomer = getCustomerProfile();
     updateCheckoutProfileUI();
