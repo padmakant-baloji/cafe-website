@@ -329,7 +329,7 @@ function bindKotSuggestButtons(ul, row, lineBox, inp, catEl) {
             if (row.dataset.placeholder && inp.value.trim()) {
                 delete row.dataset.placeholder;
                 const hasTrail = [...lineBox.querySelectorAll('.kot-line-row')].some((r) => r.dataset.placeholder);
-                if (!hasTrail) addKotLineRow(lineBox, { placeholder: true });
+                if (!hasTrail) addKotLineRow(lineBox, { placeholder: true, openItem: true });
             }
             lineBox.dispatchEvent(new CustomEvent('floor:kot-line-updated', { bubbles: true }));
         });
@@ -1053,19 +1053,21 @@ function renderDrawer() {
     const rightCol = [];
     rightCol.push(`<div class="add-kot" id="addKotBox">
         <h3>New KOT</h3>
-        <p class="add-kot-hint" style="font-size:0.8rem;color:var(--muted);line-height:1.45;margin:0 0 0.5rem 0;">Tap <strong>Search menu…</strong> — typing filters the <strong>full menu</strong> below. Use <strong>×</strong> to remove a line, or <strong>open items</strong> for custom entries.</p>
+        <p class="add-kot-hint" style="font-size:0.8rem;color:var(--muted);line-height:1.45;margin:0 0 0.5rem 0;">Use <strong>Quick pick</strong> or tap <strong>Search menu…</strong> — the full menu appears below. Set qty and ₹, then <strong>Save KOT</strong>.</p>
+        <div class="kot-quick-pick-bar kot-open-presets" role="group" aria-label="Quick pick">
+            <span class="kot-open-presets-label">Quick pick</span>
+            <button type="button" class="kot-preset-chip" data-open-name="Water bottle">1. Water bottle</button>
+            <button type="button" class="kot-preset-chip" data-open-name="Ice cream">2. Ice cream</button>
+            <button type="button" class="kot-preset-chip" data-open-name="">3. Open</button>
+        </div>
         <div class="kot-line-inputs-wrap"><div id="kotLineInputs"></div></div>
         <div class="kot-menu-browser-wrap" id="kotMenuBrowserWrap" hidden>
-            <button type="button" class="floor-btn floor-btn--ghost kot-menu-browser-toggle" id="toggleKotMenuBrowser" aria-expanded="true">Hide full menu</button>
             <div id="kotMenuBrowser" class="kot-menu-browser"></div>
         </div>
         <div class="kot-form-toolbar">
-            <button type="button" class="floor-btn floor-btn--ghost" id="addKotLineBtn">+ From menu</button>
-            <button type="button" class="floor-btn floor-btn--ghost" id="addOpenItemBtn">+ Open item</button>
             <span class="kot-form-toolbar-spacer" aria-hidden="true"></span>
             <button type="button" class="floor-btn floor-btn--primary" id="submitKotBtn" disabled>Save KOT</button>
         </div>
-        <p class="kot-kot-rate-hint">Menu suggestions use the dine-in KOT rate (−₹${KOT_VS_ONLINE_UNIT_DISCOUNT_RS} per unit vs online).</p>
         <button type="button" class="floor-btn floor-btn--danger-outline floor-kot-clear-table" id="voidFloorBtn">Clear this table</button>
     </div>`);
 
@@ -1085,7 +1087,7 @@ function renderDrawer() {
         saveKotBtn.disabled = n === 0;
     }
     if (lineBox) {
-        addKotLineRow(lineBox, { placeholder: true });
+        addKotLineRow(lineBox, { placeholder: true, openItem: true });
         lineBox.addEventListener('input', syncSaveKotState);
         lineBox.addEventListener('change', syncSaveKotState);
         lineBox.addEventListener('floor:kot-line-updated', syncSaveKotState);
@@ -1108,7 +1110,7 @@ function renderDrawer() {
                 if (!lineBox.contains(row)) return;
                 const active = document.activeElement;
                 if (active && row.contains(active)) return;
-                if (active?.closest('.kot-menu-pick, .kot-menu-browser, .kot-suggest-btn')) return;
+                if (active?.closest('.kot-preset-chip, .kot-quick-pick-bar, .kot-menu-pick, .kot-menu-browser')) return;
                 commitKotLineAfterRowBlur(row, lineBox);
                 if (row === kotComposerActiveRow && active && !row.contains(active)) {
                     setKotComposerActiveRow(
@@ -1142,45 +1144,13 @@ function renderDrawer() {
                 removeKotLineRow(rm.closest('.kot-line-row'), lineBox, syncSaveKotState);
                 return;
             }
-            const chip = e.target.closest('.kot-preset-chip');
-            if (chip) {
-                const row = chip.closest('.kot-line-row');
-                if (!row || !lineBox.contains(row) || row.dataset.openItem !== '1') return;
-                const presetName = (chip.getAttribute('data-preset-name') || '').trim();
-                if (!presetName) return;
-                const inp = row.querySelector('.kot-name-input');
-                if (inp) inp.value = presetName;
-                closeAllKotSuggest(null);
-                if (row.dataset.placeholder && presetName) {
-                    delete row.dataset.placeholder;
-                    const hasTrail = [...lineBox.querySelectorAll('.kot-line-row')].some((r) => r.dataset.placeholder);
-                    if (!hasTrail) addKotLineRow(lineBox, { placeholder: true });
-                }
-                inp?.focus();
-                syncSaveKotState();
-                lineBox.dispatchEvent(new CustomEvent('floor:kot-line-updated', { bubbles: true }));
-            }
         });
-        body.querySelector('#addKotLineBtn')?.addEventListener('click', () => {
-            const row = addKotLineRow(lineBox, { placeholder: false });
-            row?.querySelector('.kot-name-input')?.focus();
+        const addKotBox = body.querySelector('#addKotBox');
+        addKotBox?.addEventListener('click', (e) => {
+            const chip = e.target.closest('.kot-quick-pick-bar .kot-preset-chip');
+            if (!chip) return;
+            appendOpenKotLine(lineBox, (chip.getAttribute('data-open-name') || '').trim());
             syncSaveKotState();
-        });
-        body.querySelector('#addOpenItemBtn')?.addEventListener('click', () => {
-            addKotLineRow(lineBox, { placeholder: false, openItem: true });
-            const rows = lineBox.querySelectorAll('.kot-line-row');
-            const last = rows[rows.length - 1];
-            last?.querySelector('.kot-preset-chip')?.focus();
-            syncSaveKotState();
-        });
-        const kotMenuBrowser = body.querySelector('#kotMenuBrowser');
-        const toggleKotMenuBrowser = body.querySelector('#toggleKotMenuBrowser');
-        toggleKotMenuBrowser?.addEventListener('click', () => {
-            if (!kotMenuBrowser) return;
-            const wrap = kotMenuBrowser.closest('.kot-menu-browser-wrap');
-            const open = wrap?.hidden === true;
-            setKotMenuBrowserOpen(kotMenuBrowser, toggleKotMenuBrowser, lineBox, open);
-            if (!open) closeAllKotSuggest(null);
         });
         body.querySelector('#submitKotBtn')?.addEventListener('click', async () => {
             if (saveKotBtn && saveKotBtn.disabled) return;
@@ -1295,12 +1265,43 @@ function ensureTrailingKotPlaceholderRow(lineBox) {
     if (!lineBox) return;
     const rows = lineBox.querySelectorAll('.kot-line-row');
     if (!rows.length) {
-        addKotLineRow(lineBox, { placeholder: true });
+        addKotLineRow(lineBox, { placeholder: true, openItem: true });
         return;
     }
     if (![...rows].some((r) => r.dataset.placeholder)) {
-        addKotLineRow(lineBox, { placeholder: true });
+        addKotLineRow(lineBox, { placeholder: true, openItem: true });
     }
+}
+
+function focusNextKotLineEntry(lineBox) {
+    if (!lineBox) return;
+    const nextRow = [...lineBox.querySelectorAll('.kot-line-row')].find((r) => r.dataset.placeholder === '1');
+    if (!nextRow) return;
+    setKotComposerActiveRow(nextRow);
+    const nextInp = nextRow.querySelector('.kot-name-input');
+    if (!nextInp) return;
+    window.setTimeout(() => {
+        if (!lineBox.contains(nextRow)) return;
+        nextInp.focus();
+        handleKotComposerInput(nextRow, lineBox);
+    }, 0);
+}
+
+function appendOpenKotLine(lineBox, name = '') {
+    if (!lineBox) return null;
+    let row = [...lineBox.querySelectorAll('.kot-line-row')].find((r) => r.dataset.placeholder === '1');
+    if (row) {
+        delete row.dataset.placeholder;
+    } else {
+        row = addKotLineRow(lineBox, { openItem: true });
+    }
+    const inp = row.querySelector('.kot-name-input');
+    if (inp && name) inp.value = name;
+    ensureTrailingKotPlaceholderRow(lineBox);
+    if (name) row.querySelector('.kot-price')?.focus();
+    else inp?.focus();
+    lineBox.dispatchEvent(new CustomEvent('floor:kot-line-updated', { bubbles: true }));
+    return row;
 }
 
 /** After leaving a filled line, lock it in and add an empty line for the next item. */
@@ -1326,7 +1327,7 @@ function removeKotLineRow(row, lineBox, syncSaveKotState) {
     }
     const rows = [...lineBox.querySelectorAll('.kot-line-row')];
     if (!rows.length) {
-        addKotLineRow(lineBox, { placeholder: true });
+        addKotLineRow(lineBox, { placeholder: true, openItem: true });
     } else if (!wasPlaceholder) {
         ensureTrailingKotPlaceholderRow(lineBox);
     } else {
@@ -1339,21 +1340,14 @@ function removeKotLineRow(row, lineBox, syncSaveKotState) {
 
 function addKotLineRow(
     lineBox,
-    { placeholder = false, name = '', qty = '1', price = '', category = '', openItem = false } = {}
+    { placeholder = false, name = '', qty = '1', price = '', category = '', openItem = true } = {}
 ) {
     const row = document.createElement('div');
     row.className = 'kot-line-row';
     if (placeholder) row.dataset.placeholder = '1';
-    if (openItem) row.dataset.openItem = '1';
-    const catLabel = openItem ? (category || 'Open item') : category;
-    const namePh = openItem ? 'Item name — set qty and ₹' : 'Search menu…';
-    const presetsHtml = openItem
-        ? `<div class="kot-open-presets">
-            <span class="kot-open-presets-label">Quick pick</span>
-            <button type="button" class="kot-preset-chip" data-preset-name="${escapeAttr('Water bottle')}">Water bottle</button>
-            <button type="button" class="kot-preset-chip" data-preset-name="${escapeAttr('Ice cream')}">Ice cream</button>
-        </div>`
-        : '';
+    row.dataset.openItem = '1';
+    const catLabel = category || 'Open item';
+    const namePh = 'Search menu…';
     row.innerHTML = `
         <div class="kot-line-main">
             <div class="kot-line-name-cell">
@@ -1369,14 +1363,11 @@ function addKotLineRow(
         </div>
         <div class="kot-line-meta-row">
             <div class="kot-line-cat">${escapeHtml(catLabel)}</div>
-            ${presetsHtml}
         </div>`;
     lineBox.appendChild(row);
     const inp = row.querySelector('.kot-name-input');
     if (inp) {
-        inp.addEventListener('input', () => {
-            handleKotComposerInput(row, lineBox);
-        });
+        inp.addEventListener('input', () => handleKotComposerInput(row, lineBox));
         inp.addEventListener('focus', () => {
             setKotComposerActiveRow(row);
             handleKotComposerInput(row, lineBox);
@@ -1399,25 +1390,14 @@ function closeAllKotSuggest(except) {
 }
 
 function handleKotComposerInput(row, lineBox) {
-    const inp = row.querySelector('.kot-name-input');
-    const catEl = row.querySelector('.kot-line-cat');
-    if (!inp) return;
-
-    const v = inp.value.trim();
-    const addKotBox = lineBox.closest('#addKotBox');
-    const kotMenuBrowser = addKotBox?.querySelector('#kotMenuBrowser');
-    const toggleKotMenuBrowser = addKotBox?.querySelector('#toggleKotMenuBrowser');
-
-    if (row.dataset.openItem === '1') {
-        closeAllKotSuggest(null);
-        setKotMenuBrowserOpen(kotMenuBrowser, toggleKotMenuBrowser, lineBox, false);
-        return;
-    }
-
     closeAllKotSuggest(null);
-    setKotMenuBrowserOpen(kotMenuBrowser, toggleKotMenuBrowser, lineBox, true);
-    if (kotMenuBrowser?.dataset.rendered === '1') {
-        filterKotMenuBrowserPanel(kotMenuBrowser, v);
+    const addKotBox = lineBox?.closest('#addKotBox');
+    const kotMenuBrowser = addKotBox?.querySelector('#kotMenuBrowser');
+    if (!kotMenuBrowser) return;
+    setKotMenuBrowserOpen(kotMenuBrowser, null, lineBox, true);
+    if (kotMenuBrowser.dataset.rendered === '1') {
+        const inp = row?.querySelector('.kot-name-input');
+        filterKotMenuBrowserPanel(kotMenuBrowser, inp?.value || '');
     }
 }
 
@@ -1451,20 +1431,15 @@ function renderKotMenuBrowser(panel, lineBox) {
     panel.querySelectorAll('.kot-menu-pick').forEach((btn) => {
         btn.addEventListener('click', () => {
             let target = kotComposerActiveRow;
-            if (
-                !target ||
-                target.dataset.openItem === '1' ||
-                !lineBox.contains(target)
-            ) {
+            if (!target || !lineBox.contains(target)) {
                 target = [...lineBox.querySelectorAll('.kot-line-row')].find(
                     (r) =>
-                        r.dataset.openItem !== '1' &&
                         r.dataset.placeholder !== '1' &&
                         !(r.querySelector('.kot-name-input')?.value || '').trim()
                 );
             }
             if (!target) {
-                target = addKotLineRow(lineBox, { placeholder: false });
+                target = addKotLineRow(lineBox, { placeholder: false, openItem: true });
             }
             if (target.dataset.placeholder) delete target.dataset.placeholder;
             const inp = target.querySelector('.kot-name-input');
@@ -1476,6 +1451,7 @@ function renderKotMenuBrowser(panel, lineBox) {
             ensureTrailingKotPlaceholderRow(lineBox);
             lineBox.dispatchEvent(new CustomEvent('floor:kot-line-updated', { bubbles: true }));
             closeAllKotSuggest(null);
+            focusNextKotLineEntry(lineBox);
         });
     });
 }
