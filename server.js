@@ -339,7 +339,7 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
             const updated = await applyFloorOrderAdminPatch(orderId, body);
             return res.json({ ok: true, order: updated });
         }
-        const updated = await applyAdminOrderAction(orderId, action);
+        const updated = await applyAdminOrderAction(orderId, action, body);
         return res.json({ ok: true, order: updated });
     } catch (err) {
         const code =

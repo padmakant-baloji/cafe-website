@@ -314,6 +314,40 @@
             font-size: 0.72rem;
         }
 
+        .admin-analytics-totals {
+            margin-top: 0.85rem;
+            padding-top: 0.85rem;
+            border-top: 1px solid rgba(148, 163, 184, 0.22);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .admin-analytics-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .admin-analytics-total-label {
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .admin-analytics-total-value {
+            font-weight: 800;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .admin-analytics-total-hint {
+            margin-top: 0.35rem;
+            color: rgba(148, 163, 184, 0.85);
+            font-size: 0.7rem;
+        }
+
         .admin-layout {
             max-width: 720px;
             margin: 0 auto;
@@ -551,7 +585,61 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 0.65rem;
+            gap: 0.5rem;
         }
+        .admin-order-head-badges {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.35rem;
+        }
+        .admin-pay-pill {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.22rem 0.45rem;
+            border-radius: 6px;
+        }
+        .admin-pay-pill--cash {
+            background: rgba(252, 211, 77, 0.16);
+            color: #fef9c3;
+            border: 1px solid rgba(252, 211, 77, 0.35);
+        }
+        .admin-pay-pill--upi {
+            background: rgba(167, 139, 250, 0.16);
+            color: #ede9fe;
+            border: 1px solid rgba(167, 139, 250, 0.38);
+        }
+        .admin-complete-pay-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
+            margin-top: 1rem;
+        }
+        .admin-pay-btn {
+            padding: 0.75rem 0.5rem;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            font: inherit;
+            font-weight: 800;
+            font-size: 0.8125rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .admin-pay-btn--cash {
+            background: linear-gradient(135deg, rgba(252, 211, 77, 0.25), rgba(245, 158, 11, 0.15));
+            border-color: rgba(252, 211, 77, 0.45);
+            color: #fef9c3;
+        }
+        .admin-pay-btn--upi {
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.28), rgba(99, 102, 241, 0.15));
+            border-color: rgba(167, 139, 250, 0.5);
+            color: #ede9fe;
+        }
+        .admin-pay-btn:disabled { opacity: 0.45; cursor: not-allowed; }
         .admin-order-id {
             font-weight: 700;
             font-size: 1rem;
@@ -911,7 +999,7 @@
     <header class="admin-header">
         <div>
             <h1>Baloji's Cafe — Orders</h1>
-            <p>Live list refreshes every few seconds. Use Accept → Preparing → Out for delivery.</p>
+            <p>Delivery: Accept → Preparing → Out for delivery → Complete (Cash/UPI). Floor KOTs are managed on the tables screen.</p>
         </div>
             <div class="admin-toolbar">
                 <a class="admin-icon-btn" href="/admin/tables" data-tip="Floor / tables" aria-label="Floor tables and KOTs" style="text-decoration:none;">▦</a>
@@ -948,25 +1036,36 @@
                 </div>
                 <div class="admin-analytics-grid">
                     <div class="admin-metric">
+                        <div class="admin-metric-label">Settled sales today</div>
+                        <div class="admin-metric-value" id="metricRevenueToday">—</div>
+                        <div class="admin-metric-hint" id="metricRevenueTodayHint">—</div>
+                    </div>
+                    <div class="admin-metric">
                         <div class="admin-metric-label">Orders today</div>
                         <div class="admin-metric-value" id="metricOrdersToday">—</div>
                         <div class="admin-metric-hint" id="metricOrdersTodayHint">—</div>
                     </div>
                     <div class="admin-metric">
-                        <div class="admin-metric-label">Revenue today</div>
-                        <div class="admin-metric-value" id="metricRevenueToday">—</div>
-                        <div class="admin-metric-hint" id="metricRevenueTodayHint">—</div>
-                    </div>
-                    <div class="admin-metric">
-                        <div class="admin-metric-label">Total orders</div>
+                        <div class="admin-metric-label">Delivery queue</div>
                         <div class="admin-metric-value" id="metricTotalOrders">—</div>
-                        <div class="admin-metric-hint">From loaded orders</div>
+                        <div class="admin-metric-hint" id="metricTotalOrdersHint">—</div>
                     </div>
                     <div class="admin-metric">
-                        <div class="admin-metric-label">Total earning</div>
+                        <div class="admin-metric-label">Floor live</div>
                         <div class="admin-metric-value" id="metricTotalEarning">—</div>
-                        <div class="admin-metric-hint">From loaded orders</div>
+                        <div class="admin-metric-hint" id="metricTotalEarningHint">—</div>
                     </div>
+                </div>
+                <div class="admin-analytics-totals" aria-label="List totals">
+                    <div class="admin-analytics-total-row">
+                        <span class="admin-analytics-total-label">Total orders</span>
+                        <span class="admin-analytics-total-value" id="metricAllLoadedOrders">—</span>
+                    </div>
+                    <div class="admin-analytics-total-row">
+                        <span class="admin-analytics-total-label">Total sale</span>
+                        <span class="admin-analytics-total-value" id="metricAllLoadedSale">—</span>
+                    </div>
+                    <p class="admin-analytics-total-hint">Same scope as “Loaded in admin”: all orders fetched from the server for this view. Sale is the sum of each order’s total amount.</p>
                 </div>
             </section>
 
@@ -988,13 +1087,15 @@
                     </button>
                 </div>
                 <div class="admin-insights">
-                    <div><strong>Avg order today:</strong> <span id="insightAvgOrderToday">—</span></div>
-                    <div><strong>Discounts today:</strong> <span id="insightDiscountsToday">—</span></div>
-                    <div><strong>Delivery today:</strong> <span id="insightDeliveryFeesToday">—</span></div>
+                    <div><strong>Settled today:</strong> <span id="insightSettledSplit">—</span></div>
+                    <div><strong>Cash / UPI today:</strong> <span id="insightCashUpiToday">—</span></div>
+                    <div><strong>Avg settled order:</strong> <span id="insightAvgOrderToday">—</span></div>
+                    <div><strong>Discounts (delivery):</strong> <span id="insightDiscountsToday">—</span></div>
+                    <div><strong>Delivery fees today:</strong> <span id="insightDeliveryFeesToday">—</span></div>
                     <div><strong>Oldest pending:</strong> <span id="insightOldestPending">—</span></div>
                     <div><strong>Oldest in-progress:</strong> <span id="insightOldestInProgress">—</span></div>
-                    <div><strong>Last 60 min:</strong> <span id="insightLast60Min">—</span></div>
-                    <div><strong>Kudachi vs outside:</strong> <span id="insightKudachiSplit">—</span></div>
+                    <div><strong>Last 60 min (delivery):</strong> <span id="insightLast60Min">—</span></div>
+                    <div><strong>Loaded in admin:</strong> <span id="insightLoadedOrders">—</span></div>
                 </div>
             </section>
         </aside>
@@ -1017,6 +1118,24 @@
         </div>
     </div>
 
-    <script src="/admin.js?v=4"></script>
+
+    <div id="adminCompletePayModal" class="admin-modal" hidden>
+        <div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminCompletePayTitle">
+            <div class="admin-modal-head">
+                <div>
+                    <div class="admin-modal-title" id="adminCompletePayTitle">Complete order</div>
+                    <div class="admin-modal-sub" id="adminCompletePaySubtitle">—</div>
+                </div>
+                <button type="button" id="adminCompletePayCloseBtn" class="admin-popup-close" aria-label="Close">Close</button>
+            </div>
+            <p class="admin-modal-sub" style="margin:0;">How did the customer pay?</p>
+            <div class="admin-complete-pay-row">
+                <button type="button" id="adminCompletePayCashBtn" class="admin-pay-btn admin-pay-btn--cash">Cash</button>
+                <button type="button" id="adminCompletePayUpiBtn" class="admin-pay-btn admin-pay-btn--upi">UPI</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin.js?v=6"></script>
 </body>
 </html>

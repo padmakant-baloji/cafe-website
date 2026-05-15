@@ -178,6 +178,27 @@ function kotFloorProgressLabel(o) {
     return 'Open on floor';
 }
 
+function orderPaymentMethod(o) {
+    const pm = String(readOrderMeta(o).payment_method || '')
+        .trim()
+        .toUpperCase();
+    return pm === 'CASH' || pm === 'UPI' ? pm : null;
+}
+
+function formatPaymentPillHtml(o) {
+    const pm = orderPaymentMethod(o);
+    if (pm === 'CASH') return '<span class="admin-pay-pill admin-pay-pill--cash">Cash</span>';
+    if (pm === 'UPI') return '<span class="admin-pay-pill admin-pay-pill--upi">UPI</span>';
+    return '';
+}
+
+function isDeliveryChannelOrder(o) {
+    const ch = String(o && o.channel ? o.channel : 'delivery')
+        .trim()
+        .toLowerCase();
+    return ch !== 'dine_in' && ch !== 'parcel';
+}
+
 function matchesAdminOrderSearch(order, q) {
     if (!q) return true;
     const id = String(order.id || '').toLowerCase();
@@ -242,14 +263,14 @@ async function fetchOrders() {
     return normalizeOrdersFromApi(data.orders || []);
 }
 
-async function patchOrder(orderId, action) {
+async function patchOrder(orderId, action, extra = {}) {
     const res = await fetch(`/api/admin/orders/${orderId}`, {
         method: 'PATCH',
         headers: {
             ...adminHeaders(),
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ action })
+        body: JSON.stringify({ action, ...extra })
     });
     const data = await res.json().catch(() => ({}));
     if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
@@ -322,92 +343,121 @@ function isSameLocalDay(a, b) {
 
 function computeAdminAnalytics(orders) {
     const now = new Date();
-    const todayOrders = [];
-    let pendingNow = 0;
-    let inProgressNow = 0;
-    let completedToday = 0;
-    let revenueToday = 0;
+    let deliveryPending = 0;
+    let deliveryInProgress = 0;
+    let kotActive = 0;
+    let kotActiveValue = 0;
+    let ordersTodayDelivery = 0;
+    let ordersTodayKot = 0;
+    let settledToday = 0;
+    let settledSalesToday = 0;
+    let settledDeliverySales = 0;
+    let settledKotSales = 0;
+    let cashSettledToday = 0;
+    let upiSettledToday = 0;
+    let cashCountToday = 0;
+    let upiCountToday = 0;
     let discountsToday = 0;
     let deliveryFeesToday = 0;
     let totalOrdersLoaded = 0;
-    let totalEarningLoaded = 0;
     let oldestPendingMs = null;
     let oldestInProgressMs = null;
-    let last60MinOrders = 0;
-    let last60MinRevenue = 0;
-    let kudachiCountLoaded = 0;
-    let outsideCountLoaded = 0;
+    let last60MinDelivery = 0;
+    let last60MinDeliveryRevenue = 0;
+    let totalSaleLoaded = 0;
 
     for (const o of orders || []) {
         totalOrdersLoaded += 1;
-        totalEarningLoaded += Number(o.total) || 0;
+        totalSaleLoaded += Number(o.total) || 0;
         const status = String(o.status || '');
         const kot = isKotFloorOrder(o);
-        if (!kot) {
-            if (status === 'pending') pendingNow += 1;
-            if (status === 'accepted' || status === 'preparing' || status === 'out_for_delivery') inProgressNow += 1;
+        const delivery = isDeliveryChannelOrder(o);
+        const total = Number(o.total) || 0;
+        const completed = status === 'completed';
+        const closed = completed || status === 'rejected' || status === 'cancelled';
+        const pm = orderPaymentMethod(o);
+
+        if (delivery) {
+            if (status === 'pending') deliveryPending += 1;
+            if (status === 'accepted' || status === 'preparing' || status === 'out_for_delivery') {
+                deliveryInProgress += 1;
+            }
+        } else if (kot && !closed) {
+            kotActive += 1;
+            kotActiveValue += total;
         }
 
         const createdAt = o.created_at ? new Date(o.created_at) : null;
-        if (!createdAt || Number.isNaN(createdAt.getTime())) {
-            // Still count city split even if timestamps are missing.
-            const cityLower = String(o.city || '').trim().toLowerCase();
-            if (cityLower === 'kudachi') kudachiCountLoaded += 1;
-            else if (cityLower) outsideCountLoaded += 1;
-            continue;
-        }
+        if (!createdAt || Number.isNaN(createdAt.getTime())) continue;
 
         const ageMs = now.getTime() - createdAt.getTime();
-        if (!kot) {
+        if (delivery) {
             if (status === 'pending') {
                 oldestPendingMs = oldestPendingMs == null ? ageMs : Math.max(oldestPendingMs, ageMs);
             }
             if (status === 'accepted' || status === 'preparing' || status === 'out_for_delivery') {
                 oldestInProgressMs = oldestInProgressMs == null ? ageMs : Math.max(oldestInProgressMs, ageMs);
             }
+            if (ageMs >= 0 && ageMs <= 60 * 60 * 1000) {
+                last60MinDelivery += 1;
+                last60MinDeliveryRevenue += total;
+            }
         }
-
-        if (ageMs >= 0 && ageMs <= 60 * 60 * 1000) {
-            last60MinOrders += 1;
-            last60MinRevenue += Number(o.total) || 0;
-        }
-
-        const cityLower = String(o.city || '').trim().toLowerCase();
-        if (cityLower === 'kudachi') kudachiCountLoaded += 1;
-        else if (cityLower) outsideCountLoaded += 1;
 
         if (!isSameLocalDay(createdAt, now)) continue;
 
-        todayOrders.push(o);
-        const total = Number(o.total) || 0;
-        revenueToday += total;
-        discountsToday += Number(o.discount) || 0;
-        deliveryFeesToday += Number(o.delivery_fee) || 0;
+        if (delivery) ordersTodayDelivery += 1;
+        else if (kot) ordersTodayKot += 1;
 
-        if (status === 'completed') completedToday += 1;
+        if (delivery) {
+            discountsToday += Number(o.discount) || 0;
+            deliveryFeesToday += Number(o.delivery_fee) || 0;
+        }
+
+        if (completed) {
+            settledToday += 1;
+            settledSalesToday += total;
+            if (delivery) settledDeliverySales += total;
+            else if (kot) settledKotSales += total;
+            if (pm === 'CASH') {
+                cashSettledToday += total;
+                cashCountToday += 1;
+            } else if (pm === 'UPI') {
+                upiSettledToday += total;
+                upiCountToday += 1;
+            }
+        }
     }
 
-    const ordersTodayCount = todayOrders.length;
-    const avgOrderToday = ordersTodayCount ? revenueToday / ordersTodayCount : 0;
+    const ordersTodayCount = ordersTodayDelivery + ordersTodayKot;
+    const avgSettledToday = settledToday ? settledSalesToday / settledToday : 0;
 
     return {
         updatedAt: now,
         ordersTodayCount,
-        revenueToday,
-        avgOrderToday,
-        totalOrdersLoaded,
-        totalEarningLoaded,
-        pendingNow,
-        inProgressNow,
-        completedToday,
+        ordersTodayDelivery,
+        ordersTodayKot,
+        deliveryPending,
+        deliveryInProgress,
+        kotActive,
+        kotActiveValue,
+        settledToday,
+        settledSalesToday,
+        settledDeliverySales,
+        settledKotSales,
+        cashSettledToday,
+        upiSettledToday,
+        cashCountToday,
+        upiCountToday,
+        avgSettledToday,
         discountsToday,
         deliveryFeesToday,
+        totalOrdersLoaded,
         oldestPendingMs,
         oldestInProgressMs,
-        last60MinOrders,
-        last60MinRevenue,
-        kudachiCountLoaded,
-        outsideCountLoaded
+        last60MinDelivery,
+        last60MinDeliveryRevenue,
+        totalSaleLoaded
     };
 }
 
@@ -446,26 +496,51 @@ function renderAdminAnalytics(orders) {
     const ordersTodayEl = document.getElementById('metricOrdersToday');
     if (ordersTodayEl) ordersTodayEl.textContent = String(data.ordersTodayCount);
     const ordersTodayHintEl = document.getElementById('metricOrdersTodayHint');
-    if (ordersTodayHintEl) ordersTodayHintEl.textContent = `Pending ${data.pendingNow} · In progress ${data.inProgressNow}`;
+    if (ordersTodayHintEl) {
+        ordersTodayHintEl.textContent = `Delivery ${data.ordersTodayDelivery} · Floor ${data.ordersTodayKot}`;
+    }
 
     const revenueEl = document.getElementById('metricRevenueToday');
-    if (revenueEl) revenueEl.textContent = formatMoney(data.revenueToday);
+    if (revenueEl) revenueEl.textContent = formatMoney(data.settledSalesToday);
     const revenueHintEl = document.getElementById('metricRevenueTodayHint');
     if (revenueHintEl) {
-        const parts = [];
-        if (data.deliveryFeesToday > 0) parts.push(`Delivery ${formatMoney(data.deliveryFeesToday)}`);
-        if (data.discountsToday > 0) parts.push(`Discounts ${formatMoney(data.discountsToday)}`);
-        revenueHintEl.textContent = parts.length ? parts.join(' · ') : '—';
+        revenueHintEl.textContent = `Online ${formatMoney(data.settledDeliverySales)} · KOT ${formatMoney(data.settledKotSales)}`;
     }
 
     const totalOrdersEl = document.getElementById('metricTotalOrders');
-    if (totalOrdersEl) totalOrdersEl.textContent = String(data.totalOrdersLoaded);
+    if (totalOrdersEl) totalOrdersEl.textContent = String(data.deliveryPending + data.deliveryInProgress);
+    const totalOrdersHintEl = document.getElementById('metricTotalOrdersHint');
+    if (totalOrdersHintEl) {
+        totalOrdersHintEl.textContent = `Pending ${data.deliveryPending} · In progress ${data.deliveryInProgress}`;
+    }
 
     const totalEarnEl = document.getElementById('metricTotalEarning');
-    if (totalEarnEl) totalEarnEl.textContent = formatMoney(data.totalEarningLoaded);
+    if (totalEarnEl) totalEarnEl.textContent = String(data.kotActive);
+    const totalEarnHintEl = document.getElementById('metricTotalEarningHint');
+    if (totalEarnHintEl) {
+        totalEarnHintEl.textContent =
+            data.kotActive > 0
+                ? `Open bills ${formatMoney(data.kotActiveValue)}`
+                : 'No live floor sessions';
+    }
+
+    const allLoadedCountEl = document.getElementById('metricAllLoadedOrders');
+    if (allLoadedCountEl) allLoadedCountEl.textContent = String(data.totalOrdersLoaded);
+    const allLoadedSaleEl = document.getElementById('metricAllLoadedSale');
+    if (allLoadedSaleEl) allLoadedSaleEl.textContent = formatMoney(data.totalSaleLoaded);
 
     const avgTodayEl = document.getElementById('insightAvgOrderToday');
-    if (avgTodayEl) avgTodayEl.textContent = formatMoney(data.avgOrderToday);
+    if (avgTodayEl) avgTodayEl.textContent = formatMoney(data.avgSettledToday);
+
+    const settledSplitEl = document.getElementById('insightSettledSplit');
+    if (settledSplitEl) {
+        settledSplitEl.textContent = `${data.settledToday} settled · ${data.cashCountToday} cash · ${data.upiCountToday} UPI`;
+    }
+
+    const cashUpiEl = document.getElementById('insightCashUpiToday');
+    if (cashUpiEl) {
+        cashUpiEl.textContent = `${formatMoney(data.cashSettledToday)} cash · ${formatMoney(data.upiSettledToday)} UPI`;
+    }
 
     const discountsEl = document.getElementById('insightDiscountsToday');
     if (discountsEl) discountsEl.textContent = formatMoney(data.discountsToday);
@@ -485,15 +560,11 @@ function renderAdminAnalytics(orders) {
 
     const last60El = document.getElementById('insightLast60Min');
     if (last60El) {
-        last60El.textContent = `${data.last60MinOrders} orders · ${formatMoney(data.last60MinRevenue)}`;
+        last60El.textContent = `${data.last60MinDelivery} delivery · ${formatMoney(data.last60MinDeliveryRevenue)}`;
     }
 
-    const splitEl = document.getElementById('insightKudachiSplit');
-    if (splitEl) {
-        const total = (data.kudachiCountLoaded || 0) + (data.outsideCountLoaded || 0);
-        if (!total) splitEl.textContent = '—';
-        else splitEl.textContent = `${data.kudachiCountLoaded} / ${data.outsideCountLoaded}`;
-    }
+    const loadedEl = document.getElementById('insightLoadedOrders');
+    if (loadedEl) loadedEl.textContent = String(data.totalOrdersLoaded);
 }
 
 function buildDeliveryOrderArticleHtml(o) {
@@ -523,19 +594,23 @@ function buildDeliveryOrderArticleHtml(o) {
     } else if (o.status === 'out_for_delivery') {
         statusActions = `
                     <button type="button" class="admin-btn admin-btn--cancel" data-action="cancel" data-id="${id}">Cancel</button>
-                    <button type="button" class="admin-btn admin-btn--complete" data-action="completed" data-id="${id}">Complete order</button>
+                    <button type="button" class="admin-btn admin-btn--complete" data-action="complete-prompt" data-id="${id}">Complete order</button>
                 `;
     }
     const actions = `${copyBtn}${statusActions}`;
 
     const when = o.created_at ? new Date(o.created_at).toLocaleString() : '';
     const deliveryAddress = formatDeliveryAddress(o.delivery_address);
+    const payPill = o.status === 'completed' ? formatPaymentPillHtml(o) : '';
 
     return `
                 <article class="admin-order admin-order--${escapeHtml(o.status)}" data-order-id="${id}">
                     <header class="admin-order-head">
                         <span class="admin-order-id">#${escapeHtml(id)}</span>
-                        <span class="admin-order-status admin-order-status--${escapeHtml(o.status)}">${escapeHtml(statusLabel(o.status))}</span>
+                        <span class="admin-order-head-badges">
+                            ${payPill}
+                            <span class="admin-order-status admin-order-status--${escapeHtml(o.status)}">${escapeHtml(statusLabel(o.status))}</span>
+                        </span>
                     </header>
                     <div class="admin-order-meta">
                         <strong>${escapeHtml(o.name || '')}</strong>
@@ -570,12 +645,16 @@ function buildKotOrderArticleHtml(o) {
         nk > 0
             ? `${nk} ticket${nk === 1 ? '' : 's'}`
             : 'No tickets yet';
+    const payPill = o.status === 'completed' ? formatPaymentPillHtml(o) : '';
 
     return `
                 <article class="admin-order admin-order--kot" data-order-id="${id}">
                     <header class="admin-order-head admin-order-head--kot">
                         <span class="admin-order-id">#${escapeHtml(id)}</span>
-                        <span class="admin-kot-ribbon" title="Floor kitchen ticket order">${escapeHtml(ch)}</span>
+                        <span class="admin-order-head-badges">
+                            ${payPill}
+                            <span class="admin-kot-ribbon" title="Floor kitchen ticket order">${escapeHtml(ch)}</span>
+                        </span>
                     </header>
                     <div class="admin-kot-subhead">
                         <span class="admin-kot-slot">${escapeHtml(slot)}</span>
@@ -636,6 +715,7 @@ function buildOrderCopyText(order) {
     const city = String(order?.city ?? '').trim();
     const address = formatDeliveryAddress(order?.delivery_address);
     const when = order?.created_at ? new Date(order.created_at).toLocaleString() : '';
+    const pm = orderPaymentMethod(order);
 
     const lines = [
         `Baloji's Cafe — Order #${id}`,
@@ -644,6 +724,7 @@ function buildOrderCopyText(order) {
         mobile ? `Mobile: ${mobile}` : '',
         city ? `City: ${city}` : '',
         address ? `Address: ${address}` : '',
+        pm ? `Payment: ${pm}` : '',
         '',
         'Items:',
         ...formatItems(order?.items)
@@ -873,6 +954,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const popupCloseBtn = document.getElementById('adminNewOrderCloseBtn');
     const popupAcceptBtn = document.getElementById('adminNewOrderAcceptBtn');
     const popupCancelBtn = document.getElementById('adminNewOrderCancelBtn');
+    const payModalEl = document.getElementById('adminCompletePayModal');
+    const payModalTitleEl = document.getElementById('adminCompletePayTitle');
+    const payModalSubEl = document.getElementById('adminCompletePaySubtitle');
+    const payModalCloseBtn = document.getElementById('adminCompletePayCloseBtn');
+    const payModalCashBtn = document.getElementById('adminCompletePayCashBtn');
+    const payModalUpiBtn = document.getElementById('adminCompletePayUpiBtn');
+    let completePayOrderId = null;
 
     fillAdminDefaults();
 
@@ -910,6 +998,59 @@ document.addEventListener('DOMContentLoaded', () => {
         newOrderPopupOpen = true;
         newOrderPopupOrderId = id;
     }
+
+    function hideCompletePayModal() {
+        if (payModalEl) payModalEl.hidden = true;
+        completePayOrderId = null;
+        if (payModalCashBtn) payModalCashBtn.disabled = false;
+        if (payModalUpiBtn) payModalUpiBtn.disabled = false;
+    }
+
+    function showCompletePayModal(orderId) {
+        if (!payModalEl) return;
+        const order = (lastOrders || []).find((o) => String(o.id) === String(orderId));
+        completePayOrderId = String(orderId);
+        if (payModalTitleEl) payModalTitleEl.textContent = `Complete order #${orderId}`;
+        if (payModalSubEl) {
+            payModalSubEl.textContent = order
+                ? `${order.name || 'Customer'} · ${formatMoney(order.total)} — choose how they paid`
+                : 'Choose how the customer paid';
+        }
+        payModalEl.hidden = false;
+    }
+
+    async function completeOrderWithPayment(paymentMethod) {
+        const id = completePayOrderId;
+        if (!id) return;
+        if (payModalCashBtn) payModalCashBtn.disabled = true;
+        if (payModalUpiBtn) payModalUpiBtn.disabled = true;
+        try {
+            await patchOrder(id, 'completed', { payment_method: paymentMethod });
+            hideCompletePayModal();
+            activeOrderTab = 'completed';
+            window.location.hash = '#completed';
+            showToast(`Order #${id} completed · ${paymentMethod}`);
+            await refresh();
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                hideCompletePayModal();
+                showAdminGate('Session expired. Enter admin credentials again.');
+            } else {
+                alert(err.message || 'Update failed');
+            }
+        } finally {
+            if (payModalCashBtn) payModalCashBtn.disabled = false;
+            if (payModalUpiBtn) payModalUpiBtn.disabled = false;
+        }
+    }
+
+    payModalCloseBtn?.addEventListener('click', hideCompletePayModal);
+    payModalEl?.addEventListener('click', (e) => {
+        if (e.target === payModalEl) hideCompletePayModal();
+    });
+    payModalCashBtn?.addEventListener('click', () => completeOrderWithPayment('CASH'));
+    payModalUpiBtn?.addEventListener('click', () => completeOrderWithPayment('UPI'));
 
     function getCountsByStatus(orders) {
         const counts = {};
@@ -987,15 +1128,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const lines = [
             `Baloji's Cafe — Today summary`,
             `Updated: ${data.updatedAt.toLocaleString()}`,
-            `Orders today: ${data.ordersTodayCount}`,
-            `Revenue today: ${formatMoney(data.revenueToday)}`,
-            `Avg order today: ${formatMoney(data.avgOrderToday)}`,
-            `Discounts today: ${formatMoney(data.discountsToday)}`,
-            `Delivery today: ${formatMoney(data.deliveryFeesToday)}`,
-            `Last 60 min: ${data.last60MinOrders} orders · ${formatMoney(data.last60MinRevenue)}`,
+            `Orders today: ${data.ordersTodayCount} (delivery ${data.ordersTodayDelivery} · floor ${data.ordersTodayKot})`,
+            `Settled sales: ${formatMoney(data.settledSalesToday)} (online ${formatMoney(data.settledDeliverySales)} · KOT ${formatMoney(data.settledKotSales)})`,
+            `Payments: ${formatMoney(data.cashSettledToday)} cash (${data.cashCountToday}) · ${formatMoney(data.upiSettledToday)} UPI (${data.upiCountToday})`,
+            `Delivery queue: pending ${data.deliveryPending} · in progress ${data.deliveryInProgress}`,
+            `Floor live: ${data.kotActive} sessions · ${formatMoney(data.kotActiveValue)} open`,
+            `Avg settled order: ${formatMoney(data.avgSettledToday)}`,
+            `Discounts today (delivery): ${formatMoney(data.discountsToday)}`,
+            `Delivery fees today: ${formatMoney(data.deliveryFeesToday)}`,
+            `Last 60 min (delivery): ${data.last60MinDelivery} orders · ${formatMoney(data.last60MinDeliveryRevenue)}`,
             `Oldest pending: ${data.oldestPendingMs == null ? '—' : formatDuration(data.oldestPendingMs)}`,
             `Oldest in-progress: ${data.oldestInProgressMs == null ? '—' : formatDuration(data.oldestInProgressMs)}`,
-            `Loaded totals: ${data.totalOrdersLoaded} orders · ${formatMoney(data.totalEarningLoaded)}`
+            `Loaded in admin: ${data.totalOrdersLoaded} orders · ${formatMoney(data.totalSaleLoaded)} total sale`
         ];
         const ok = await safeClipboardWrite(lines.join('\n'));
         showToast(ok ? 'Summary copied' : 'Could not copy summary');
@@ -1270,6 +1414,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const text = order ? buildOrderCopyText(order) : '';
             const ok = text ? await safeClipboardWrite(text) : false;
             showToast(ok ? `Order #${id} copied` : 'Could not copy order');
+            return;
+        }
+
+        if (action === 'complete-prompt') {
+            showCompletePayModal(id);
             return;
         }
 
