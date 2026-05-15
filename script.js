@@ -58,6 +58,30 @@ function getAuthHeaders() {
     return h;
 }
 
+function apiFailureMessage(res, rawText, data) {
+    const errField =
+        data && typeof data.error === 'string' && data.error.trim() ? data.error.trim() : '';
+    if (errField) return errField;
+    const status = res.status;
+    const text = String(rawText || '').trim();
+    if (text.startsWith('<')) {
+        if (status === 404) {
+            return 'Could not reach the login service. Refresh the page or update the app and try again.';
+        }
+        return `Something went wrong (${status}). Please try again.`;
+    }
+    if (status === 404) {
+        return 'Could not reach the login service (404). Refresh and try again.';
+    }
+    if (status === 502 || status === 503) {
+        return 'Server is busy. Please try again in a moment.';
+    }
+    if (status >= 500) {
+        return 'Server error. Please try again later.';
+    }
+    return text.slice(0, 280) || `Could not continue (${status}).`;
+}
+
 /** @type {{ customerId?: string, name: string, city: string, mobile: string } | null} */
 let currentCustomer = null;
 
@@ -235,8 +259,14 @@ function initSessionGate() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mobile })
             });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || 'Could not continue');
+            const raw = await res.text();
+            let data = {};
+            try {
+                data = raw ? JSON.parse(raw) : {};
+            } catch {
+                data = {};
+            }
+            if (!res.ok) throw new Error(apiFailureMessage(res, raw, data));
             if (data.exists && data.token) {
                 setCustomerToken(data.token);
                 currentCustomer = data.customer;
@@ -281,8 +311,14 @@ function initSessionGate() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mobile, name, city, addressLine })
             });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || 'Could not register');
+            const raw = await res.text();
+            let data = {};
+            try {
+                data = raw ? JSON.parse(raw) : {};
+            } catch {
+                data = {};
+            }
+            if (!res.ok) throw new Error(apiFailureMessage(res, raw, data));
             setCustomerToken(data.token);
             currentCustomer = data.customer;
             hideSessionGate();
