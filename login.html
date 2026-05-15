@@ -85,6 +85,19 @@
             font-size: 0.875rem;
             color: #fca5a5;
         }
+        .login-legal {
+            margin: 1rem 0 0;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+        .login-legal a {
+            color: #94a3b8;
+            text-decoration: none;
+        }
+        .login-legal a:hover {
+            color: #cbd5e1;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -118,6 +131,9 @@
         </section>
 
         <p class="error" id="gateError" hidden></p>
+        <p class="login-legal">
+            <a href="/privacy-policy">Privacy Policy</a>
+        </p>
     </main>
 
     <script src="/login.js?v=2" defer></script>

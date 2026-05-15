@@ -8203,3 +8203,150 @@ body.app-mobile .app-tab {
     min-height: 48px;
 }
 
+/* —— Legal pages (privacy policy, etc.) —— */
+body.legal-page {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #f8fafc;
+    color: #0f172a;
+    line-height: 1.6;
+}
+
+.legal-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.95);
+    border-bottom: 1px solid #e2e8f0;
+    backdrop-filter: blur(8px);
+}
+
+.legal-header-inner {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.legal-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.legal-brand img {
+    border-radius: 10px;
+}
+
+.legal-back-link {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #15803d;
+    text-decoration: none;
+}
+
+.legal-back-link:hover {
+    text-decoration: underline;
+}
+
+.legal-main {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+}
+
+.legal-article h1 {
+    margin: 0 0 0.75rem;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #14532d;
+    line-height: 1.25;
+}
+
+.legal-updated {
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+    color: #64748b;
+}
+
+.legal-lead {
+    margin: 0 0 1.5rem;
+    font-size: 1rem;
+    color: #334155;
+}
+
+.legal-article section {
+    margin-bottom: 1.5rem;
+}
+
+.legal-article h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #166534;
+}
+
+.legal-article p,
+.legal-article li {
+    font-size: 0.9375rem;
+    color: #334155;
+}
+
+.legal-article ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.25rem;
+}
+
+.legal-article li {
+    margin-bottom: 0.35rem;
+}
+
+.legal-article a {
+    color: #15803d;
+    font-weight: 500;
+}
+
+.legal-article a:hover {
+    text-decoration: underline;
+}
+
+.legal-article code {
+    font-size: 0.85em;
+    background: #ecfdf5;
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+}
+
+.legal-address {
+    margin: 0.75rem 0 0;
+    font-style: normal;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: #334155;
+}
+
+.legal-footer {
+    border-top: 1px solid #e2e8f0;
+    padding: 1.25rem 1rem 2rem;
+    text-align: center;
+    font-size: 0.8125rem;
+    color: #64748b;
+}
+
+.legal-footer a {
+    color: #15803d;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.legal-footer a:hover {
+    text-decoration: underline;
+}
+

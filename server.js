@@ -387,6 +387,10 @@ app.get('/profile', (req, res) => {
     res.sendFile(path.join(ROOT, 'profile.html'));
 });
 
+app.get('/privacy-policy', (req, res) => {
+    res.sendFile(path.join(ROOT, 'privacy-policy.html'));
+});
+
 app.use(express.static(ROOT));
 
 app.listen(PORT, () => {

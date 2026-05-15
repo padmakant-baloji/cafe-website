@@ -17,6 +17,8 @@ Desktop.ini
 .project
 .classpath
 .settings/
+*.sublime-workspace
+*.sublime-project
 
 # --- Logs ---
 *.log
@@ -63,12 +65,14 @@ coverage/
 
 # --- Misc build / temp ---
 dist/
-build/
 tmp/
 temp/
 *.tmp
 *.temp
 .cache/
+
+# Root "build/" only (do not use bare build/ — it is too broad for monorepos)
+/build/
 
 # --- Android TWA (Bubblewrap / Gradle) ---
 # Signing keys — never commit
@@ -76,9 +80,19 @@ android-twa/**/*.keystore
 android-twa/**/*.jks
 android-twa/android-release.keystore
 
+# Release binaries & Play Store artifacts
+android-twa/**/*.apk
+android-twa/**/*.aab
+android-twa/**/*.ap_
+android-twa/**/*.dex
+android-twa/**/*.idsig
+android-twa/app-release-*
+
 # Gradle & Android Studio
 android-twa/.gradle/
 android-twa/**/.gradle/
+android-twa/build/
+android-twa/**/build/
 android-twa/local.properties
 android-twa/**/local.properties
 android-twa/.idea/
@@ -86,15 +100,9 @@ android-twa/**/*.iml
 android-twa/captures/
 android-twa/.externalNativeBuild/
 android-twa/.cxx/
+android-twa/**/*.hprof
 
-# Build outputs
-android-twa/**/build/
-android-twa/**/*.apk
-android-twa/**/*.aab
-android-twa/**/*.ap_
-android-twa/**/*.dex
-
-# Bubblewrap local config (machine-specific paths)
+# Bubblewrap machine-specific config
 android-twa/.bubblewrap/
 
 # --- Optional local tooling ---
