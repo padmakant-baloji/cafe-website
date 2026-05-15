@@ -13,7 +13,8 @@
     "android:sync-assetlinks": "node scripts/android-sync-assetlinks.js",
     "android:update": "cd android-twa && bubblewrap update",
     "android:build": "cd android-twa && bubblewrap build",
-    "android:install": "cd android-twa && bubblewrap install"
+    "android:install": "cd android-twa && bubblewrap install",
+    "android:check": "bash scripts/android-play-readiness.sh"
   },
   "engines": {
     "node": ">=18"

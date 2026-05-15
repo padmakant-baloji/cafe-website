@@ -51,15 +51,69 @@ Install on a connected device:
 yarn android:install
 ```
 
-## Google Play Console
+## Before you submit (required)
 
-1. Create a [Google Play Developer](https://play.google.com/console) account ($25 one-time).
-2. **Create app** → name: Baloji's Cafe.
-3. **Release** → Production → Create new release → upload `app-release-bundle.aab`.
-4. Complete **Store listing** (description, screenshots, icon 512×512, feature graphic).
-5. **Privacy policy** URL (required) — host a page on your site.
-6. **Content rating** questionnaire.
-7. **Target audience** and **Data safety** forms.
+```bash
+yarn android:check
+```
+
+1. **Asset links** — must not show `REPLACE_WITH_SHA256_FINGERPRINT` on the live site:
+   ```bash
+   KEYSTORE_PASSWORD=your_password yarn android:sync-assetlinks
+   ```
+   Deploy, then open https://www.balojicafe.com/.well-known/assetlinks.json
+
+2. **Privacy policy** (live): https://www.balojicafe.com/privacy-policy
+
+3. **Upload file**: `android-twa/app-release-bundle.aab` (not the `.apk`)
+
+## Google Play Console — step by step
+
+1. [Create a developer account](https://play.google.com/console/signup) ($25 one-time fee).
+2. **Create app** → App name: `Baloji's Cafe` → Default language: English (India) → App / Game: App → Free.
+3. **Dashboard** — complete every item under “Set up your app” (required before production):
+
+   | Section | What to enter |
+   |--------|----------------|
+   | **App access** | All functionality available without special access (or explain login if asked). |
+   | **Ads** | No, app does not contain ads. |
+   | **Content rating** | Start questionnaire → category “Utility, Productivity, Communication, or Other” / food ordering → answer honestly (no violence, etc.). |
+   | **Target audience** | 18+ or 13+ as appropriate; not designed for children. |
+   | **News app** | No. |
+   | **COVID-19** | No (if shown). |
+   | **Data safety** | Collect: name, phone, address, app activity (orders). Purpose: app functionality. Not sold. Encrypted in transit. See privacy policy URL. |
+   | **Privacy policy** | `https://www.balojicafe.com/privacy-policy` |
+   | **Store listing** | Short & full description (below), app icon 512×512, feature graphic 1024×500, ≥2 phone screenshots. |
+   | **Main store listing contact** | Phone +91 9900582650, website https://www.balojicafe.com |
+
+4. **Release** → **Production** → **Create new release** → Upload `app-release-bundle.aab`.
+5. **Release name**: `1.0.0` (match `appVersion` in `twa-manifest.json`).
+6. **Review and roll out** → Submit for review (first review often takes 1–7 days).
+
+### Store listing text (copy-paste)
+
+**Short description** (max 80 chars):
+
+```
+Order veg food from Baloji's Cafe, Kudachi. Menu, cart & live order tracking.
+```
+
+**Full description**:
+
+```
+Order vegetarian food online from Baloji's Cafe in Kudachi.
+
+• Browse our full menu — pizza, Chinese, momos, beverages & more
+• Add items to cart and place orders for delivery
+• Track order status in the app
+• Free delivery in Kudachi (see website for hours)
+
+Open 1 PM – 10 PM daily.
+
+Pickup: Opp. Railway Station, Near Bus Stop, Kudachi – 591311.
+
+Questions? Call or WhatsApp us from the website.
+```
 
 ### App signing (important)
 
