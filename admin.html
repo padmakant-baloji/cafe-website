@@ -348,6 +348,63 @@
             font-size: 0.7rem;
         }
 
+        .admin-metric--cash {
+            border-color: rgba(252, 211, 77, 0.35);
+            background: rgba(252, 211, 77, 0.06);
+        }
+        .admin-metric--cash .admin-metric-value {
+            color: #fef9c3;
+        }
+        .admin-metric--upi {
+            border-color: rgba(167, 139, 250, 0.38);
+            background: rgba(167, 139, 250, 0.08);
+        }
+        .admin-metric--upi .admin-metric-value {
+            color: #ede9fe;
+        }
+
+        .admin-payment-split {
+            margin-top: 0.75rem;
+        }
+        .admin-payment-split[hidden] {
+            display: none !important;
+        }
+        .admin-payment-split-bar {
+            display: flex;
+            height: 0.45rem;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(148, 163, 184, 0.2);
+        }
+        .admin-payment-split-cash {
+            display: block;
+            height: 100%;
+            background: linear-gradient(90deg, #ca8a04, #fde047);
+            min-width: 0;
+        }
+        .admin-payment-split-upi {
+            display: block;
+            height: 100%;
+            background: linear-gradient(90deg, #7c3aed, #c4b5fd);
+            min-width: 0;
+        }
+        .admin-payment-split-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.35rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--muted);
+        }
+        .admin-payment-split-note {
+            margin-top: 0.4rem;
+            font-size: 0.7rem;
+            color: rgba(252, 211, 77, 0.85);
+        }
+        .admin-payment-split-note[hidden] {
+            display: none !important;
+        }
+
         .admin-layout {
             max-width: 720px;
             margin: 0 auto;
@@ -1055,7 +1112,19 @@
                         <div class="admin-metric-value" id="metricTotalEarning">—</div>
                         <div class="admin-metric-hint" id="metricTotalEarningHint">—</div>
                     </div>
+                    <div class="admin-metric admin-metric--cash">
+                        <div class="admin-metric-label">Cash sales today</div>
+                        <div class="admin-metric-value" id="metricCashToday">—</div>
+                        <div class="admin-metric-hint" id="metricCashTodayHint">—</div>
+                    </div>
+                    <div class="admin-metric admin-metric--upi">
+                        <div class="admin-metric-label">UPI sales today</div>
+                        <div class="admin-metric-value" id="metricUpiToday">—</div>
+                        <div class="admin-metric-hint" id="metricUpiTodayHint">—</div>
+                    </div>
                 </div>
+                <div class="admin-payment-split" id="metricPaymentSplit" hidden aria-label="Cash vs UPI share of settled sales today"></div>
+                <p class="admin-payment-split-note" id="metricPaymentSplitNote" hidden></p>
                 <div class="admin-analytics-totals" aria-label="List totals">
                     <div class="admin-analytics-total-row">
                         <span class="admin-analytics-total-label">Total orders</span>
@@ -1136,6 +1205,6 @@
         </div>
     </div>
 
-    <script src="/admin.js?v=6"></script>
+    <script src="/admin.js?v=7"></script>
 </body>
 </html>

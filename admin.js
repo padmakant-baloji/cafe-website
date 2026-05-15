@@ -341,6 +341,19 @@ function isSameLocalDay(a, b) {
     );
 }
 
+/** Completed orders: use settlement time; others use created time. */
+function orderDayForAnalytics(o, status) {
+    if (status === 'completed' && o.updated_at) {
+        const u = new Date(o.updated_at);
+        if (!Number.isNaN(u.getTime())) return u;
+    }
+    if (o.created_at) {
+        const c = new Date(o.created_at);
+        if (!Number.isNaN(c.getTime())) return c;
+    }
+    return null;
+}
+
 function computeAdminAnalytics(orders) {
     const now = new Date();
     let deliveryPending = 0;
@@ -357,6 +370,8 @@ function computeAdminAnalytics(orders) {
     let upiSettledToday = 0;
     let cashCountToday = 0;
     let upiCountToday = 0;
+    let unknownSettledToday = 0;
+    let unknownCountToday = 0;
     let discountsToday = 0;
     let deliveryFeesToday = 0;
     let totalOrdersLoaded = 0;
@@ -404,17 +419,20 @@ function computeAdminAnalytics(orders) {
             }
         }
 
-        if (!isSameLocalDay(createdAt, now)) continue;
+        if (isSameLocalDay(createdAt, now)) {
+            if (delivery) ordersTodayDelivery += 1;
+            else if (kot) ordersTodayKot += 1;
 
-        if (delivery) ordersTodayDelivery += 1;
-        else if (kot) ordersTodayKot += 1;
-
-        if (delivery) {
-            discountsToday += Number(o.discount) || 0;
-            deliveryFeesToday += Number(o.delivery_fee) || 0;
+            if (delivery) {
+                discountsToday += Number(o.discount) || 0;
+                deliveryFeesToday += Number(o.delivery_fee) || 0;
+            }
         }
 
         if (completed) {
+            const settledDay = orderDayForAnalytics(o, status);
+            if (!settledDay || !isSameLocalDay(settledDay, now)) continue;
+
             settledToday += 1;
             settledSalesToday += total;
             if (delivery) settledDeliverySales += total;
@@ -425,6 +443,9 @@ function computeAdminAnalytics(orders) {
             } else if (pm === 'UPI') {
                 upiSettledToday += total;
                 upiCountToday += 1;
+            } else {
+                unknownSettledToday += total;
+                unknownCountToday += 1;
             }
         }
     }
@@ -449,6 +470,8 @@ function computeAdminAnalytics(orders) {
         upiSettledToday,
         cashCountToday,
         upiCountToday,
+        unknownSettledToday,
+        unknownCountToday,
         avgSettledToday,
         discountsToday,
         deliveryFeesToday,
@@ -505,6 +528,59 @@ function renderAdminAnalytics(orders) {
     const revenueHintEl = document.getElementById('metricRevenueTodayHint');
     if (revenueHintEl) {
         revenueHintEl.textContent = `Online ${formatMoney(data.settledDeliverySales)} · KOT ${formatMoney(data.settledKotSales)}`;
+    }
+
+    const cashTodayEl = document.getElementById('metricCashToday');
+    if (cashTodayEl) cashTodayEl.textContent = formatMoney(data.cashSettledToday);
+    const cashTodayHintEl = document.getElementById('metricCashTodayHint');
+    if (cashTodayHintEl) {
+        cashTodayHintEl.textContent =
+            data.cashCountToday > 0
+                ? `${data.cashCountToday} settled order${data.cashCountToday === 1 ? '' : 's'}`
+                : 'No cash settlements today';
+    }
+
+    const upiTodayEl = document.getElementById('metricUpiToday');
+    if (upiTodayEl) upiTodayEl.textContent = formatMoney(data.upiSettledToday);
+    const upiTodayHintEl = document.getElementById('metricUpiTodayHint');
+    if (upiTodayHintEl) {
+        upiTodayHintEl.textContent =
+            data.upiCountToday > 0
+                ? `${data.upiCountToday} settled order${data.upiCountToday === 1 ? '' : 's'}`
+                : 'No UPI settlements today';
+    }
+
+    const paymentSplitEl = document.getElementById('metricPaymentSplit');
+    if (paymentSplitEl) {
+        const paidTotal = data.cashSettledToday + data.upiSettledToday;
+        const cashPct = paidTotal > 0 ? Math.round((data.cashSettledToday / paidTotal) * 100) : 0;
+        const upiPct = paidTotal > 0 ? 100 - cashPct : 0;
+        if (paidTotal > 0) {
+            paymentSplitEl.hidden = false;
+            paymentSplitEl.innerHTML = `
+                <div class="admin-payment-split-bar" aria-hidden="true">
+                    <span class="admin-payment-split-cash" style="width:${cashPct}%"></span>
+                    <span class="admin-payment-split-upi" style="width:${upiPct}%"></span>
+                </div>
+                <div class="admin-payment-split-labels">
+                    <span>Cash ${cashPct}%</span>
+                    <span>UPI ${upiPct}%</span>
+                </div>`;
+        } else {
+            paymentSplitEl.hidden = true;
+            paymentSplitEl.innerHTML = '';
+        }
+    }
+
+    const paymentSplitNoteEl = document.getElementById('metricPaymentSplitNote');
+    if (paymentSplitNoteEl) {
+        if (data.unknownCountToday > 0) {
+            paymentSplitNoteEl.hidden = false;
+            paymentSplitNoteEl.textContent = `${data.unknownCountToday} settled today without payment recorded (${formatMoney(data.unknownSettledToday)})`;
+        } else {
+            paymentSplitNoteEl.hidden = true;
+            paymentSplitNoteEl.textContent = '';
+        }
     }
 
     const totalOrdersEl = document.getElementById('metricTotalOrders');
