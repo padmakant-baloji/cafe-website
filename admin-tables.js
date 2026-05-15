@@ -23,6 +23,10 @@ let lastApiFloorRows = [];
 let selectedOrderId = null;
 let menuFlat = [];
 let menuLoadPromise = null;
+let kotSuggestFloatEl = null;
+let kotSuggestRepositionHandler = null;
+/** @type {HTMLElement|null} Row whose name field is active (menu picks apply here). */
+let kotComposerActiveRow = null;
 
 function loadCreds() {
     try {
@@ -211,6 +215,84 @@ function refreshOpenKotSuggestions() {
         if (inp !== active && !(inp.value || '').trim()) return;
         const lineBox = row.closest('#kotLineInputs');
         if (lineBox) handleKotComposerInput(row, lineBox);
+    });
+}
+
+function getKotSuggestFloat() {
+    if (!kotSuggestFloatEl) {
+        kotSuggestFloatEl = document.createElement('ul');
+        kotSuggestFloatEl.className = 'kot-suggest kot-suggest--float';
+        kotSuggestFloatEl.hidden = true;
+        kotSuggestFloatEl.setAttribute('role', 'listbox');
+        document.body.appendChild(kotSuggestFloatEl);
+    }
+    return kotSuggestFloatEl;
+}
+
+function positionKotSuggestFloat(inp) {
+    const ul = getKotSuggestFloat();
+    const rect = inp.getBoundingClientRect();
+    const gap = 4;
+    const maxH = Math.min(280, Math.max(100, window.innerHeight - rect.bottom - gap - 16));
+    ul.style.left = `${Math.max(8, rect.left)}px`;
+    ul.style.width = `${Math.min(rect.width, window.innerWidth - 16)}px`;
+    ul.style.top = `${rect.bottom + gap}px`;
+    ul.style.maxHeight = `${maxH}px`;
+}
+
+function attachKotSuggestReposition(inp) {
+    detachKotSuggestReposition();
+    const fn = () => positionKotSuggestFloat(inp);
+    kotSuggestRepositionHandler = fn;
+    window.addEventListener('scroll', fn, true);
+    window.addEventListener('resize', fn);
+}
+
+function detachKotSuggestReposition() {
+    if (!kotSuggestRepositionHandler) return;
+    window.removeEventListener('scroll', kotSuggestRepositionHandler, true);
+    window.removeEventListener('resize', kotSuggestRepositionHandler);
+    kotSuggestRepositionHandler = null;
+}
+
+function setKotComposerActiveRow(row) {
+    kotComposerActiveRow = row || null;
+    document.querySelectorAll('.kot-line-row').forEach((r) => {
+        r.classList.toggle('kot-line-row--active', r === row);
+    });
+}
+
+function setKotMenuBrowserOpen(kotMenuBrowser, toggleBtn, lineBox, open) {
+    const wrap = kotMenuBrowser?.closest('.kot-menu-browser-wrap');
+    if (!kotMenuBrowser || !wrap) return;
+    wrap.hidden = !open;
+    kotMenuBrowser.hidden = !open;
+    if (toggleBtn) {
+        toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggleBtn.textContent = open ? 'Hide full menu' : 'Show full menu';
+    }
+    if (open) {
+        void loadMenuForKots().then(() => {
+            delete kotMenuBrowser.dataset.rendered;
+            renderKotMenuBrowser(kotMenuBrowser, lineBox);
+            const inp = kotComposerActiveRow?.querySelector('.kot-name-input');
+            if (inp) filterKotMenuBrowserPanel(kotMenuBrowser, inp.value);
+        });
+    }
+}
+
+function filterKotMenuBrowserPanel(panel, q) {
+    if (!panel) return;
+    const s = String(q || '').trim().toLowerCase();
+    const words = s.split(/\s+/).filter(Boolean);
+    panel.querySelectorAll('.kot-menu-pick').forEach((btn) => {
+        const hay = `${btn.dataset.name || ''} ${btn.getAttribute('data-category') || ''}`.toLowerCase();
+        const show = !words.length || words.every((w) => hay.includes(w));
+        btn.hidden = !show;
+    });
+    panel.querySelectorAll('.kot-menu-browser-section').forEach((sec) => {
+        const any = [...sec.querySelectorAll('.kot-menu-pick')].some((b) => !b.hidden);
+        sec.hidden = !any;
     });
 }
 
@@ -886,6 +968,8 @@ function getOrderById(id) {
 }
 
 function renderDrawer() {
+    closeAllKotSuggest(null);
+    setKotComposerActiveRow(null);
     const order = selectedOrderId ? getOrderById(selectedOrderId) : null;
     const drawer = document.getElementById('drawer');
     const backdrop = document.getElementById('drawerBackdrop');
@@ -969,11 +1053,11 @@ function renderDrawer() {
     const rightCol = [];
     rightCol.push(`<div class="add-kot" id="addKotBox">
         <h3>New KOT</h3>
-        <p class="add-kot-hint" style="font-size:0.8rem;color:var(--muted);line-height:1.45;margin:0 0 0.5rem 0;">Add lines from the menu or as <strong>open items</strong> (any name, quantity and rupees), then press <strong>Save KOT</strong>.</p>
+        <p class="add-kot-hint" style="font-size:0.8rem;color:var(--muted);line-height:1.45;margin:0 0 0.5rem 0;">Tap <strong>Search menu…</strong> — typing filters the <strong>full menu</strong> below. Use <strong>×</strong> to remove a line, or <strong>open items</strong> for custom entries.</p>
         <div class="kot-line-inputs-wrap"><div id="kotLineInputs"></div></div>
-        <div class="kot-menu-browser-wrap">
-            <button type="button" class="floor-btn floor-btn--ghost kot-menu-browser-toggle" id="toggleKotMenuBrowser" aria-expanded="false">Browse full menu</button>
-            <div id="kotMenuBrowser" class="kot-menu-browser" hidden></div>
+        <div class="kot-menu-browser-wrap" id="kotMenuBrowserWrap" hidden>
+            <button type="button" class="floor-btn floor-btn--ghost kot-menu-browser-toggle" id="toggleKotMenuBrowser" aria-expanded="true">Hide full menu</button>
+            <div id="kotMenuBrowser" class="kot-menu-browser"></div>
         </div>
         <div class="kot-form-toolbar">
             <button type="button" class="floor-btn floor-btn--ghost" id="addKotLineBtn">+ From menu</button>
@@ -1005,6 +1089,36 @@ function renderDrawer() {
         lineBox.addEventListener('input', syncSaveKotState);
         lineBox.addEventListener('change', syncSaveKotState);
         lineBox.addEventListener('floor:kot-line-updated', syncSaveKotState);
+        lineBox.addEventListener('pointerdown', (e) => {
+            const rm = e.target.closest('.kot-line-remove');
+            if (!rm) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const row = rm.closest('.kot-line-row');
+            removeKotLineRow(row, lineBox, syncSaveKotState);
+        });
+        lineBox.addEventListener('focusout', (e) => {
+            const row = e.target.closest('.kot-line-row');
+            if (!row || !lineBox.contains(row)) return;
+            if (!e.target.matches('.kot-name-input, .kot-qty, .kot-price')) return;
+            const related = e.relatedTarget;
+            if (related && row.contains(related)) return;
+
+            window.setTimeout(() => {
+                if (!lineBox.contains(row)) return;
+                const active = document.activeElement;
+                if (active && row.contains(active)) return;
+                if (active?.closest('.kot-menu-pick, .kot-menu-browser, .kot-suggest-btn')) return;
+                commitKotLineAfterRowBlur(row, lineBox);
+                if (row === kotComposerActiveRow && active && !row.contains(active)) {
+                    setKotComposerActiveRow(
+                        active.closest('.kot-line-row') && lineBox.contains(active.closest('.kot-line-row'))
+                            ? active.closest('.kot-line-row')
+                            : null
+                    );
+                }
+            }, 0);
+        });
         lineBox.addEventListener('click', (e) => {
             const qbtn = e.target.closest('[data-qty-delta]');
             if (qbtn) {
@@ -1023,12 +1137,9 @@ function renderDrawer() {
             }
             const rm = e.target.closest('.kot-line-remove');
             if (rm) {
-                const row = rm.closest('.kot-line-row');
-                if (!row || !lineBox.contains(row)) return;
-                row.remove();
-                ensureTrailingKotPlaceholderRow(lineBox);
-                syncSaveKotState();
-                lineBox.dispatchEvent(new CustomEvent('floor:kot-line-updated', { bubbles: true }));
+                e.preventDefault();
+                e.stopPropagation();
+                removeKotLineRow(rm.closest('.kot-line-row'), lineBox, syncSaveKotState);
                 return;
             }
             const chip = e.target.closest('.kot-preset-chip');
@@ -1051,7 +1162,8 @@ function renderDrawer() {
             }
         });
         body.querySelector('#addKotLineBtn')?.addEventListener('click', () => {
-            addKotLineRow(lineBox, { placeholder: false });
+            const row = addKotLineRow(lineBox, { placeholder: false });
+            row?.querySelector('.kot-name-input')?.focus();
             syncSaveKotState();
         });
         body.querySelector('#addOpenItemBtn')?.addEventListener('click', () => {
@@ -1065,15 +1177,10 @@ function renderDrawer() {
         const toggleKotMenuBrowser = body.querySelector('#toggleKotMenuBrowser');
         toggleKotMenuBrowser?.addEventListener('click', () => {
             if (!kotMenuBrowser) return;
-            const open = kotMenuBrowser.hidden;
-            kotMenuBrowser.hidden = !open;
-            toggleKotMenuBrowser.setAttribute('aria-expanded', open ? 'true' : 'false');
-            if (open) {
-                void loadMenuForKots().then(() => {
-                    delete kotMenuBrowser.dataset.rendered;
-                    renderKotMenuBrowser(kotMenuBrowser, lineBox);
-                });
-            }
+            const wrap = kotMenuBrowser.closest('.kot-menu-browser-wrap');
+            const open = wrap?.hidden === true;
+            setKotMenuBrowserOpen(kotMenuBrowser, toggleKotMenuBrowser, lineBox, open);
+            if (!open) closeAllKotSuggest(null);
         });
         body.querySelector('#submitKotBtn')?.addEventListener('click', async () => {
             if (saveKotBtn && saveKotBtn.disabled) return;
@@ -1196,6 +1303,40 @@ function ensureTrailingKotPlaceholderRow(lineBox) {
     }
 }
 
+/** After leaving a filled line, lock it in and add an empty line for the next item. */
+function commitKotLineAfterRowBlur(row, lineBox) {
+    if (!row || !lineBox?.contains(row)) return;
+
+    const name = (row.querySelector('.kot-name-input')?.value || '').trim();
+    if (!name) return;
+
+    if (row.dataset.placeholder) delete row.dataset.placeholder;
+    ensureTrailingKotPlaceholderRow(lineBox);
+    lineBox.dispatchEvent(new CustomEvent('floor:kot-line-updated', { bubbles: true }));
+}
+
+function removeKotLineRow(row, lineBox, syncSaveKotState) {
+    if (!row || !lineBox?.contains(row)) return;
+    const wasActive = row === kotComposerActiveRow;
+    const wasPlaceholder = row.dataset.placeholder === '1';
+    row.remove();
+    if (wasActive) {
+        setKotComposerActiveRow(null);
+        closeAllKotSuggest(null);
+    }
+    const rows = [...lineBox.querySelectorAll('.kot-line-row')];
+    if (!rows.length) {
+        addKotLineRow(lineBox, { placeholder: true });
+    } else if (!wasPlaceholder) {
+        ensureTrailingKotPlaceholderRow(lineBox);
+    } else {
+        const hasNamed = rows.some((r) => (r.querySelector('.kot-name-input')?.value || '').trim());
+        if (hasNamed) ensureTrailingKotPlaceholderRow(lineBox);
+    }
+    if (typeof syncSaveKotState === 'function') syncSaveKotState();
+    lineBox.dispatchEvent(new CustomEvent('floor:kot-line-updated', { bubbles: true }));
+}
+
 function addKotLineRow(
     lineBox,
     { placeholder = false, name = '', qty = '1', price = '', category = '', openItem = false } = {}
@@ -1217,7 +1358,6 @@ function addKotLineRow(
         <div class="kot-line-main">
             <div class="kot-line-name-cell">
                 <input type="text" class="kot-name-input" placeholder="${escapeAttr(namePh)}" value="${escapeAttr(name)}" autocomplete="off">
-                <ul class="kot-suggest" hidden></ul>
             </div>
             <div class="kot-qty-wrap" role="group" aria-label="Quantity">
                 <button type="button" class="kot-qty-btn kot-qty-btn--minus" data-qty-delta="-1" aria-label="Decrease quantity">−</button>
@@ -1238,6 +1378,7 @@ function addKotLineRow(
             handleKotComposerInput(row, lineBox);
         });
         inp.addEventListener('focus', () => {
+            setKotComposerActiveRow(row);
             handleKotComposerInput(row, lineBox);
         });
     }
@@ -1245,44 +1386,39 @@ function addKotLineRow(
 }
 
 function closeAllKotSuggest(except) {
-    document.querySelectorAll('.kot-suggest').forEach((u) => {
-        if (u !== except) {
-            u.hidden = true;
-            u.innerHTML = '';
-        }
+    const float = getKotSuggestFloat();
+    if (float !== except) {
+        float.hidden = true;
+        float.innerHTML = '';
+        detachKotSuggestReposition();
+    }
+    document.querySelectorAll('.kot-line-row .kot-suggest').forEach((u) => {
+        u.hidden = true;
+        u.innerHTML = '';
     });
 }
 
 function handleKotComposerInput(row, lineBox) {
     const inp = row.querySelector('.kot-name-input');
-    const ul = row.querySelector('.kot-suggest');
     const catEl = row.querySelector('.kot-line-cat');
-    if (!inp || !ul) return;
+    if (!inp) return;
 
     const v = inp.value.trim();
+    const addKotBox = lineBox.closest('#addKotBox');
+    const kotMenuBrowser = addKotBox?.querySelector('#kotMenuBrowser');
+    const toggleKotMenuBrowser = addKotBox?.querySelector('#toggleKotMenuBrowser');
 
     if (row.dataset.openItem === '1') {
-        closeAllKotSuggest(ul);
-        ul.hidden = true;
-        ul.innerHTML = '';
-        if (row.dataset.placeholder && v.length > 0) {
-            delete row.dataset.placeholder;
-            const hasTrail = [...lineBox.querySelectorAll('.kot-line-row')].some((r) => r.dataset.placeholder);
-            if (!hasTrail) addKotLineRow(lineBox, { placeholder: true });
-        }
+        closeAllKotSuggest(null);
+        setKotMenuBrowserOpen(kotMenuBrowser, toggleKotMenuBrowser, lineBox, false);
         return;
     }
 
-    if (row.dataset.placeholder && v.length > 0) {
-        delete row.dataset.placeholder;
-        const hasTrail = [...lineBox.querySelectorAll('.kot-line-row')].some((r) => r.dataset.placeholder);
-        if (!hasTrail) addKotLineRow(lineBox, { placeholder: true });
+    closeAllKotSuggest(null);
+    setKotMenuBrowserOpen(kotMenuBrowser, toggleKotMenuBrowser, lineBox, true);
+    if (kotMenuBrowser?.dataset.rendered === '1') {
+        filterKotMenuBrowserPanel(kotMenuBrowser, v);
     }
-
-    closeAllKotSuggest(ul);
-    const hits = filterMenuSuggestions(v);
-    renderKotSuggestList(ul, hits);
-    bindKotSuggestButtons(ul, row, lineBox, inp, catEl);
 }
 
 function renderKotMenuBrowser(panel, lineBox) {
@@ -1314,9 +1450,19 @@ function renderKotMenuBrowser(panel, lineBox) {
     panel.innerHTML = `<div class="kot-menu-browser-inner">${sections}</div>`;
     panel.querySelectorAll('.kot-menu-pick').forEach((btn) => {
         btn.addEventListener('click', () => {
-            let target = [...lineBox.querySelectorAll('.kot-line-row')].find(
-                (r) => r.dataset.placeholder !== '1' && !(r.querySelector('.kot-name-input')?.value || '').trim()
-            );
+            let target = kotComposerActiveRow;
+            if (
+                !target ||
+                target.dataset.openItem === '1' ||
+                !lineBox.contains(target)
+            ) {
+                target = [...lineBox.querySelectorAll('.kot-line-row')].find(
+                    (r) =>
+                        r.dataset.openItem !== '1' &&
+                        r.dataset.placeholder !== '1' &&
+                        !(r.querySelector('.kot-name-input')?.value || '').trim()
+                );
+            }
             if (!target) {
                 target = addKotLineRow(lineBox, { placeholder: false });
             }
@@ -1370,7 +1516,13 @@ function initFloorDrawerDelegates() {
     document.addEventListener(
         'pointerdown',
         (e) => {
-            if (e.target.closest('.kot-line-name-cell') || e.target.closest('.kot-suggest') || e.target.closest('.kot-qty-wrap'))
+            if (
+                e.target.closest('.kot-line-name-cell') ||
+                e.target.closest('.kot-suggest') ||
+                e.target.closest('.kot-menu-browser') ||
+                e.target.closest('.kot-qty-wrap') ||
+                e.target.closest('.kot-line-remove')
+            )
                 return;
             document.querySelectorAll('.kot-suggest').forEach((u) => {
                 u.hidden = true;

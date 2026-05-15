@@ -10,24 +10,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg0: #070a12;
-            --bg1: #0f172a;
-            --card: rgba(24, 34, 56, 0.92);
-            --card-border: rgba(99, 115, 148, 0.35);
-            --text: #f1f5f9;
-            --muted: #94a3b8;
-            --accent: #34d399;
-            --accent2: #22d3ee;
-            --danger: #ef4444;
-            --warn: #f59e0b;
+            --bg0: #f8fafc;
+            --bg1: #eef2f7;
+            --card: #ffffff;
+            --card-border: rgba(148, 163, 184, 0.55);
+            --text: #0f172a;
+            --muted: #64748b;
+            --accent: #059669;
+            --accent2: #0891b2;
+            --danger: #e11d48;
+            --warn: #d97706;
+            --surface-muted: #f1f5f9;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
             background:
-                radial-gradient(1100px 520px at 8% -8%, rgba(52, 211, 153, 0.14), transparent 55%),
-                radial-gradient(900px 480px at 100% 0%, rgba(34, 211, 238, 0.1), transparent 50%),
-                linear-gradient(165deg, var(--bg0), var(--bg1) 42%, #0a101c);
+                radial-gradient(1100px 520px at 8% -8%, rgba(52, 211, 153, 0.1), transparent 55%),
+                radial-gradient(900px 480px at 100% 0%, rgba(34, 211, 238, 0.08), transparent 50%),
+                linear-gradient(165deg, var(--bg0), var(--bg1) 42%, #fafbfc);
             color: var(--text);
             min-height: 100vh;
             padding: 1.25rem;
@@ -62,8 +63,8 @@
             font-size: 0.8125rem;
             padding: 0.45rem 0.85rem;
             border-radius: 8px;
-            border: 1px solid #334155;
-            background: #334155;
+            border: 1px solid var(--card-border);
+            background: var(--surface-muted);
             color: var(--text);
             cursor: pointer;
         }
@@ -76,8 +77,8 @@
             align-items: center;
             justify-content: center;
             border-radius: 12px;
-            border: 1px solid rgba(51, 65, 85, 0.85);
-            background: rgba(51, 65, 85, 0.65);
+            border: 1px solid var(--card-border);
+            background: #ffffff;
             color: var(--text);
             cursor: pointer;
             line-height: 1;
@@ -85,7 +86,7 @@
             position: relative;
         }
         .admin-icon-btn:hover {
-            background: rgba(51, 65, 85, 0.85);
+            background: var(--surface-muted);
         }
         .admin-icon-btn:disabled {
             opacity: 0.45;
@@ -94,12 +95,12 @@
         .admin-icon-btn--on {
             background: rgba(34, 197, 94, 0.18);
             border-color: rgba(34, 197, 94, 0.6);
-            color: #bbf7d0;
+            color: #047857;
         }
         .admin-icon-btn--danger {
             background: rgba(239, 68, 68, 0.12);
             border-color: rgba(239, 68, 68, 0.5);
-            color: #fecaca;
+            color: #be123c;
         }
 
         /* Tooltips (desktop hover + keyboard focus) */
@@ -112,13 +113,13 @@
                 white-space: nowrap;
                 padding: 0.35rem 0.55rem;
                 border-radius: 10px;
-                border: 1px solid rgba(51, 65, 85, 0.85);
-                background: rgba(15, 23, 42, 0.92);
+                border: 1px solid var(--card-border);
+                background: #ffffff;
                 color: var(--text);
                 font-size: 0.72rem;
                 font-weight: 700;
                 letter-spacing: 0.01em;
-                box-shadow: 0 14px 28px rgba(0,0,0,0.35);
+                box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
                 opacity: 0;
                 transform: translateY(-4px);
                 pointer-events: none;
@@ -134,7 +135,7 @@
                 height: 0;
                 border-left: 6px solid transparent;
                 border-right: 6px solid transparent;
-                border-bottom: 7px solid rgba(15, 23, 42, 0.92);
+                border-bottom: 7px solid #ffffff;
                 opacity: 0;
                 transform: translateY(-4px);
                 pointer-events: none;
@@ -157,7 +158,7 @@
             align-items: center;
             justify-content: center;
             padding: 1rem;
-            background: rgba(15, 23, 42, 0.82);
+            background: rgba(15, 23, 42, 0.35);
             backdrop-filter: blur(8px);
         }
         .admin-auth-gate[hidden] {
@@ -165,11 +166,11 @@
         }
         .admin-auth-card {
             width: min(100%, 24rem);
-            background: #111c31;
-            border: 1px solid #334155;
+            background: #ffffff;
+            border: 1px solid var(--card-border);
             border-radius: 18px;
             padding: 1.25rem;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
         }
         .admin-auth-card h2 {
             font-size: 1.2rem;
@@ -194,8 +195,8 @@
             width: 100%;
             margin-bottom: 0.85rem;
             border-radius: 10px;
-            border: 1px solid #334155;
-            background: #0f172a;
+            border: 1px solid var(--card-border);
+            background: #ffffff;
             color: var(--text);
             padding: 0.75rem 0.85rem;
             font: inherit;
@@ -218,7 +219,7 @@
         }
         .admin-auth-error {
             margin-top: 0.85rem;
-            color: #fca5a5;
+            color: #be123c;
             font-size: 0.875rem;
             line-height: 1.5;
         }
@@ -236,8 +237,8 @@
             font-size: 0.8125rem;
             padding: 0.45rem 0.75rem;
             border-radius: 999px;
-            border: 1px solid #334155;
-            background: #334155;
+            border: 1px solid var(--card-border);
+            background: var(--surface-muted);
             color: var(--text);
             cursor: pointer;
             display: inline-flex;
@@ -258,7 +259,7 @@
             justify-content: center;
             border-radius: 999px;
             font-size: 0.75rem;
-            background: rgba(15, 23, 42, 0.4);
+            background: rgba(148, 163, 184, 0.2);
             border: 1px solid rgba(148, 163, 184, 0.35);
         }
         .admin-tab-btn[aria-selected="true"] .admin-tab-count {
@@ -269,9 +270,9 @@
             display: none;
             max-width: 720px;
             margin: 0 auto 1rem;
-            border: 1px solid #334155;
+            border: 1px solid var(--card-border);
             border-radius: 14px;
-            background: rgba(30, 41, 59, 0.65);
+            background: #ffffff;
             padding: 0.85rem;
         }
         .admin-analytics-head {
@@ -298,7 +299,7 @@
             border: 1px solid rgba(148, 163, 184, 0.22);
             border-radius: 12px;
             padding: 0.65rem 0.75rem;
-            background: rgba(15, 23, 42, 0.5);
+            background: var(--surface-muted);
             min-height: 4rem;
         }
         .admin-metric-label {
@@ -359,14 +360,14 @@
             background: rgba(252, 211, 77, 0.06);
         }
         .admin-metric--cash .admin-metric-value {
-            color: #fef9c3;
+            color: #92400e;
         }
         .admin-metric--upi {
             border-color: rgba(167, 139, 250, 0.38);
             background: rgba(167, 139, 250, 0.08);
         }
         .admin-metric--upi .admin-metric-value {
-            color: #ede9fe;
+            color: #5b21b6;
         }
 
         .admin-payment-split {
@@ -418,10 +419,9 @@
 
         .admin-sidebar-actions {
             margin-top: 0.75rem;
-            border: 1px solid rgba(51, 65, 85, 0.75);
+            border: 1px solid var(--card-border);
             border-radius: 14px;
-            background: rgba(15, 23, 42, 0.55);
-            backdrop-filter: blur(10px);
+            background: #ffffff;
             padding: 0.75rem;
         }
         .admin-sidebar-actions h3 {
@@ -450,8 +450,8 @@
             font-size: 0.8rem;
             padding: 0.55rem 0.65rem;
             border-radius: 12px;
-            border: 1px solid rgba(51, 65, 85, 0.85);
-            background: rgba(51, 65, 85, 0.35);
+            border: 1px solid var(--card-border);
+            background: var(--surface-muted);
             color: var(--text);
             cursor: pointer;
             display: inline-flex;
@@ -460,7 +460,7 @@
             gap: 0.6rem;
             min-width: 9.5rem;
         }
-        .admin-cta-btn:hover { background: rgba(51, 65, 85, 0.55); }
+        .admin-cta-btn:hover { background: #e2e8f0; }
         .admin-cta-pill {
             display: inline-flex;
             align-items: center;
@@ -469,8 +469,8 @@
             height: 1.55rem;
             padding: 0 0.5rem;
             border-radius: 999px;
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid rgba(148, 163, 184, 0.25);
+            background: #ffffff;
+            border: 1px solid rgba(148, 163, 184, 0.35);
             font-size: 0.75rem;
             font-weight: 900;
             color: var(--text);
@@ -478,7 +478,7 @@
         .admin-insights {
             display: grid;
             gap: 0.35rem;
-            color: rgba(226, 232, 240, 0.9);
+            color: var(--muted);
             font-size: 0.85rem;
         }
         .admin-insights strong {
@@ -520,8 +520,8 @@
         .admin-search input {
             width: 100%;
             border-radius: 12px;
-            border: 1px solid rgba(51, 65, 85, 0.85);
-            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid var(--card-border);
+            background: #ffffff;
             color: var(--text);
             padding: 0.65rem 0.75rem;
             font: inherit;
@@ -543,14 +543,14 @@
             padding: 0.55rem 0.65rem;
         }
         .admin-tabs--sidebar .admin-tab-count {
-            background: rgba(15, 23, 42, 0.35);
+            background: rgba(148, 163, 184, 0.2);
         }
 
         .admin-modal {
             position: fixed;
             inset: 0;
             z-index: 1500;
-            background: rgba(15, 23, 42, 0.78);
+            background: rgba(15, 23, 42, 0.35);
             backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
@@ -562,10 +562,10 @@
         }
         .admin-modal-card {
             width: min(100%, 26rem);
-            background: #111c31;
-            border: 1px solid #334155;
+            background: #ffffff;
+            border: 1px solid var(--card-border);
             border-radius: 18px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
             padding: 1.05rem 1.1rem;
         }
         .admin-modal-head {
@@ -610,7 +610,7 @@
         }
         .admin-popup-close {
             background: transparent;
-            border: 1px solid #334155;
+            border: 1px solid var(--card-border);
             color: var(--muted);
             border-radius: 10px;
             padding: 0.4rem 0.6rem;
@@ -629,21 +629,21 @@
             color: var(--muted);
             padding: 2rem;
         }
-        .admin-error { color: #fca5a5; }
+        .admin-error { color: #be123c; }
         .admin-order {
             background: var(--card);
             border: 1px solid var(--card-border);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
             border-radius: 14px;
             padding: 1rem 1.1rem;
         }
-        .admin-order--pending { background: #2b190b; border-color: #7c2d12; }
-        .admin-order--accepted { background: #0f2418; border-color: #166534; }
-        .admin-order--rejected { background: #2a1212; border-color: #991b1b; }
-        .admin-order--cancelled { background: #1e293b; border-color: #64748b; }
-        .admin-order--preparing { background: #122236; border-color: #1d4ed8; }
-        .admin-order--out_for_delivery { background: #1d1638; border-color: #6d28d9; }
-        .admin-order--completed { background: #0c1f16; border-color: #15803d; }
+        .admin-order--pending { background: #fffbeb; border-color: #fcd34d; }
+        .admin-order--accepted { background: #ecfdf5; border-color: #6ee7b7; }
+        .admin-order--rejected { background: #fef2f2; border-color: #fca5a5; }
+        .admin-order--cancelled { background: #f8fafc; border-color: #cbd5e1; }
+        .admin-order--preparing { background: #eff6ff; border-color: #93c5fd; }
+        .admin-order--out_for_delivery { background: #f5f3ff; border-color: #c4b5fd; }
+        .admin-order--completed { background: #ecfdf5; border-color: #86efac; }
         .admin-order-head {
             display: flex;
             justify-content: space-between;
@@ -667,14 +667,14 @@
             border-radius: 6px;
         }
         .admin-pay-pill--cash {
-            background: rgba(252, 211, 77, 0.16);
-            color: #fef9c3;
-            border: 1px solid rgba(252, 211, 77, 0.35);
+            background: rgba(252, 211, 77, 0.25);
+            color: #92400e;
+            border: 1px solid rgba(202, 138, 4, 0.35);
         }
         .admin-pay-pill--upi {
-            background: rgba(167, 139, 250, 0.16);
-            color: #ede9fe;
-            border: 1px solid rgba(167, 139, 250, 0.38);
+            background: rgba(167, 139, 250, 0.2);
+            color: #5b21b6;
+            border: 1px solid rgba(124, 58, 237, 0.35);
         }
         .admin-complete-pay-row {
             display: grid;
@@ -694,14 +694,14 @@
             letter-spacing: 0.06em;
         }
         .admin-pay-btn--cash {
-            background: linear-gradient(135deg, rgba(252, 211, 77, 0.25), rgba(245, 158, 11, 0.15));
-            border-color: rgba(252, 211, 77, 0.45);
-            color: #fef9c3;
+            background: linear-gradient(135deg, rgba(252, 211, 77, 0.35), rgba(245, 158, 11, 0.2));
+            border-color: rgba(202, 138, 4, 0.45);
+            color: #92400e;
         }
         .admin-pay-btn--upi {
             background: linear-gradient(135deg, rgba(167, 139, 250, 0.28), rgba(99, 102, 241, 0.15));
-            border-color: rgba(167, 139, 250, 0.5);
-            color: #ede9fe;
+            border-color: rgba(124, 58, 237, 0.45);
+            color: #5b21b6;
         }
         .admin-pay-btn:disabled { opacity: 0.45; cursor: not-allowed; }
         .admin-order-id {
@@ -715,15 +715,16 @@
             letter-spacing: 0.04em;
             padding: 0.25rem 0.5rem;
             border-radius: 6px;
-            background: #334155;
+            background: var(--surface-muted);
+            color: var(--text);
         }
-        .admin-order-status--pending { background: #422006; color: #fde68a; }
-        .admin-order-status--accepted { background: #14532d; color: #bbf7d0; }
-        .admin-order-status--rejected { background: #450a0a; color: #fecaca; }
-        .admin-order-status--cancelled { background: #334155; color: #e2e8f0; }
-        .admin-order-status--preparing { background: #1e3a5f; color: #bfdbfe; }
-        .admin-order-status--out_for_delivery { background: #312e81; color: #e0e7ff; }
-        .admin-order-status--completed { background: #052e16; color: #bbf7d0; }
+        .admin-order-status--pending { background: #fef3c7; color: #b45309; }
+        .admin-order-status--accepted { background: #d1fae5; color: #047857; }
+        .admin-order-status--rejected { background: #fee2e2; color: #be123c; }
+        .admin-order-status--cancelled { background: #e2e8f0; color: #475569; }
+        .admin-order-status--preparing { background: #dbeafe; color: #1d4ed8; }
+        .admin-order-status--out_for_delivery { background: #ede9fe; color: #5b21b6; }
+        .admin-order-status--completed { background: #d1fae5; color: #047857; }
         .admin-order-meta {
             display: grid;
             gap: 0.2rem;
@@ -736,7 +737,7 @@
         .admin-order-items {
             font-size: 0.8125rem;
             line-height: 1.5;
-            color: #cbd5e1;
+            color: var(--muted);
             margin-bottom: 0.5rem;
         }
         .admin-order-line + .admin-order-line { margin-top: 0.15rem; }
@@ -761,8 +762,8 @@
             border-radius: 16px;
             padding: 1rem 1.1rem 1.15rem;
             border: 2px solid rgba(251, 191, 36, 0.42);
-            background: linear-gradient(160deg, rgba(120, 53, 15, 0.28), rgba(15, 23, 42, 0.92));
-            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+            background: linear-gradient(160deg, #fffbeb, #ffffff 55%);
+            box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
         }
         .admin-kot-block-head {
             display: flex;
@@ -804,9 +805,9 @@
             gap: 1rem;
         }
         .admin-order--kot {
-            background: rgba(30, 24, 12, 0.92) !important;
-            border-color: rgba(251, 191, 36, 0.38) !important;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            background: #fffbeb !important;
+            border-color: rgba(251, 191, 36, 0.45) !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
         .admin-order-head--kot {
             align-items: flex-start;
@@ -816,9 +817,9 @@
             font-weight: 700;
             padding: 0.3rem 0.55rem;
             border-radius: 8px;
-            background: rgba(245, 158, 11, 0.16);
-            color: #fde68a;
-            border: 1px solid rgba(251, 191, 36, 0.35);
+            background: rgba(245, 158, 11, 0.2);
+            color: #b45309;
+            border: 1px solid rgba(251, 191, 36, 0.4);
             text-align: right;
         }
         .admin-kot-subhead {
@@ -831,7 +832,7 @@
         }
         .admin-kot-slot {
             font-weight: 700;
-            color: #fef3c7;
+            color: #92400e;
             font-size: 0.9rem;
         }
         .admin-kot-progress {
@@ -864,13 +865,13 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: rgba(245, 158, 11, 0.14);
-            color: #fde68a;
-            border: 1px solid rgba(245, 158, 11, 0.38);
+            background: rgba(245, 158, 11, 0.18);
+            color: #92400e;
+            border: 1px solid rgba(245, 158, 11, 0.4);
         }
         .admin-btn--floor:hover {
-            background: rgba(245, 158, 11, 0.24);
-            color: #fffbeb;
+            background: rgba(245, 158, 11, 0.28);
+            color: #78350f;
         }
 
         .admin-btn {
@@ -888,7 +889,7 @@
         .admin-btn--prep { background: #2563eb; color: #fff; }
         .admin-btn--out { background: #7c3aed; color: #fff; }
         .admin-btn--complete { background: #15803d; color: #fff; }
-        .admin-btn--copy { background: #334155; color: var(--text); }
+        .admin-btn--copy { background: var(--surface-muted); color: var(--text); border: 1px solid var(--card-border); }
         .admin-toast {
             position: fixed;
             bottom: 1.25rem;
