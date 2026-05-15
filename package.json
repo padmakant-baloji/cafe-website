@@ -8,10 +8,18 @@
     "dev": "node server.js",
     "db:test": "node scripts/db-test.js",
     "images:compress": "node scripts/compress-images.js",
-    "pwa:icons": "node scripts/generate-pwa-icons.js"
+    "pwa:icons": "node scripts/generate-pwa-icons.js",
+    "android:keygen": "bash scripts/android-generate-keystore.sh",
+    "android:sync-assetlinks": "node scripts/android-sync-assetlinks.js",
+    "android:update": "cd android-twa && bubblewrap update",
+    "android:build": "cd android-twa && bubblewrap build",
+    "android:install": "cd android-twa && bubblewrap install"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "@bubblewrap/cli": "^1.24.0"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

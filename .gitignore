@@ -1,4 +1,4 @@
-# macOS
+# --- OS ---
 .DS_Store
 .DS_Store?
 ._*
@@ -6,31 +6,96 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+Desktop.ini
 
-# Editor directories and files
+# --- Editors / IDE ---
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.project
+.classpath
+.settings/
 
-# Logs
+# --- Logs ---
 *.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
 
-# Environment variables
+# --- Environment & secrets (never commit) ---
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+credentials.json
+service-account*.json
 
-# Dependencies
+# --- Node ---
 node_modules/
+.npm
+.eslintcache
+.node_repl_history
 
-# Yarn / npm
+# --- Yarn (Berry / modern) ---
 .yarn/cache
 .yarn/unplugged
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+.yarn-integrity
+
+# --- Package manager locks (keep yarn.lock committed) ---
+package-lock.json
+
+# --- Vercel ---
+.vercel
+
+# --- Test / coverage ---
+coverage/
+.nyc_output/
+
+# --- Misc build / temp ---
+dist/
+build/
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+
+# --- Android TWA (Bubblewrap / Gradle) ---
+# Signing keys — never commit
+android-twa/**/*.keystore
+android-twa/**/*.jks
+android-twa/android-release.keystore
+
+# Gradle & Android Studio
+android-twa/.gradle/
+android-twa/**/.gradle/
+android-twa/local.properties
+android-twa/**/local.properties
+android-twa/.idea/
+android-twa/**/*.iml
+android-twa/captures/
+android-twa/.externalNativeBuild/
+android-twa/.cxx/
+
+# Build outputs
+android-twa/**/build/
+android-twa/**/*.apk
+android-twa/**/*.aab
+android-twa/**/*.ap_
+android-twa/**/*.dex
+
+# Bubblewrap local config (machine-specific paths)
+android-twa/.bubblewrap/
+
+# --- Optional local tooling ---
+.cursor/
