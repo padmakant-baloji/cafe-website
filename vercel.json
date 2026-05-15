@@ -5,13 +5,16 @@
     { "source": "/menu", "destination": "/index.html" },
     { "source": "/menu/", "destination": "/index.html" },
 
-    { "source": "/admin/tables", "destination": "/api/admin/tables-page" },
-    { "source": "/admin/tables/", "destination": "/api/admin/tables-page" },
+    { "source": "/admin/tables", "destination": "/admin-tables.html" },
+    { "source": "/admin/tables/", "destination": "/admin-tables.html" },
+    { "source": "/admin-tables", "destination": "/admin-tables.html" },
+    { "source": "/admin-tables/", "destination": "/admin-tables.html" },
+    { "source": "/admin-tables.html", "destination": "/admin-tables.html" },
 
-    { "source": "/admin", "destination": "/api/admin/page" },
-    { "source": "/admin/", "destination": "/api/admin/page" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/admin/", "destination": "/admin.html" },
+    { "source": "/admin.html", "destination": "/admin.html" },
 
-    { "source": "/admin.html", "destination": "/api/admin/page" },
     { "source": "/orders", "destination": "/orders.html" },
     { "source": "/orders/", "destination": "/orders.html" },
 
