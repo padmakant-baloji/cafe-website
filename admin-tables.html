@@ -357,8 +357,15 @@
             min-height: 0;
         }
 
-        .floor-kot-list-col,
-        .floor-kot-form-col {
+        .floor-kot-list-col {
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow: hidden;
+        }
+        .floor-kot-list-scroll {
+            flex: 1 1 auto;
             min-height: 0;
             overflow-x: hidden;
             overflow-y: auto;
@@ -366,10 +373,43 @@
             overscroll-behavior: contain;
             padding: 1rem 1.1rem;
         }
-
         .floor-kot-form-col {
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow: hidden;
             border-left: 1px solid var(--border);
             background: var(--surface-muted);
+        }
+        .floor-kot-form-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 1rem 1.1rem 0.5rem;
+        }
+        .floor-kot-form-scroll .add-kot {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            padding: 0;
+            border: none;
+            background: transparent;
+        }
+        .kot-form-footer--fixed {
+            flex-shrink: 0;
+            padding: 0.75rem 1.1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+            border-top: 1px solid var(--border);
+            background: var(--card);
+            box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+        }
+        .kot-form-footer--fixed .floor-kot-clear-table {
+            width: 100%;
+            margin: 0;
         }
 
         .floor-kot-list-head {
@@ -378,6 +418,132 @@
             text-transform: uppercase;
             letter-spacing: 0.08em;
             margin-bottom: 0.75rem;
+        }
+
+        .kot-draft-panel {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .kot-draft-lines {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            margin-bottom: 0.65rem;
+            min-height: 2.5rem;
+        }
+        .kot-draft-empty {
+            font-size: 0.8rem;
+            color: var(--muted);
+            line-height: 1.45;
+            margin: 0;
+        }
+        .kot-draft-empty[hidden] {
+            display: none !important;
+        }
+        .kot-draft-line {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.5rem 0.55rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--card);
+        }
+        .kot-draft-name {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1.35;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .kot-draft-qty-wrap {
+            display: flex;
+            align-items: stretch;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            background: var(--surface-muted);
+        }
+        .kot-draft-qty-btn {
+            flex: 0 0 2rem;
+            width: 2rem;
+            border: none;
+            background: var(--surface-muted);
+            color: var(--text);
+            font: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            touch-action: manipulation;
+        }
+        .kot-draft-qty-btn:hover {
+            background: #e2e8f0;
+        }
+        .kot-draft-qty-val {
+            flex: 0 0 2.25rem;
+            min-width: 2.25rem;
+            text-align: center;
+            font-size: 0.8125rem;
+            font-weight: 700;
+            line-height: 2rem;
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            background: var(--card);
+        }
+        .kot-draft-remove {
+            flex-shrink: 0;
+            flex: 0 0 1.85rem;
+            width: 1.85rem;
+            height: 1.85rem;
+            padding: 0;
+            border-radius: 6px;
+            border: 1px solid rgba(248, 113, 113, 0.45);
+            background: rgba(248, 113, 113, 0.08);
+            color: #be123c;
+            font: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .kot-draft-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+        }
+        .kot-draft-actions--fixed {
+            flex-shrink: 0;
+            padding: 0.75rem 1.1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+            border-top: 1px solid var(--border);
+            background: var(--card);
+            box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+        }
+        .kot-draft-actions--fixed .floor-btn--primary,
+        .kot-draft-actions--fixed .floor-btn--ghost {
+            flex: 1 1 calc(50% - 0.25rem);
+            min-width: 7rem;
+            justify-content: center;
+        }
+        .floor-kot-saved-wrap {
+            margin-top: 0.25rem;
+        }
+        .kot-card-actions {
+            padding: 0 0.75rem 0.65rem;
+        }
+        .kot-card-modify {
+            width: 100%;
+            justify-content: center;
+            font-size: 0.75rem;
+            padding: 0.4rem 0.55rem;
         }
 
         .floor-kot-empty {
@@ -437,11 +603,8 @@
         }
         .add-kot h3 { font-size: 0.8rem; margin-bottom: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
         .kot-line-inputs-wrap {
-            max-height: min(52vh, 520px);
-            overflow-y: auto;
-            overflow-x: hidden;
+            flex-shrink: 0;
             margin-bottom: 0.35rem;
-            -webkit-overflow-scrolling: touch;
         }
         .kot-line-row {
             display: flex;
@@ -523,6 +686,17 @@
             flex: 0 0 5.25rem;
             width: 5.25rem;
             min-width: 5rem;
+        }
+        .kot-line-row[data-placeholder="1"] .kot-line-remove,
+        .kot-line-row:not([data-needs-price="1"]) .kot-price {
+            display: none !important;
+        }
+        .kot-line-row[data-needs-price="1"] .kot-line-name-cell {
+            flex: 1 1 10rem;
+        }
+        .kot-line-main--composer .kot-line-name-cell {
+            flex: 1 1 auto;
+            min-width: 0;
         }
         .kot-line-main .kot-line-remove {
             flex: 0 0 2.35rem;
@@ -632,7 +806,11 @@
             display: none !important;
         }
         .kot-menu-browser-wrap {
-            margin: 0.5rem 0 0.65rem;
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            margin: 0.35rem 0 0;
         }
         .kot-menu-browser-wrap[hidden] {
             display: none !important;
@@ -642,9 +820,11 @@
             justify-content: center;
         }
         .kot-menu-browser {
-            margin-top: 0.5rem;
-            max-height: min(38vh, 320px);
+            flex: 1 1 auto;
+            min-height: 8rem;
+            margin-top: 0;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             border-radius: 12px;
             border: 1px solid var(--border);
             background: #ffffff;
@@ -666,6 +846,21 @@
         }
         .kot-menu-browser-section:last-child {
             margin-bottom: 0;
+        }
+        .kot-menu-browser-section--open {
+            margin-top: 0.35rem;
+            padding-top: 0.65rem;
+            border-top: 1px solid var(--border);
+        }
+        .kot-open-pick {
+            border-color: rgba(52, 211, 153, 0.4);
+            background: rgba(52, 211, 153, 0.1);
+            color: #047857;
+            font-weight: 600;
+        }
+        .kot-open-pick:hover {
+            background: rgba(52, 211, 153, 0.2);
+            border-color: rgba(52, 211, 153, 0.55);
         }
         .kot-menu-browser-cat {
             font-size: 0.7rem;
@@ -840,6 +1035,6 @@
 
     <div class="toast" id="floorToast" data-show="0"></div>
 
-    <script src="/admin-tables.js?v=23"></script>
+    <script src="/admin-tables.js?v=31"></script>
 </body>
 </html>

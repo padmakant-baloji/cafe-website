@@ -132,8 +132,23 @@ function readOrderMeta(o) {
 }
 
 /** Dine-in / parcel orders managed on the floor KOT screen (not delivery workflow). */
+function isCancelledOrderStatus(status) {
+    const s = String(status || '')
+        .trim()
+        .toLowerCase();
+    return s === 'cancelled' || s === 'rejected';
+}
+
 function isUnsettledOrder(o) {
-    return String(o && o.status ? o.status : '') !== 'completed';
+    const s = String(o && o.status ? o.status : '')
+        .trim()
+        .toLowerCase();
+    return s !== 'completed' && !isCancelledOrderStatus(s);
+}
+
+function showInActiveOrdersTab(o, pinnedIds) {
+    if (isCancelledOrderStatus(o && o.status)) return false;
+    return isUnsettledOrder(o) || pinnedIds.has(String(o.id));
 }
 
 function isKotFloorOrder(o) {
@@ -1169,10 +1184,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const emptyText = q ? 'matching orders' : tab.emptyText || 'orders';
 
         if (activeOrderTab === 'active') {
-            const pin = (o) => pinnedOrderIdsAfterStatusChange.has(String(o.id));
             renderMixedOrderList(listEl, {
-                kotOrders: kotSearched.filter((o) => isUnsettledOrder(o) || pin(o)),
-                deliveryOrders: deliverySearched.filter((o) => isUnsettledOrder(o) || pin(o)),
+                kotOrders: kotSearched.filter((o) => showInActiveOrdersTab(o, pinnedOrderIdsAfterStatusChange)),
+                deliveryOrders: deliverySearched.filter((o) => showInActiveOrdersTab(o, pinnedOrderIdsAfterStatusChange)),
                 deliveryEmptyText: emptyText
             });
             return;
