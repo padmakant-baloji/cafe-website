@@ -5,6 +5,9 @@
     { "source": "/menu", "destination": "/index.html" },
     { "source": "/menu/", "destination": "/index.html" },
 
+    { "source": "/admin/tables", "destination": "/api/admin/tables-page" },
+    { "source": "/admin/tables/", "destination": "/api/admin/tables-page" },
+
     { "source": "/admin", "destination": "/api/admin/page" },
     { "source": "/admin/", "destination": "/api/admin/page" },
 

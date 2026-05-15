@@ -16,7 +16,11 @@ const {
     updateCustomerProfile,
     listOrdersForCustomer,
     listAllOrdersForAdmin,
+    listFloorSessionsForAdmin,
     applyAdminOrderAction,
+    applyFloorOrderAdminPatch,
+    createFloorSession,
+    commitFloorOrderToDb,
     cancelOrderByCustomer
 } = require('./lib/order-service');
 const { placeOrderForCustomer } = require('./lib/place-order');
@@ -281,11 +285,41 @@ app.post('/api/coupons/validate', requireCustomer, async (req, res) => {
 app.get('/api/admin/orders', requireAdmin, async (req, res) => {
     try {
         await ensureSchema();
-        const rows = await listAllOrdersForAdmin(150);
+        const scope = (req.query && String(req.query.scope || '').trim().toLowerCase()) || '';
+        const rows =
+            scope === 'floor' ? await listFloorSessionsForAdmin() : await listAllOrdersForAdmin(150);
+        res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
         return res.json({ orders: rows });
     } catch (err) {
         console.error('admin orders:', err.message);
         return res.status(500).json({ error: 'Could not load orders.' });
+    }
+});
+
+app.post('/api/admin/orders', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const body = req.body || {};
+        const act = typeof body.action === 'string' ? body.action.trim().toLowerCase() : '';
+        if (act === 'floor_open') {
+            const order = await createFloorSession(body.channel, body.slot, body.guest_label);
+            return res.status(201).json({ ok: true, order });
+        }
+        if (act === 'floor_commit') {
+            const order = await commitFloorOrderToDb(body);
+            return res.status(201).json({ ok: true, order });
+        }
+        return res.status(400).json({
+            error:
+                'Unknown action. Use floor_open for new sessions or floor_commit to save a completed local session.'
+        });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) {
+            console.error('admin create order:', err.message);
+        }
+        return res.status(code).json({ error: err.message || 'Could not create order.' });
     }
 });
 
@@ -296,9 +330,14 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
         if (Number.isNaN(orderId)) {
             return res.status(400).json({ error: 'Invalid order id.' });
         }
-        const action = req.body && req.body.action;
-        if (typeof action !== 'string') {
+        const body = req.body || {};
+        const action = typeof body.action === 'string' ? body.action.trim() : '';
+        if (!action) {
             return res.status(400).json({ error: 'Missing action.' });
+        }
+        if (action.startsWith('floor_')) {
+            const updated = await applyFloorOrderAdminPatch(orderId, body);
+            return res.json({ ok: true, order: updated });
         }
         const updated = await applyAdminOrderAction(orderId, action);
         return res.json({ ok: true, order: updated });
@@ -314,6 +353,10 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
 
 app.get('/api/admin/session', requireAdmin, (req, res) => {
     return res.json({ ok: true });
+});
+
+app.get('/admin/tables', (req, res) => {
+    res.sendFile(path.join(ROOT, 'admin-tables.html'));
 });
 
 app.get('/admin', (req, res) => {

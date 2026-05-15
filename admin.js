@@ -114,6 +114,88 @@ function statusLabel(status) {
     return map[status] || status;
 }
 
+function readOrderMeta(o) {
+    let m = o && o.order_meta;
+    if (m == null) return {};
+    if (typeof m === 'string') {
+        try {
+            m = JSON.parse(m);
+        } catch {
+            return {};
+        }
+    }
+    return m && typeof m === 'object' ? m : {};
+}
+
+/** Dine-in / parcel orders managed on the floor KOT screen (not delivery workflow). */
+function isKotFloorOrder(o) {
+    const ch = String(o && o.channel ? o.channel : '')
+        .trim()
+        .toLowerCase();
+    return ch === 'dine_in' || ch === 'parcel';
+}
+
+function formatKotSlotLabel(o) {
+    const meta = readOrderMeta(o);
+    const slot = String(meta.slot || '').trim();
+    const tm = /^table:(\d+)$/i.exec(slot);
+    if (tm) return `Table ${tm[1]}`;
+    const pm = /^parcel:(\d+)$/i.exec(slot);
+    if (pm) return `Parcel ${pm[1]}`;
+    if (slot) return slot;
+    const ch = String(o && o.channel ? o.channel : '')
+        .trim()
+        .toLowerCase();
+    if (ch === 'dine_in') return 'Dine-in';
+    if (ch === 'parcel') return 'Parcel';
+    return 'Floor';
+}
+
+function kotChannelLabel(o) {
+    const ch = String(o && o.channel ? o.channel : '')
+        .trim()
+        .toLowerCase();
+    if (ch === 'dine_in') return 'Dine-in KOT';
+    if (ch === 'parcel') return 'Parcel KOT';
+    return 'KOT';
+}
+
+function kotKotCount(o) {
+    const meta = readOrderMeta(o);
+    const kots = Array.isArray(meta.kots) ? meta.kots : [];
+    return kots.length;
+}
+
+/** Short floor-oriented label (not the full delivery status strip). */
+function kotFloorProgressLabel(o) {
+    const s = String(o && o.status ? o.status : '')
+        .trim()
+        .toLowerCase();
+    if (s === 'completed') return 'Settled';
+    if (s === 'rejected') return 'Voided';
+    if (s === 'cancelled') return 'Cancelled';
+    if (s === 'pending') return 'Pending';
+    return 'Open on floor';
+}
+
+function matchesAdminOrderSearch(order, q) {
+    if (!q) return true;
+    const id = String(order.id || '').toLowerCase();
+    const name = String(order.name || '').toLowerCase();
+    const mobile = String(order.mobile || '').toLowerCase();
+    const city = String(order.city || '').toLowerCase();
+    if (id.includes(q) || name.includes(q) || mobile.includes(q) || city.includes(q)) return true;
+    if (isKotFloorOrder(order)) {
+        const slot = formatKotSlotLabel(order).toLowerCase();
+        if (slot.includes(q)) return true;
+        const gl = String(readOrderMeta(order).guest_label || '')
+            .trim()
+            .toLowerCase();
+        if (gl.includes(q)) return true;
+    }
+    return false;
+}
+
 function loadSeenIds() {
     try {
         const raw = sessionStorage.getItem(SESSION_STORAGE_SEEN);
@@ -150,7 +232,10 @@ function normalizeOrdersFromApi(orders) {
 }
 
 async function fetchOrders() {
-    const res = await fetch('/api/admin/orders', { headers: adminHeaders() });
+    const res = await fetch('/api/admin/orders', {
+        headers: adminHeaders(),
+        cache: 'no-store'
+    });
     if (res.status === 401) throw Object.assign(new Error('Authentication required'), { code: 401 });
     if (!res.ok) throw new Error(`Could not load orders (${res.status})`);
     const data = await res.json();
@@ -257,8 +342,11 @@ function computeAdminAnalytics(orders) {
         totalOrdersLoaded += 1;
         totalEarningLoaded += Number(o.total) || 0;
         const status = String(o.status || '');
-        if (status === 'pending') pendingNow += 1;
-        if (status === 'accepted' || status === 'preparing' || status === 'out_for_delivery') inProgressNow += 1;
+        const kot = isKotFloorOrder(o);
+        if (!kot) {
+            if (status === 'pending') pendingNow += 1;
+            if (status === 'accepted' || status === 'preparing' || status === 'out_for_delivery') inProgressNow += 1;
+        }
 
         const createdAt = o.created_at ? new Date(o.created_at) : null;
         if (!createdAt || Number.isNaN(createdAt.getTime())) {
@@ -270,11 +358,13 @@ function computeAdminAnalytics(orders) {
         }
 
         const ageMs = now.getTime() - createdAt.getTime();
-        if (status === 'pending') {
-            oldestPendingMs = oldestPendingMs == null ? ageMs : Math.max(oldestPendingMs, ageMs);
-        }
-        if (status === 'accepted' || status === 'preparing' || status === 'out_for_delivery') {
-            oldestInProgressMs = oldestInProgressMs == null ? ageMs : Math.max(oldestInProgressMs, ageMs);
+        if (!kot) {
+            if (status === 'pending') {
+                oldestPendingMs = oldestPendingMs == null ? ageMs : Math.max(oldestPendingMs, ageMs);
+            }
+            if (status === 'accepted' || status === 'preparing' || status === 'out_for_delivery') {
+                oldestInProgressMs = oldestInProgressMs == null ? ageMs : Math.max(oldestInProgressMs, ageMs);
+            }
         }
 
         if (ageMs >= 0 && ageMs <= 60 * 60 * 1000) {
@@ -406,50 +496,42 @@ function renderAdminAnalytics(orders) {
     }
 }
 
-function renderOrders(orders, container, emptyText = 'orders') {
-    if (!orders.length) {
-        container.innerHTML = `<p class="admin-empty">No ${escapeHtml(emptyText)} yet.</p>`;
-        return;
-    }
+function buildDeliveryOrderArticleHtml(o) {
+    const id = String(o.id);
+    const itemsHtml = formatItems(o.items)
+        .split('\n')
+        .map((line) => `<div class="admin-order-line">${escapeHtml(line)}</div>`)
+        .join('');
 
-    container.innerHTML = orders
-        .map((o) => {
-            const id = String(o.id);
-            const itemsHtml = formatItems(o.items)
-                .split('\n')
-                .map((line) => `<div class="admin-order-line">${escapeHtml(line)}</div>`)
-                .join('');
-
-            const copyBtn = `<button type="button" class="admin-btn admin-btn--copy" data-action="copy" data-id="${id}">Copy order</button>`;
-            let statusActions = '';
-            if (o.status === 'pending') {
-                statusActions = `
+    const copyBtn = `<button type="button" class="admin-btn admin-btn--copy" data-action="copy" data-id="${id}">Copy order</button>`;
+    let statusActions = '';
+    if (o.status === 'pending') {
+        statusActions = `
                     <button type="button" class="admin-btn admin-btn--accept" data-action="accept" data-id="${id}">Accept</button>
                     <button type="button" class="admin-btn admin-btn--cancel" data-action="cancel" data-id="${id}">Cancel</button>
                 `;
-            } else if (o.status === 'accepted') {
-                // Cancel before "Preparing" so it stays easy to spot (Copy is first in the row).
-                statusActions = `
+    } else if (o.status === 'accepted') {
+        statusActions = `
                     <button type="button" class="admin-btn admin-btn--cancel" data-action="cancel" data-id="${id}">Cancel</button>
                     <button type="button" class="admin-btn admin-btn--prep" data-action="preparing" data-id="${id}">Preparing order</button>
                 `;
-            } else if (o.status === 'preparing') {
-                statusActions = `
+    } else if (o.status === 'preparing') {
+        statusActions = `
                     <button type="button" class="admin-btn admin-btn--cancel" data-action="cancel" data-id="${id}">Cancel</button>
                     <button type="button" class="admin-btn admin-btn--out" data-action="out_for_delivery" data-id="${id}">Out for delivery</button>
                 `;
-            } else if (o.status === 'out_for_delivery') {
-                statusActions = `
+    } else if (o.status === 'out_for_delivery') {
+        statusActions = `
                     <button type="button" class="admin-btn admin-btn--cancel" data-action="cancel" data-id="${id}">Cancel</button>
                     <button type="button" class="admin-btn admin-btn--complete" data-action="completed" data-id="${id}">Complete order</button>
                 `;
-            }
-            const actions = `${copyBtn}${statusActions}`;
+    }
+    const actions = `${copyBtn}${statusActions}`;
 
-            const when = o.created_at ? new Date(o.created_at).toLocaleString() : '';
-            const deliveryAddress = formatDeliveryAddress(o.delivery_address);
+    const when = o.created_at ? new Date(o.created_at).toLocaleString() : '';
+    const deliveryAddress = formatDeliveryAddress(o.delivery_address);
 
-            return `
+    return `
                 <article class="admin-order admin-order--${escapeHtml(o.status)}" data-order-id="${id}">
                     <header class="admin-order-head">
                         <span class="admin-order-id">#${escapeHtml(id)}</span>
@@ -467,8 +549,84 @@ function renderOrders(orders, container, emptyText = 'orders') {
                     <div class="admin-order-actions">${actions}</div>
                 </article>
             `;
-        })
+}
+
+function buildKotOrderArticleHtml(o) {
+    const id = String(o.id);
+    const itemsHtml = formatItems(o.items)
+        .split('\n')
+        .map((line) => `<div class="admin-order-line">${escapeHtml(line)}</div>`)
         .join('');
+
+    const copyBtn = `<button type="button" class="admin-btn admin-btn--copy" data-action="copy" data-id="${id}">Copy order</button>`;
+    const floorBtn = `<a class="admin-btn admin-btn--floor" href="/admin/tables">Open floor / KOT</a>`;
+    const when = o.created_at ? new Date(o.created_at).toLocaleString() : '';
+    const slot = formatKotSlotLabel(o);
+    const ch = kotChannelLabel(o);
+    const prog = kotFloorProgressLabel(o);
+    const nk = kotKotCount(o);
+    const guest = String(readOrderMeta(o).guest_label || '').trim();
+    const kotLine =
+        nk > 0
+            ? `${nk} ticket${nk === 1 ? '' : 's'}`
+            : 'No tickets yet';
+
+    return `
+                <article class="admin-order admin-order--kot" data-order-id="${id}">
+                    <header class="admin-order-head admin-order-head--kot">
+                        <span class="admin-order-id">#${escapeHtml(id)}</span>
+                        <span class="admin-kot-ribbon" title="Floor kitchen ticket order">${escapeHtml(ch)}</span>
+                    </header>
+                    <div class="admin-kot-subhead">
+                        <span class="admin-kot-slot">${escapeHtml(slot)}</span>
+                        <span class="admin-kot-progress">${escapeHtml(prog)}</span>
+                    </div>
+                    <div class="admin-order-meta admin-order-meta--kot">
+                        <span><strong>${escapeHtml(kotLine)}</strong>${guest ? ` · ${escapeHtml(guest)}` : ''}</span>
+                        <span class="admin-order-time">${escapeHtml(when)}</span>
+                    </div>
+                    <div class="admin-order-items">${itemsHtml || '<div class="admin-order-line" style="color:var(--muted)">No lines yet</div>'}</div>
+                    <div class="admin-order-total">Total: ₹${Number(o.total) || 0}</div>
+                    <div class="admin-order-actions">${copyBtn}${floorBtn}</div>
+                </article>
+            `;
+}
+
+function renderMixedOrderList(container, { kotOrders, deliveryOrders, deliveryEmptyText }) {
+    const kots = kotOrders || [];
+    const dels = deliveryOrders || [];
+    const hasKot = kots.length > 0;
+    const hasDel = dels.length > 0;
+    if (!hasKot && !hasDel) {
+        container.innerHTML = `<p class="admin-empty">No ${escapeHtml(deliveryEmptyText)} yet.</p>`;
+        return;
+    }
+    const kotSection = hasKot
+        ? `<section class="admin-kot-block" aria-label="Floor KOT orders">
+            <div class="admin-kot-block-head">
+                <span class="admin-kot-badge">KOT</span>
+                <div class="admin-kot-block-head-text">
+                    <span class="admin-kot-block-title">Floor — dine-in &amp; parcel</span>
+                    <span class="admin-kot-block-hint">Not filtered by delivery status tabs above.</span>
+                </div>
+            </div>
+            <div class="admin-kot-block-cards">${kots.map(buildKotOrderArticleHtml).join('')}</div>
+        </section>`
+        : '';
+    const delCards = hasDel ? dels.map(buildDeliveryOrderArticleHtml).join('') : '';
+    const delEmpty = hasDel
+        ? ''
+        : `<p class="admin-empty admin-empty--in-section">No ${escapeHtml(deliveryEmptyText)} in this view.</p>`;
+    const delTitle = hasKot
+        ? `<h3 class="admin-delivery-block-title">Delivery &amp; online</h3>`
+        : '';
+    container.innerHTML = `<div class="admin-order-list-stack">
+        ${kotSection}
+        <section class="admin-delivery-block" aria-label="Delivery and online orders">
+            ${delTitle}
+            <div class="admin-delivery-block-cards">${delCards}${delEmpty}</div>
+        </section>
+    </div>`;
 }
 
 function buildOrderCopyText(order) {
@@ -768,26 +926,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return String(s || '').trim().toLowerCase();
     }
 
-    function matchesSearch(order, q) {
-        if (!q) return true;
-        const id = String(order.id || '').toLowerCase();
-        const name = String(order.name || '').toLowerCase();
-        const mobile = String(order.mobile || '').toLowerCase();
-        const city = String(order.city || '').toLowerCase();
-        return id.includes(q) || name.includes(q) || mobile.includes(q) || city.includes(q);
-    }
-
     function renderTabsAndActiveList(orders) {
         const q = normalizeSearch(searchInput?.value);
-        const searched = q ? orders.filter((o) => matchesSearch(o, q)) : orders;
-        const countsByStatus = getCountsByStatus(searched);
+        const searched = q ? orders.filter((o) => matchesAdminOrderSearch(o, q)) : orders;
+        const deliverySearched = searched.filter((o) => !isKotFloorOrder(o));
+        const kotSearched = searched.filter((o) => isKotFloorOrder(o));
+
+        const countsByStatus = getCountsByStatus(deliverySearched);
+        countsByStatus.all += kotSearched.length;
         renderAdminAnalytics(orders);
         renderOrderTabs(tabsEl, countsByStatus, activeOrderTab);
         const tab = ORDER_STATUS_TABS.find((t) => t.key === activeOrderTab) || ORDER_STATUS_TABS[0];
-        const filteredBase = activeOrderTab === 'all' ? searched : searched.filter((o) => o.status === activeOrderTab);
-        const filtered = filteredBase;
-        const emptyText = q ? 'matching orders' : (tab.emptyText || 'orders');
-        renderOrders(filtered, listEl, emptyText);
+        const filteredDelivery =
+            activeOrderTab === 'all'
+                ? deliverySearched
+                : deliverySearched.filter((o) => o.status === activeOrderTab);
+
+        const emptyText = q ? 'matching orders' : tab.emptyText || 'orders';
+        renderMixedOrderList(listEl, {
+            kotOrders: kotSearched,
+            deliveryOrders: filteredDelivery,
+            deliveryEmptyText: emptyText
+        });
     }
 
     tabsEl?.addEventListener('click', (e) => {
@@ -930,7 +1090,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hideNewOrderPopup();
 
         const pendingSet = new Set(
-            (lastOrders || []).filter((o) => o.status === 'pending').map((o) => String(o.id))
+            (lastOrders || []).filter((o) => o.status === 'pending' && !isKotFloorOrder(o)).map((o) => String(o.id))
         );
         const next = pendingPopupQueue[0];
         if (next && pendingSet.has(String(next.id))) {
@@ -1012,7 +1172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lastOrders = orders;
             renderTabsAndActiveList(orders);
             const pendingSet = new Set(
-                orders.filter((o) => o.status === 'pending').map((o) => String(o.id))
+                orders.filter((o) => o.status === 'pending' && !isKotFloorOrder(o)).map((o) => String(o.id))
             );
 
             // Drop handled/obsolete items from the popup queue.
@@ -1052,7 +1212,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!bootstrapped) {
                 orders
-                    .filter((o) => o.status === 'pending')
+                    .filter((o) => o.status === 'pending' && !isKotFloorOrder(o))
                     .forEach((o) => seenPending.add(String(o.id)));
                 saveSeenIds(seenPending);
                 bootstrapped = true;
@@ -1061,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for (const o of orders) {
                 const sid = String(o.id);
-                if (o.status === 'pending' && !seenPending.has(sid)) {
+                if (o.status === 'pending' && !isKotFloorOrder(o) && !seenPending.has(sid)) {
                     seenPending.add(sid);
                     saveSeenIds(seenPending);
                     showToast(`New order #${sid}`);

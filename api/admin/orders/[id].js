@@ -1,7 +1,7 @@
 'use strict';
 
 const { ensureSchema } = require('../../../lib/schema');
-const { applyAdminOrderAction } = require('../../../lib/order-service');
+const { applyAdminOrderAction, applyFloorOrderAdminPatch } = require('../../../lib/order-service');
 const { requireAdminApi } = require('../../../lib/api-auth');
 
 module.exports = async (req, res) => {
@@ -16,9 +16,14 @@ module.exports = async (req, res) => {
         if (!Number.isFinite(orderId)) {
             return res.status(400).json({ error: 'Invalid order id.' });
         }
-        const action = req.body && req.body.action;
-        if (typeof action !== 'string') {
+        const body = typeof req.body === 'object' && req.body ? req.body : {};
+        const action = typeof body.action === 'string' ? body.action.trim() : '';
+        if (!action) {
             return res.status(400).json({ error: 'Missing action.' });
+        }
+        if (action.startsWith('floor_')) {
+            const updated = await applyFloorOrderAdminPatch(orderId, body);
+            return res.status(200).json({ ok: true, order: updated });
         }
         const updated = await applyAdminOrderAction(orderId, action);
         return res.status(200).json({ ok: true, order: updated });
