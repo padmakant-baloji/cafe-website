@@ -4,6 +4,8 @@ const ADMIN_STORAGE_KEY = 'balojiAdminCredentials';
 const LS_FLOOR_KEY = 'balojiFloorSessions';
 /** Floor KOT lines use this many rupees less per unit than the online menu list price when picking from suggestions. */
 const KOT_VS_ONLINE_UNIT_DISCOUNT_RS = 5;
+/** Max rows in the inline KOT name dropdown (full menu is ~80 items; do not cap at 28). */
+const KOT_SUGGEST_MAX = 200;
 
 function kotFloorUnitPriceFromMenuListPrice(menuListPrice) {
     const p = parseInt(String(menuListPrice), 10);
@@ -122,6 +124,10 @@ function loadMenuForKots() {
         })
         .then((data) => {
             menuFlat = buildMenuFlat(data);
+            document.querySelectorAll('.kot-menu-browser').forEach((el) => {
+                delete el.dataset.rendered;
+            });
+            refreshOpenKotSuggestions();
             return menuFlat;
         })
         .catch(() => {
@@ -131,46 +137,121 @@ function loadMenuForKots() {
     return menuLoadPromise;
 }
 
+function menuItemIsListed(item) {
+    return item && item.enabled !== false;
+}
+
+function pushMenuFlatEntry(out, name, price, categoryType) {
+    const nm = String(name || '').trim();
+    if (!nm) return;
+    const p = parseInt(String(price), 10);
+    if (Number.isNaN(p) || p < 0) return;
+    const cat = String(categoryType || '').trim() || 'Menu';
+    out.push({
+        name: nm,
+        price: p,
+        category_type: cat,
+        search: `${nm} ${cat}`.toLowerCase()
+    });
+}
+
+function pushMenuItemToFlat(out, item, categoryType) {
+    if (!menuItemIsListed(item)) return;
+    const base = String(item.name || '').trim();
+    if (!base) return;
+    const sizes = item.sizes && Array.isArray(item.sizes) ? item.sizes : [];
+    if (sizes.length) {
+        for (const sz of sizes) {
+            const label = String(sz.label || sz.name || '').trim();
+            const name = label ? `${base} (${label})` : base;
+            pushMenuFlatEntry(out, name, sz.price, categoryType);
+        }
+        return;
+    }
+    if (item.price != null && item.price !== '') {
+        pushMenuFlatEntry(out, base, item.price, categoryType);
+    }
+}
+
 function buildMenuFlat(menuData) {
     const out = [];
     if (!menuData || !Array.isArray(menuData.categories)) return out;
     for (const cat of menuData.categories) {
         const catName = String(cat.name || '').trim() || 'Menu';
         for (const item of cat.items || []) {
-            const base = String(item.name || '').trim();
-            if (!base) continue;
-            if (item.sizes && Array.isArray(item.sizes) && item.sizes.length) {
-                for (const sz of item.sizes) {
-                    const label = String(sz.label || '').trim();
-                    const price = parseInt(String(sz.price), 10);
-                    if (Number.isNaN(price) || price < 0) continue;
-                    const name = label ? `${base} (${label})` : base;
-                    out.push({
-                        name,
-                        price,
-                        category_type: catName,
-                        search: `${name} ${catName}`.toLowerCase()
-                    });
-                }
-            } else {
-                const price = parseInt(String(item.price), 10);
-                if (Number.isNaN(price) || price < 0) continue;
-                out.push({
-                    name: base,
-                    price,
-                    category_type: catName,
-                    search: `${base} ${catName}`.toLowerCase()
-                });
+            pushMenuItemToFlat(out, item, catName);
+        }
+        for (const sub of cat.subsections || []) {
+            const subTitle = String(sub.title || sub.name || '').trim();
+            const sectionLabel = subTitle ? `${catName} · ${subTitle}` : catName;
+            for (const item of sub.items || []) {
+                pushMenuItemToFlat(out, item, sectionLabel);
             }
         }
     }
     return out;
 }
 
-function filterMenuSuggestions(q, limit = 12) {
+function filterMenuSuggestions(q, limit = KOT_SUGGEST_MAX) {
+    const cap = Number.isFinite(limit) && limit > 0 ? limit : KOT_SUGGEST_MAX;
     const s = String(q || '').trim().toLowerCase();
-    if (!s) return menuFlat.slice(0, limit);
-    return menuFlat.filter((m) => m.search.includes(s)).slice(0, limit);
+    if (!s) return menuFlat.slice(0, cap);
+    const words = s.split(/\s+/).filter(Boolean);
+    return menuFlat
+        .filter((m) => words.every((w) => m.search.includes(w)))
+        .slice(0, cap);
+}
+
+function refreshOpenKotSuggestions() {
+    if (!menuFlat.length) return;
+    const active = document.activeElement;
+    document.querySelectorAll('.kot-line-row').forEach((row) => {
+        const inp = row.querySelector('.kot-name-input');
+        if (!inp || row.dataset.openItem === '1') return;
+        if (inp !== active && !(inp.value || '').trim()) return;
+        const lineBox = row.closest('#kotLineInputs');
+        if (lineBox) handleKotComposerInput(row, lineBox);
+    });
+}
+
+function renderKotSuggestList(ul, hits) {
+    if (!ul) return;
+    if (!hits.length) {
+        ul.hidden = true;
+        ul.innerHTML = '';
+        return;
+    }
+    ul.innerHTML = hits
+        .map((h) => {
+            const kotUnit = kotFloorUnitPriceFromMenuListPrice(h.price);
+            return `<li><button type="button" class="kot-suggest-btn" data-name="${escapeAttr(h.name)}" data-price="${kotUnit}" data-category="${escapeAttr(h.category_type)}"><span class="kot-suggest-name">${escapeHtml(h.name)}</span><span class="kot-suggest-meta">${escapeHtml(h.category_type)} · ${formatRupee(kotUnit)} <span class="kot-suggest-online">(online ${formatRupee(h.price)})</span></span></button></li>`;
+        })
+        .join('');
+    ul.hidden = false;
+}
+
+function bindKotSuggestButtons(ul, row, lineBox, inp, catEl) {
+    if (!ul) return;
+    ul.querySelectorAll('.kot-suggest-btn').forEach((btn) => {
+        btn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            inp.value = btn.dataset.name || '';
+            if (catEl) catEl.textContent = btn.getAttribute('data-category') || '';
+            const pr = row.querySelector('.kot-price');
+            if (pr) pr.value = String(btn.dataset.price || '0');
+            ul.hidden = true;
+            ul.innerHTML = '';
+            closeAllKotSuggest(null);
+            inp.blur();
+            if (row.dataset.placeholder && inp.value.trim()) {
+                delete row.dataset.placeholder;
+                const hasTrail = [...lineBox.querySelectorAll('.kot-line-row')].some((r) => r.dataset.placeholder);
+                if (!hasTrail) addKotLineRow(lineBox, { placeholder: true });
+            }
+            lineBox.dispatchEvent(new CustomEvent('floor:kot-line-updated', { bubbles: true }));
+        });
+    });
 }
 
 function countUnservedLines(order) {
@@ -890,6 +971,10 @@ function renderDrawer() {
         <h3>New KOT</h3>
         <p class="add-kot-hint" style="font-size:0.8rem;color:var(--muted);line-height:1.45;margin:0 0 0.5rem 0;">Add lines from the menu or as <strong>open items</strong> (any name, quantity and rupees), then press <strong>Save KOT</strong>.</p>
         <div class="kot-line-inputs-wrap"><div id="kotLineInputs"></div></div>
+        <div class="kot-menu-browser-wrap">
+            <button type="button" class="floor-btn floor-btn--ghost kot-menu-browser-toggle" id="toggleKotMenuBrowser" aria-expanded="false">Browse full menu</button>
+            <div id="kotMenuBrowser" class="kot-menu-browser" hidden></div>
+        </div>
         <div class="kot-form-toolbar">
             <button type="button" class="floor-btn floor-btn--ghost" id="addKotLineBtn">+ From menu</button>
             <button type="button" class="floor-btn floor-btn--ghost" id="addOpenItemBtn">+ Open item</button>
@@ -975,6 +1060,20 @@ function renderDrawer() {
             const last = rows[rows.length - 1];
             last?.querySelector('.kot-preset-chip')?.focus();
             syncSaveKotState();
+        });
+        const kotMenuBrowser = body.querySelector('#kotMenuBrowser');
+        const toggleKotMenuBrowser = body.querySelector('#toggleKotMenuBrowser');
+        toggleKotMenuBrowser?.addEventListener('click', () => {
+            if (!kotMenuBrowser) return;
+            const open = kotMenuBrowser.hidden;
+            kotMenuBrowser.hidden = !open;
+            toggleKotMenuBrowser.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (open) {
+                void loadMenuForKots().then(() => {
+                    delete kotMenuBrowser.dataset.rendered;
+                    renderKotMenuBrowser(kotMenuBrowser, lineBox);
+                });
+            }
         });
         body.querySelector('#submitKotBtn')?.addEventListener('click', async () => {
             if (saveKotBtn && saveKotBtn.disabled) return;
@@ -1181,42 +1280,56 @@ function handleKotComposerInput(row, lineBox) {
     }
 
     closeAllKotSuggest(ul);
-    if (v.length < 1) {
-        ul.hidden = true;
-        ul.innerHTML = '';
+    const hits = filterMenuSuggestions(v);
+    renderKotSuggestList(ul, hits);
+    bindKotSuggestButtons(ul, row, lineBox, inp, catEl);
+}
+
+function renderKotMenuBrowser(panel, lineBox) {
+    if (!panel || !lineBox) return;
+    if (panel.dataset.rendered === '1') return;
+    panel.dataset.rendered = '1';
+    if (!menuFlat.length) {
+        panel.innerHTML = '<p class="kot-menu-browser-empty">Menu still loading…</p>';
         return;
     }
-    const hits = filterMenuSuggestions(v, 10);
-    if (!hits.length) {
-        ul.hidden = true;
-        ul.innerHTML = '';
-        return;
+    const byCat = new Map();
+    for (const m of menuFlat) {
+        const c = m.category_type || 'Menu';
+        if (!byCat.has(c)) byCat.set(c, []);
+        byCat.get(c).push(m);
     }
-    ul.innerHTML = hits
-        .map((h) => {
-            const kotUnit = kotFloorUnitPriceFromMenuListPrice(h.price);
-            return `<li><button type="button" class="kot-suggest-btn" data-name="${escapeAttr(h.name)}" data-price="${kotUnit}" data-category="${escapeAttr(h.category_type)}"><span class="kot-suggest-name">${escapeHtml(h.name)}</span><span class="kot-suggest-meta">${escapeHtml(h.category_type)} · ${formatRupee(kotUnit)} <span class="kot-suggest-online">(online ${formatRupee(h.price)})</span></span></button></li>`;
+    const sections = [...byCat.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([cat, items]) => {
+            const chips = items
+                .map((h) => {
+                    const kotUnit = kotFloorUnitPriceFromMenuListPrice(h.price);
+                    return `<button type="button" class="kot-menu-pick" data-name="${escapeAttr(h.name)}" data-price="${kotUnit}" data-category="${escapeAttr(h.category_type)}">${escapeHtml(h.name)} <span class="kot-menu-pick-price">${formatRupee(kotUnit)}</span></button>`;
+                })
+                .join('');
+            return `<div class="kot-menu-browser-section"><h4 class="kot-menu-browser-cat">${escapeHtml(cat)}</h4><div class="kot-menu-browser-items">${chips}</div></div>`;
         })
         .join('');
-    ul.hidden = false;
-    ul.querySelectorAll('.kot-suggest-btn').forEach((btn) => {
-        btn.addEventListener('click', (ev) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            inp.value = btn.dataset.name || '';
-            if (catEl) catEl.textContent = btn.getAttribute('data-category') || '';
-            const pr = row.querySelector('.kot-price');
-            if (pr) pr.value = String(btn.dataset.price || '0');
-            ul.hidden = true;
-            ul.innerHTML = '';
-            closeAllKotSuggest(null);
-            inp.blur();
-            if (row.dataset.placeholder && inp.value.trim()) {
-                delete row.dataset.placeholder;
-                const hasTrail = [...lineBox.querySelectorAll('.kot-line-row')].some((r) => r.dataset.placeholder);
-                if (!hasTrail) addKotLineRow(lineBox, { placeholder: true });
+    panel.innerHTML = `<div class="kot-menu-browser-inner">${sections}</div>`;
+    panel.querySelectorAll('.kot-menu-pick').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            let target = [...lineBox.querySelectorAll('.kot-line-row')].find(
+                (r) => r.dataset.placeholder !== '1' && !(r.querySelector('.kot-name-input')?.value || '').trim()
+            );
+            if (!target) {
+                target = addKotLineRow(lineBox, { placeholder: false });
             }
+            if (target.dataset.placeholder) delete target.dataset.placeholder;
+            const inp = target.querySelector('.kot-name-input');
+            const catEl = target.querySelector('.kot-line-cat');
+            const pr = target.querySelector('.kot-price');
+            if (inp) inp.value = btn.dataset.name || '';
+            if (catEl) catEl.textContent = btn.getAttribute('data-category') || '';
+            if (pr) pr.value = String(btn.dataset.price || '0');
+            ensureTrailingKotPlaceholderRow(lineBox);
             lineBox.dispatchEvent(new CustomEvent('floor:kot-line-updated', { bubbles: true }));
+            closeAllKotSuggest(null);
         });
     });
 }

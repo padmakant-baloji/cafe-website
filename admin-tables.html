@@ -610,13 +610,73 @@
             margin: 0;
             padding: 0.25rem 0;
             list-style: none;
-            max-height: 220px;
+            max-height: min(320px, 50vh);
             overflow-y: auto;
             z-index: 120;
             border-radius: 10px;
-            border: 1px solid var(--border);
-            background: #0f172a;
+            border: 1px solid rgba(52, 211, 153, 0.25);
+            background: rgba(12, 18, 32, 0.98);
             box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5);
+        }
+        .kot-menu-browser-wrap {
+            margin: 0.5rem 0 0.65rem;
+        }
+        .kot-menu-browser-toggle {
+            width: 100%;
+            justify-content: center;
+        }
+        .kot-menu-browser {
+            margin-top: 0.5rem;
+            max-height: min(42vh, 360px);
+            overflow-y: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(7, 10, 18, 0.75);
+            padding: 0.5rem 0.65rem;
+        }
+        .kot-menu-browser-empty {
+            font-size: 0.8rem;
+            color: var(--muted);
+            padding: 0.5rem;
+        }
+        .kot-menu-browser-section {
+            margin-bottom: 0.75rem;
+        }
+        .kot-menu-browser-section:last-child {
+            margin-bottom: 0;
+        }
+        .kot-menu-browser-cat {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--accent);
+            margin: 0 0 0.35rem;
+        }
+        .kot-menu-browser-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+        .kot-menu-pick {
+            font: inherit;
+            font-size: 0.72rem;
+            padding: 0.35rem 0.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(24, 34, 56, 0.9);
+            color: var(--text);
+            cursor: pointer;
+            text-align: left;
+        }
+        .kot-menu-pick:hover {
+            border-color: rgba(52, 211, 153, 0.45);
+            background: rgba(52, 211, 153, 0.12);
+        }
+        .kot-menu-pick-price {
+            color: var(--accent2);
+            font-weight: 700;
+            margin-left: 0.25rem;
         }
         .kot-suggest li { margin: 0; }
         .kot-suggest-btn {

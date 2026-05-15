@@ -13,17 +13,18 @@ let refreshTimer = null;
 let currentAdminCredentials = null;
 
 const ORDER_STATUS_TABS = [
-    { key: 'all', label: 'All Orders', emptyText: 'orders' },
-    { key: 'pending', label: 'New Orders', emptyText: 'pending orders' },
+    { key: 'pending', label: 'New orders', emptyText: 'new orders' },
     { key: 'accepted', label: 'Accepted', emptyText: 'accepted orders' },
     { key: 'preparing', label: 'Preparing', emptyText: 'preparing orders' },
     { key: 'out_for_delivery', label: 'Out for delivery', emptyText: 'out for delivery orders' },
     { key: 'completed', label: 'Completed', emptyText: 'completed orders' },
     { key: 'rejected', label: 'Restaurant cancelled', emptyText: 'restaurant-cancelled orders' },
-    { key: 'cancelled', label: 'Customer cancelled', emptyText: 'customer-cancelled orders' }
+    { key: 'cancelled', label: 'Customer cancelled', emptyText: 'customer-cancelled orders' },
+    { key: 'kot', label: 'KOT orders', emptyText: 'KOT orders', isKot: true },
+    { key: 'all', label: 'All delivery', emptyText: 'delivery orders' }
 ];
 
-let activeOrderTab = 'all';
+let activeOrderTab = 'pending';
 let lastOrders = [];
 
 // New pending orders are queued and shown one-by-one in a popup.
@@ -762,7 +763,7 @@ function renderMixedOrderList(container, { kotOrders, deliveryOrders, deliveryEm
                 <span class="admin-kot-badge">KOT</span>
                 <div class="admin-kot-block-head-text">
                     <span class="admin-kot-block-title">Floor — dine-in &amp; parcel</span>
-                    <span class="admin-kot-block-hint">Not filtered by delivery status tabs above.</span>
+                    <span class="admin-kot-block-hint">Dine-in and parcel bills from the floor screen.</span>
                 </div>
             </div>
             <div class="admin-kot-block-cards">${kots.map(buildKotOrderArticleHtml).join('')}</div>
@@ -823,7 +824,10 @@ function renderOrderTabs(tabsEl, countsByStatus, activeKey) {
     tabsEl.innerHTML = '';
 
     for (const tab of ORDER_STATUS_TABS) {
-        const count = countsByStatus && typeof countsByStatus === 'object' ? countsByStatus[tab.key] : 0;
+        const count =
+            countsByStatus && typeof countsByStatus === 'object'
+                ? countsByStatus[tab.key] ?? 0
+                : 0;
 
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -1131,10 +1135,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function getCountsByStatus(orders) {
         const counts = {};
         for (const tab of ORDER_STATUS_TABS) counts[tab.key] = 0;
-        counts.all = 0;
-        for (const o of orders) {
+        const delivery = (orders || []).filter((o) => !isKotFloorOrder(o));
+        const kot = (orders || []).filter((o) => isKotFloorOrder(o));
+        counts.kot = kot.length;
+        counts.all = delivery.length;
+        for (const o of delivery) {
             if (counts[o.status] !== undefined) counts[o.status] += 1;
-            counts.all += 1;
         }
         return counts;
     }
@@ -1149,19 +1155,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const deliverySearched = searched.filter((o) => !isKotFloorOrder(o));
         const kotSearched = searched.filter((o) => isKotFloorOrder(o));
 
-        const countsByStatus = getCountsByStatus(deliverySearched);
-        countsByStatus.all += kotSearched.length;
+        const countsByStatus = getCountsByStatus(searched);
         renderAdminAnalytics(orders);
         renderOrderTabs(tabsEl, countsByStatus, activeOrderTab);
         const tab = ORDER_STATUS_TABS.find((t) => t.key === activeOrderTab) || ORDER_STATUS_TABS[0];
+        const emptyText = q ? 'matching orders' : tab.emptyText || 'orders';
+
+        if (activeOrderTab === 'kot') {
+            renderMixedOrderList(listEl, {
+                kotOrders: kotSearched,
+                deliveryOrders: [],
+                deliveryEmptyText: emptyText
+            });
+            return;
+        }
+
         const filteredDelivery =
             activeOrderTab === 'all'
                 ? deliverySearched
                 : deliverySearched.filter((o) => o.status === activeOrderTab);
 
-        const emptyText = q ? 'matching orders' : tab.emptyText || 'orders';
         renderMixedOrderList(listEl, {
-            kotOrders: kotSearched,
+            kotOrders: [],
             deliveryOrders: filteredDelivery,
             deliveryEmptyText: emptyText
         });

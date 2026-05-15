@@ -10,18 +10,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0f172a;
-            --card: #1e293b;
+            --bg0: #070a12;
+            --bg1: #0f172a;
+            --card: rgba(24, 34, 56, 0.92);
+            --card-border: rgba(99, 115, 148, 0.35);
             --text: #f1f5f9;
             --muted: #94a3b8;
-            --accent: #22c55e;
+            --accent: #34d399;
+            --accent2: #22d3ee;
             --danger: #ef4444;
             --warn: #f59e0b;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-            background: var(--bg);
+            background:
+                radial-gradient(1100px 520px at 8% -8%, rgba(52, 211, 153, 0.14), transparent 55%),
+                radial-gradient(900px 480px at 100% 0%, rgba(34, 211, 238, 0.1), transparent 50%),
+                linear-gradient(165deg, var(--bg0), var(--bg1) 42%, #0a101c);
             color: var(--text);
             min-height: 100vh;
             padding: 1.25rem;
@@ -626,9 +632,10 @@
         .admin-error { color: #fca5a5; }
         .admin-order {
             background: var(--card);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
             border-radius: 14px;
             padding: 1rem 1.1rem;
-            border: 1px solid #334155;
         }
         .admin-order--pending { background: #2b190b; border-color: #7c2d12; }
         .admin-order--accepted { background: #0f2418; border-color: #166534; }
@@ -1010,11 +1017,12 @@
                 align-self: start;
             }
             .admin-filters-card {
-                border: 1px solid rgba(51, 65, 85, 0.75);
+                border: 1px solid var(--card-border);
                 border-radius: 14px;
-                background: rgba(15, 23, 42, 0.55);
+                background: var(--card);
                 backdrop-filter: blur(10px);
                 padding: 0.65rem;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
             }
 
             .admin-desktop-analytics {
