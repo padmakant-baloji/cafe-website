@@ -13,6 +13,7 @@ let refreshTimer = null;
 let currentAdminCredentials = null;
 
 const ORDER_STATUS_TABS = [
+    { key: 'active', label: 'Active', emptyText: 'active orders' },
     { key: 'pending', label: 'New orders', emptyText: 'new orders' },
     { key: 'accepted', label: 'Accepted', emptyText: 'accepted orders' },
     { key: 'preparing', label: 'Preparing', emptyText: 'preparing orders' },
@@ -24,7 +25,9 @@ const ORDER_STATUS_TABS = [
     { key: 'all', label: 'All delivery', emptyText: 'delivery orders' }
 ];
 
-let activeOrderTab = 'pending';
+let activeOrderTab = 'active';
+/** Delivery order ids to keep visible after a status change until the user picks another tab. */
+let pinnedOrderIdsAfterStatusChange = new Set();
 let lastOrders = [];
 
 // New pending orders are queued and shown one-by-one in a popup.
@@ -129,6 +132,10 @@ function readOrderMeta(o) {
 }
 
 /** Dine-in / parcel orders managed on the floor KOT screen (not delivery workflow). */
+function isUnsettledOrder(o) {
+    return String(o && o.status ? o.status : '') !== 'completed';
+}
+
 function isKotFloorOrder(o) {
     const ch = String(o && o.channel ? o.channel : '')
         .trim()
@@ -1107,8 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await patchOrder(id, 'completed', { payment_method: paymentMethod });
             hideCompletePayModal();
-            activeOrderTab = 'completed';
-            window.location.hash = '#completed';
+            pinnedOrderIdsAfterStatusChange.add(String(id));
             showToast(`Order #${id} completed · ${paymentMethod}`);
             await refresh();
         } catch (err) {
@@ -1139,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const kot = (orders || []).filter((o) => isKotFloorOrder(o));
         counts.kot = kot.length;
         counts.all = delivery.length;
+        counts.active = (orders || []).filter((o) => isUnsettledOrder(o)).length;
         for (const o of delivery) {
             if (counts[o.status] !== undefined) counts[o.status] += 1;
         }
@@ -1161,6 +1168,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const tab = ORDER_STATUS_TABS.find((t) => t.key === activeOrderTab) || ORDER_STATUS_TABS[0];
         const emptyText = q ? 'matching orders' : tab.emptyText || 'orders';
 
+        if (activeOrderTab === 'active') {
+            const pin = (o) => pinnedOrderIdsAfterStatusChange.has(String(o.id));
+            renderMixedOrderList(listEl, {
+                kotOrders: kotSearched.filter((o) => isUnsettledOrder(o) || pin(o)),
+                deliveryOrders: deliverySearched.filter((o) => isUnsettledOrder(o) || pin(o)),
+                deliveryEmptyText: emptyText
+            });
+            return;
+        }
+
         if (activeOrderTab === 'kot') {
             renderMixedOrderList(listEl, {
                 kotOrders: kotSearched,
@@ -1173,7 +1190,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const filteredDelivery =
             activeOrderTab === 'all'
                 ? deliverySearched
-                : deliverySearched.filter((o) => o.status === activeOrderTab);
+                : deliverySearched.filter(
+                      (o) =>
+                          o.status === activeOrderTab ||
+                          pinnedOrderIdsAfterStatusChange.has(String(o.id))
+                  );
 
         renderMixedOrderList(listEl, {
             kotOrders: [],
@@ -1189,6 +1210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ORDER_STATUS_TABS.some((t) => t.key === nextKey)) return;
         if (nextKey === activeOrderTab) return;
         activeOrderTab = nextKey;
+        pinnedOrderIdsAfterStatusChange.clear();
         window.location.hash = `#${activeOrderTab}`;
         renderTabsAndActiveList(lastOrders);
     });
@@ -1342,10 +1364,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await patchOrder(id, action);
-            if (action === 'accept') {
-                activeOrderTab = 'accepted';
-                window.location.hash = '#accepted';
-            }
+            pinnedOrderIdsAfterStatusChange.add(String(id));
             hideNewOrderPopup();
             await refresh();
         } catch (err) {
@@ -1516,10 +1535,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
         try {
             await patchOrder(id, action);
-            if (action === 'accept') {
-                activeOrderTab = 'accepted';
-                window.location.hash = '#accepted';
-            }
+            pinnedOrderIdsAfterStatusChange.add(String(id));
             await refresh();
         } catch (err) {
             if (err && err.code === 401) {
