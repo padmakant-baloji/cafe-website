@@ -829,35 +829,98 @@ function initTestimonials() {
 let cart = [];
 let appliedCoupon = null; // { code: string, discount: number, subtotal: number }
 
+/** Keep in sync with `lib/order-window.js` (Asia/Kolkata, 9:00–22:00). */
+const ORDER_ONLINE_IST_TZ = 'Asia/Kolkata';
+const ORDER_ONLINE_START_SEC = 9 * 3600;
+const ORDER_ONLINE_END_SEC = 22 * 3600;
+
+function getSecondsSinceMidnightInTimeZone(date, timeZone) {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: false
+    });
+    let h = 0;
+    let m = 0;
+    let s = 0;
+    for (const p of dtf.formatToParts(date)) {
+        if (p.type === 'hour') h = parseInt(p.value, 10) || 0;
+        else if (p.type === 'minute') m = parseInt(p.value, 10) || 0;
+        else if (p.type === 'second') s = parseInt(p.value, 10) || 0;
+    }
+    return h * 3600 + m * 60 + s;
+}
+
+function isOnlineOrderingWindowOpenIST(date = new Date()) {
+    const sec = getSecondsSinceMidnightInTimeZone(date, ORDER_ONLINE_IST_TZ);
+    return sec >= ORDER_ONLINE_START_SEC && sec < ORDER_ONLINE_END_SEC;
+}
+
+function getOrderingWindowClosedMessage() {
+    return 'Online ordering is open 9 AM–10 PM (India time). Try again after 9 AM tomorrow.';
+}
+
+/** Updates cart/checkout notices; returns whether the online ordering window is open (IST). */
+function syncOrderingWindowUI() {
+    const open = isOnlineOrderingWindowOpenIST();
+    const msg = getOrderingWindowClosedMessage();
+    const cartNote = document.getElementById('orderingClosedNoteCart');
+    const checkoutNote = document.getElementById('orderingClosedNoteCheckout');
+    if (cartNote) {
+        cartNote.textContent = msg;
+        cartNote.hidden = open;
+    }
+    if (checkoutNote) {
+        checkoutNote.textContent = msg;
+        checkoutNote.hidden = open;
+    }
+    return open;
+}
+
 function updateOrderingAvailability() {
+    const open = isOnlineOrderingWindowOpenIST();
     const orderButtons = document.querySelectorAll('.order-btn');
     const sizeButtons = document.querySelectorAll('.size-chip');
     const sizeHints = document.querySelectorAll('.menu-item-note');
 
     orderButtons.forEach((button) => {
-        button.disabled = false;
-        button.setAttribute('aria-disabled', 'false');
-        button.title = '';
+        button.disabled = !open;
+        button.setAttribute('aria-disabled', open ? 'false' : 'true');
+        button.title = open ? '' : getOrderingWindowClosedMessage();
 
         const label = button.querySelector('.order-btn-label');
         if (label) {
-            label.textContent = 'Add';
+            label.textContent = open ? 'Add' : 'Closed';
         }
     });
 
     sizeButtons.forEach((button) => {
-        button.disabled = false;
-        button.setAttribute('aria-disabled', 'false');
-        button.title = '';
+        button.disabled = !open;
+        button.setAttribute('aria-disabled', open ? 'false' : 'true');
+        button.title = open ? '' : getOrderingWindowClosedMessage();
     });
 
     sizeHints.forEach((hint) => {
-        hint.textContent = 'Tap a size to add to cart';
+        hint.textContent = open
+            ? 'Tap a size to add to cart'
+            : 'Ordering on this site: 9 AM–10 PM (India time).';
     });
 }
 
 function initOrderingAvailability() {
     updateOrderingAvailability();
+    setInterval(() => {
+        updateOrderingAvailability();
+        updateCartUI();
+    }, 60000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            updateOrderingAvailability();
+            updateCartUI();
+        }
+    });
 }
 
 // Load cart from localStorage
@@ -1037,6 +1100,10 @@ function openAddonsModal({ title, subtitle, addons, onConfirm }) {
 
     const close = () => modal.classList.remove('active');
     const handleConfirm = () => {
+        if (!isOnlineOrderingWindowOpenIST()) {
+            alert(getOrderingWindowClosedMessage());
+            return;
+        }
         const selected = [];
         optionsEl.querySelectorAll('input[type="checkbox"]:checked').forEach((cb) => {
             selected.push({
@@ -1262,6 +1329,19 @@ function syncMenuItemSteppers() {
             linesWrap.appendChild(wrap);
         });
     });
+
+    applyOnlineOrderingGateToSteppers(container);
+}
+
+function applyOnlineOrderingGateToSteppers(container) {
+    if (!container) return;
+    const open = isOnlineOrderingWindowOpenIST();
+    const msg = getOrderingWindowClosedMessage();
+    container.querySelectorAll('.menu-qty-minus, .menu-qty-plus').forEach((btn) => {
+        btn.disabled = !open;
+        if (!open) btn.setAttribute('title', msg);
+        else btn.removeAttribute('title');
+    });
 }
 
 // Remove item from cart (global for onclick handlers)
@@ -1466,6 +1546,7 @@ function renderCartDeliveryNote() {
 }
 
 function renderCheckoutTotals() {
+    const orderingOpen = syncOrderingWindowUI();
     const subtotalEl = document.getElementById('checkoutSubtotal');
     const deliveryEl = document.getElementById('checkoutDeliveryFee');
     const noteEl = document.getElementById('checkoutDeliveryNote');
@@ -1500,7 +1581,7 @@ function renderCheckoutTotals() {
 
     if (submitBtn) {
         const cityOk = !!cityLower;
-        submitBtn.disabled = subtotal === 0 || !cityOk || !allowed;
+        submitBtn.disabled = subtotal === 0 || !cityOk || !allowed || !orderingOpen;
     }
 
     renderCheckoutDeliveryCard();
@@ -1591,13 +1672,14 @@ function updateCartUI() {
         renderCartDeliveryNote();
     }
 
+    const orderingOpen = syncOrderingWindowUI();
     // Disable checkout when order minimum isn't met (non-Kudachi only; Kudachi has no cart minimum beyond a non-empty total).
     const checkoutBtn = document.getElementById('checkoutBtn');
     if (checkoutBtn) {
         const subtotal = getCartTotal();
         const cityLower = getNormalizedCustomerCity();
         const allow = isCheckoutAllowed(subtotal, cityLower);
-        checkoutBtn.disabled = !allow;
+        checkoutBtn.disabled = !allow || !orderingOpen;
     }
 
     // Keep checkout totals in sync if checkout is open.
@@ -2725,6 +2807,10 @@ function createMenuItem(item, categoryId) {
 // Handle Add to Cart with size and addons
 // ============================================
 function handleAddToCart(item, selectedSize = null) {
+    if (!isOnlineOrderingWindowOpenIST()) {
+        alert(getOrderingWindowClosedMessage());
+        return;
+    }
     const menuItem = document.querySelector(`[data-item-id="${item.id}"]`);
     if (!menuItem) return;
 
@@ -2866,6 +2952,10 @@ function initCartModal() {
     
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', () => {
+            if (!isOnlineOrderingWindowOpenIST()) {
+                alert(getOrderingWindowClosedMessage());
+                return;
+            }
             if (cart.length === 0) {
                 alert('Your cart is empty!');
                 return;
@@ -2972,7 +3062,7 @@ function initCheckoutModal() {
 
 }
 
-/** Seconds from local midnight; used so “before 2 PM” is strictly before 14:00:00. */
+/** Seconds from local midnight; used so “before 1 PM” is strictly before 13:00:00. */
 function getLocalSecondsFromMidnight(d) {
     return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
 }
@@ -2984,10 +3074,10 @@ function getLocalSecondsFromMidnight(d) {
 function getOrderArrivalPlan(placedAt) {
     const placed = placedAt instanceof Date ? placedAt : new Date(Number(placedAt) || Date.now());
     const sec = getLocalSecondsFromMidnight(placed);
-    const twoPmSec = 14 * 3600;
-    if (sec < twoPmSec) {
+    const openSec = 13 * 3600;
+    if (sec < openSec) {
         const deadline = new Date(placed);
-        deadline.setHours(14, 40, 0, 0);
+        deadline.setHours(13, 20, 0, 0);
         const arrivalLabel = deadline.toLocaleTimeString('en-US', {
             hour: 'numeric',
             minute: '2-digit',
@@ -2996,7 +3086,7 @@ function getOrderArrivalPlan(placedAt) {
         return {
             deadlineMs: deadline.getTime(),
             arrivalLabel,
-            hint: 'We open at 2 PM — your order is queued for one of the first deliveries after opening.'
+            hint: 'We open at 1 PM — your order is queued for one of the first deliveries after opening.'
         };
     }
     const deadlineMs = placed.getTime() + 30 * 60 * 1000;
@@ -3226,6 +3316,11 @@ async function placeOrder() {
     const token = getCustomerToken();
     if (!token) {
         alert('Please sign in with your mobile number on the welcome screen first.');
+        return;
+    }
+
+    if (!isOnlineOrderingWindowOpenIST()) {
+        alert(getOrderingWindowClosedMessage());
         return;
     }
 

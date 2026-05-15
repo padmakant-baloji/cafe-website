@@ -97,7 +97,7 @@ const ACTIVE_ORDER_STATUSES = new Set(['pending', 'accepted', 'preparing', 'out_
 /** order id (string) → last seen normalized status (for detecting transitions to completed) */
 let lastOrderStatusById = new Map();
 
-/** Seconds from local midnight; same as menu page, used so “before 2 PM” is strictly before 14:00:00. */
+/** Seconds from local midnight; same as menu page, used so “before 1 PM” is strictly before 13:00:00. */
 function getLocalSecondsFromMidnight(d) {
     return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
 }
@@ -109,10 +109,10 @@ function getLocalSecondsFromMidnight(d) {
 function getOrderArrivalPlan(placedAt) {
     const placed = placedAt instanceof Date ? placedAt : new Date(Number(placedAt) || Date.now());
     const sec = getLocalSecondsFromMidnight(placed);
-    const twoPmSec = 14 * 3600;
-    if (sec < twoPmSec) {
+    const openSec = 13 * 3600;
+    if (sec < openSec) {
         const deadline = new Date(placed);
-        deadline.setHours(14, 40, 0, 0);
+        deadline.setHours(13, 20, 0, 0);
         const arrivalLabel = deadline.toLocaleTimeString('en-US', {
             hour: 'numeric',
             minute: '2-digit',
@@ -121,7 +121,7 @@ function getOrderArrivalPlan(placedAt) {
         return {
             deadlineMs: deadline.getTime(),
             arrivalLabel,
-            hint: 'We open at 2 PM — first deliveries roll out then.'
+            hint: 'We open at 1 PM — first deliveries roll out then.'
         };
     }
     const deadlineMs = placed.getTime() + 30 * 60 * 1000;
