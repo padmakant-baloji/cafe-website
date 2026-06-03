@@ -1601,25 +1601,7 @@ function renderCartDeliveryNote() {
     const cityLower = getNormalizedCustomerCity();
     el.classList.remove('delivery-note--error');
 
-    if (!subtotal) {
-        el.textContent = '';
-        el.hidden = true;
-        return;
-    }
-
-    if (!cityLower) {
-        el.textContent = 'Select your city at checkout to see delivery charges.';
-        el.hidden = false;
-        return;
-    }
-
-    if (cityLower === 'kudachi') {
-        el.innerHTML = `Flat <strong>₹${KUDACHI_DELIVERY_FEE}</strong> delivery charge in <strong>Kudachi</strong>.`;
-        el.hidden = false;
-        return;
-    }
-
-    if (subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
+    if (subtotal && cityLower && cityLower !== 'kudachi' && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
         const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
         el.classList.add('delivery-note--error');
         el.innerHTML = `Minimum order for delivery outside <strong>Kudachi</strong> is <strong>₹${MIN_NON_KUDACHI_ORDER_VALUE}</strong>. Add <strong>₹${remaining}</strong> more to checkout.`;
@@ -1627,8 +1609,8 @@ function renderCartDeliveryNote() {
         return;
     }
 
-    el.innerHTML = `Flat <strong>₹${NON_KUDACHI_DELIVERY_FEE}</strong> delivery charge outside <strong>Kudachi</strong>.`;
-    el.hidden = false;
+    el.textContent = '';
+    el.hidden = true;
 }
 
 function renderCheckoutTotals() {
@@ -1673,16 +1655,9 @@ function renderCheckoutTotals() {
     renderCheckoutDeliveryCard();
 
     if (noteEl) {
-        if (!cityLower) {
-            noteEl.textContent = 'Select your city to see delivery charges.';
-            noteEl.hidden = false;
-        } else if (cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
+        if (cityLower && cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
             const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
             noteEl.textContent = `Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Add ₹${remaining} more to place your order.`;
-            noteEl.hidden = false;
-        } else if (subtotal > 0) {
-            const fee = cityLower === 'kudachi' ? KUDACHI_DELIVERY_FEE : NON_KUDACHI_DELIVERY_FEE;
-            noteEl.textContent = `Flat ₹${fee} delivery charge${cityLower === 'kudachi' ? ' in Kudachi' : ''}.`;
             noteEl.hidden = false;
         } else {
             noteEl.textContent = '';
