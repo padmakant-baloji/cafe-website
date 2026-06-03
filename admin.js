@@ -734,7 +734,14 @@ function buildDeliveryOrderArticleHtml(o) {
                     </header>
                     <div class="admin-order-meta">
                         <strong>${escapeHtml(o.name || '')}</strong>
-                        <span>${escapeHtml(o.mobile || '')}</span>
+                        ${
+                            o.mobile
+                                ? `<a class="admin-order-phone" href="tel:${escapeHtml(telHref(o.mobile))}" aria-label="Call ${escapeHtml(o.mobile)}">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                        <span>${escapeHtml(o.mobile)}</span>
+                                    </a>`
+                                : '<span></span>'
+                        }
                         <span>${escapeHtml(o.city || '')}</span>
                         ${deliveryAddress ? `<span>${escapeHtml(deliveryAddress)}</span>` : ''}
                         <span class="admin-order-time">${escapeHtml(when)}</span>
@@ -914,6 +921,27 @@ function escapeHtml(s) {
     return d.innerHTML;
 }
 
+/** Sanitize a phone number for a `tel:` link (keep leading + and digits only). */
+function telHref(mobile) {
+    const raw = String(mobile || '').trim();
+    const plus = raw.startsWith('+') ? '+' : '';
+    return plus + raw.replace(/[^\d]/g, '');
+}
+
+/** Toggle a spinner + disabled state on an admin button during async work. */
+function setBtnLoading(btn, loading) {
+    if (!btn) return;
+    if (loading) {
+        btn.classList.add('is-loading');
+        btn.dataset.wasDisabled = btn.disabled ? '1' : '0';
+        btn.disabled = true;
+    } else {
+        btn.classList.remove('is-loading');
+        btn.disabled = btn.dataset.wasDisabled === '1';
+        delete btn.dataset.wasDisabled;
+    }
+}
+
 function showToast(message) {
     let el = document.getElementById('adminToast');
     if (!el) {
@@ -1032,7 +1060,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function persistStoreStatus() {
         if (!storeSaveBtn) return;
         const reason = storeAccepting ? '' : (storeReasonSelect ? storeReasonSelect.value : '');
-        storeSaveBtn.disabled = true;
+        setBtnLoading(storeSaveBtn, true);
         setStoreStatusMessage('Saving…', null);
         try {
             const data = await saveStoreStatus(storeAccepting, reason);
@@ -1049,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setStoreStatusMessage(err.message || 'Could not save store status.', 'error');
             }
         } finally {
-            storeSaveBtn.disabled = false;
+            setBtnLoading(storeSaveBtn, false);
         }
     }
 
@@ -1144,11 +1172,12 @@ document.addEventListener('DOMContentLoaded', () => {
         payModalEl.hidden = false;
     }
 
-    async function completeOrderWithPayment(paymentMethod) {
+    async function completeOrderWithPayment(paymentMethod, triggerBtn) {
         const id = completePayOrderId;
         if (!id) return;
-        if (payModalCashBtn) payModalCashBtn.disabled = true;
-        if (payModalUpiBtn) payModalUpiBtn.disabled = true;
+        const otherBtn = triggerBtn === payModalCashBtn ? payModalUpiBtn : payModalCashBtn;
+        setBtnLoading(triggerBtn, true);
+        if (otherBtn) otherBtn.disabled = true;
         try {
             await patchOrder(id, 'completed', { payment_method: paymentMethod });
             hideCompletePayModal();
@@ -1164,8 +1193,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert(err.message || 'Update failed');
             }
         } finally {
-            if (payModalCashBtn) payModalCashBtn.disabled = false;
-            if (payModalUpiBtn) payModalUpiBtn.disabled = false;
+            setBtnLoading(triggerBtn, false);
+            if (otherBtn) otherBtn.disabled = false;
         }
     }
 
@@ -1173,8 +1202,8 @@ document.addEventListener('DOMContentLoaded', () => {
     payModalEl?.addEventListener('click', (e) => {
         if (e.target === payModalEl) hideCompletePayModal();
     });
-    payModalCashBtn?.addEventListener('click', () => completeOrderWithPayment('CASH'));
-    payModalUpiBtn?.addEventListener('click', () => completeOrderWithPayment('UPI'));
+    payModalCashBtn?.addEventListener('click', () => completeOrderWithPayment('CASH', payModalCashBtn));
+    payModalUpiBtn?.addEventListener('click', () => completeOrderWithPayment('UPI', payModalUpiBtn));
 
     function getCountsByStatus(orders) {
         const counts = {};
@@ -1355,12 +1384,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    async function handleNewOrderPopupAction(action) {
+    async function handleNewOrderPopupAction(action, triggerBtn) {
         const id = newOrderPopupOrderId;
         if (!id) return;
 
-        if (popupAcceptBtn) popupAcceptBtn.disabled = true;
-        if (popupCancelBtn) popupCancelBtn.disabled = true;
+        const otherBtn = triggerBtn === popupAcceptBtn ? popupCancelBtn : popupAcceptBtn;
+        setBtnLoading(triggerBtn, true);
+        if (otherBtn) otherBtn.disabled = true;
 
         try {
             await patchOrder(id, action);
@@ -1375,13 +1405,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert(err && err.message ? err.message : 'Update failed');
             }
         } finally {
-            if (popupAcceptBtn) popupAcceptBtn.disabled = false;
-            if (popupCancelBtn) popupCancelBtn.disabled = false;
+            setBtnLoading(triggerBtn, false);
+            if (otherBtn) otherBtn.disabled = false;
         }
     }
 
-    popupAcceptBtn?.addEventListener('click', () => handleNewOrderPopupAction('accept'));
-    popupCancelBtn?.addEventListener('click', () => handleNewOrderPopupAction('cancel'));
+    popupAcceptBtn?.addEventListener('click', () => handleNewOrderPopupAction('accept', popupAcceptBtn));
+    popupCancelBtn?.addEventListener('click', () => handleNewOrderPopupAction('cancel', popupCancelBtn));
 
     const seenPending = loadSeenIds();
     let lastOrderId = loadLastOrderId();
@@ -1486,7 +1516,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        btn.disabled = true;
+        setBtnLoading(btn, true);
         try {
             await patchOrder(id, action);
             pinnedOrderIdsAfterStatusChange.add(String(id));
@@ -1500,11 +1530,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert(err.message || 'Update failed');
             }
         } finally {
-            btn.disabled = false;
+            setBtnLoading(btn, false);
         }
     });
 
-    if (refreshBtn) refreshBtn.addEventListener('click', () => refresh());
+    if (refreshBtn)
+        refreshBtn.addEventListener('click', async () => {
+            setBtnLoading(refreshBtn, true);
+            try {
+                await refresh();
+            } finally {
+                setBtnLoading(refreshBtn, false);
+            }
+        });
     logoutBtn?.addEventListener('click', () => {
         clearAdminCredentials();
         hideNewOrderPopup();
@@ -1526,23 +1564,20 @@ document.addEventListener('DOMContentLoaded', () => {
             showAdminGate('Enter both username and password.');
             return;
         }
-        if (authSubmit) {
-            authSubmit.disabled = true;
-            authSubmit.textContent = 'Checking...';
-        }
-        const ok = await verifyAdminCredentials(user, pass).catch(() => false);
-        if (!ok) {
-            clearAdminCredentials();
-            showAdminGate('Invalid admin credentials. Please try again.');
-        } else {
-            saveAdminCredentials(user, pass);
-            hideAdminGate();
-            await refresh();
-            loadStoreStatus();
-        }
-        if (authSubmit) {
-            authSubmit.disabled = false;
-            authSubmit.textContent = 'Continue';
+        setBtnLoading(authSubmit, true);
+        try {
+            const ok = await verifyAdminCredentials(user, pass).catch(() => false);
+            if (!ok) {
+                clearAdminCredentials();
+                showAdminGate('Invalid admin credentials. Please try again.');
+            } else {
+                saveAdminCredentials(user, pass);
+                hideAdminGate();
+                await refresh();
+                loadStoreStatus();
+            }
+        } finally {
+            setBtnLoading(authSubmit, false);
         }
     });
 

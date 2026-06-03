@@ -80,6 +80,21 @@
             cursor: pointer;
         }
         button:disabled { opacity: 0.65; cursor: not-allowed; }
+        button.is-loading { color: transparent !important; position: relative; pointer-events: none; }
+        button.is-loading::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1.15em;
+            height: 1.15em;
+            margin: -0.575em 0 0 -0.575em;
+            border: 2px solid rgba(255, 255, 255, 0.45);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: btnspin 0.6s linear infinite;
+        }
+        @keyframes btnspin { to { transform: rotate(360deg); } }
         .error {
             margin-top: 0.75rem;
             font-size: 0.875rem;
@@ -136,6 +151,6 @@
         </p>
     </main>
 
-    <script src="/login.js?v=2" defer></script>
+    <script src="/login.js?v=3" defer></script>
 </body>
 </html>

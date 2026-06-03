@@ -738,6 +738,22 @@
             margin-bottom: 0.75rem;
         }
         .admin-order-meta strong { color: var(--text); }
+        .admin-order-phone {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            width: fit-content;
+            color: var(--logo-green, #2e7d32);
+            font-weight: 600;
+            text-decoration: none;
+            padding: 0.15rem 0.4rem;
+            margin-left: -0.4rem;
+            border-radius: 6px;
+            transition: background 0.15s ease;
+        }
+        .admin-order-phone:hover,
+        .admin-order-phone:active { background: rgba(46, 125, 50, 0.12); text-decoration: underline; }
+        .admin-order-phone svg { flex: 0 0 auto; }
         .admin-order-time { font-size: 0.75rem; }
         .admin-order-items {
             font-size: 0.8125rem;
@@ -889,6 +905,34 @@
             cursor: pointer;
         }
         .admin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        /* Universal button loading spinner (add `is-loading` during async actions). */
+        .is-loading {
+            color: transparent !important;
+            position: relative !important;
+            pointer-events: none;
+            cursor: progress;
+        }
+        .is-loading > * { visibility: hidden; }
+        .is-loading::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1.1em;
+            height: 1.1em;
+            margin: -0.55em 0 0 -0.55em;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: admin-btn-spin 0.6s linear infinite;
+            visibility: visible;
+        }
+        .admin-btn--accept.is-loading::after,
+        .admin-btn--copy.is-loading::after {
+            border-color: rgba(0, 0, 0, 0.22);
+            border-top-color: rgba(0, 0, 0, 0.65);
+        }
+        @keyframes admin-btn-spin { to { transform: rotate(360deg); } }
         .admin-btn--accept { background: var(--accent); color: #052e16; }
         .admin-btn--cancel { background: var(--danger); color: #fff; }
         .admin-btn--prep { background: #2563eb; color: #fff; }
@@ -1431,6 +1475,6 @@
         </div>
     </div>
 
-    <script src="/admin.js?v=10"></script>
+    <script src="/admin.js?v=11"></script>
 </body>
 </html>

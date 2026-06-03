@@ -132,6 +132,30 @@
             cursor: not-allowed;
             pointer-events: none;
         }
+        /* Universal button loading spinner (add `is-loading` during async actions). */
+        .is-loading {
+            color: transparent !important;
+            position: relative !important;
+            pointer-events: none;
+            cursor: progress;
+            opacity: 1 !important;
+        }
+        .is-loading > * { visibility: hidden; }
+        .is-loading::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1.1em;
+            height: 1.1em;
+            margin: -0.55em 0 0 -0.55em;
+            border: 2px solid rgba(15, 23, 42, 0.25);
+            border-top-color: rgba(15, 23, 42, 0.72);
+            border-radius: 50%;
+            animation: floor-btn-spin 0.6s linear infinite;
+            visibility: visible;
+        }
+        @keyframes floor-btn-spin { to { transform: rotate(360deg); } }
         .floor-btn--primary {
             border-color: rgba(5, 150, 105, 0.35);
             background: rgba(52, 211, 153, 0.18);
@@ -1484,6 +1508,6 @@
         </div>
     </div>
 
-    <script src="/admin-tables.js?v=37"></script>
+    <script src="/admin-tables.js?v=38"></script>
 </body>
 </html>

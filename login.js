@@ -58,6 +58,17 @@ function goToMenu() {
     window.location.assign('/menu');
 }
 
+function setBtnLoading(btn, loading) {
+    if (!btn) return;
+    if (loading) {
+        btn.classList.add('is-loading');
+        btn.disabled = true;
+    } else {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const mobileBtn = document.getElementById('gateContinueMobile');
     const registerBtn = document.getElementById('gateRegister');
@@ -73,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showError('Enter a valid 10-digit mobile number.');
             return;
         }
-        mobileBtn.disabled = true;
+        setBtnLoading(mobileBtn, true);
         try {
             const res = await fetch('/api/auth/lookup', {
                 method: 'POST',
@@ -99,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             showError(err.message || 'Something went wrong.');
         } finally {
-            mobileBtn.disabled = false;
+            setBtnLoading(mobileBtn, false);
         }
     });
 
@@ -125,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        registerBtn.disabled = true;
+        setBtnLoading(registerBtn, true);
         try {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
@@ -146,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             showError(err.message || 'Registration failed.');
         } finally {
-            registerBtn.disabled = false;
+            setBtnLoading(registerBtn, false);
         }
     });
 });

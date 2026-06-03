@@ -99,6 +99,20 @@ function showToast(msg, ms = 2600) {
     }, ms);
 }
 
+/** Toggle a spinner + disabled state on a button during async work. */
+function setBtnLoading(btn, loading) {
+    if (!btn) return;
+    if (loading) {
+        btn.classList.add('is-loading');
+        btn.dataset.wasDisabled = btn.disabled ? '1' : '0';
+        btn.disabled = true;
+    } else {
+        btn.classList.remove('is-loading');
+        btn.disabled = btn.dataset.wasDisabled === '1';
+        delete btn.dataset.wasDisabled;
+    }
+}
+
 function parseMeta(order) {
     const raw = order.order_meta;
     let m = raw;
@@ -1761,6 +1775,7 @@ function renderDrawer() {
             showToast('Add at least one item line.');
             return;
         }
+        setBtnLoading(saveKotBtn, true);
         try {
             // One KOT per table: when the table already has an editable ticket, merge the
             // new items into it (replace) instead of opening another KOT.
@@ -1792,6 +1807,8 @@ function renderDrawer() {
             renderDrawer();
         } catch (e) {
             showToast(e.message || 'Failed.');
+        } finally {
+            setBtnLoading(saveKotBtn, false);
         }
     });
 
@@ -1802,14 +1819,16 @@ function renderDrawer() {
         setKotMenuBrowserOpen(kotMenuBrowser, null, lineBox, true);
     }
 
-    body.querySelector('#voidFloorBtn')?.addEventListener('click', async () => {
+    body.querySelector('#voidFloorBtn')?.addEventListener('click', async (ev) => {
         if (
             !window.confirm(
                 'Clear this table and remove all KOTs for this seat? This cannot be undone.'
             )
         )
             return;
+        const voidBtn = ev.currentTarget;
         const wasLocal = isLocalFloorId(order.id);
+        setBtnLoading(voidBtn, true);
         try {
             await patchOrder(order.id, { action: 'floor_void' });
             showToast('Table cleared.');
@@ -1823,6 +1842,7 @@ function renderDrawer() {
             }
         } catch (e) {
             showToast(e.message || 'Failed.');
+            setBtnLoading(voidBtn, false);
         }
     });
 
@@ -1838,6 +1858,9 @@ function renderDrawer() {
             b.addEventListener('click', async () => {
                 const pm = b.getAttribute('data-pay');
                 const wasLocal = isLocalFloorId(order.id);
+                const otherBtn = footer.querySelector(`[data-pay]:not([data-pay="${pm}"])`);
+                setBtnLoading(b, true);
+                if (otherBtn) otherBtn.disabled = true;
                 try {
                     if (wasLocal) {
                         const fm = floorMeta(order);
@@ -1865,6 +1888,8 @@ function renderDrawer() {
                     renderSlots();
                 } catch (e) {
                     showToast(e.message || 'Failed.');
+                    setBtnLoading(b, false);
+                    if (otherBtn) otherBtn.disabled = false;
                 }
             });
         });
@@ -2294,14 +2319,18 @@ document.getElementById('floorAuthForm')?.addEventListener('submit', async (e) =
     e.preventDefault();
     const u = document.getElementById('floorUser')?.value || '';
     const p = document.getElementById('floorPass')?.value || '';
+    const submitBtn = e.currentTarget.querySelector('button[type="submit"], button:not([type])');
+    setBtnLoading(submitBtn, true);
     let ok;
     try {
         ok = await verifyAdmin(u, p);
     } catch (err) {
+        setBtnLoading(submitBtn, false);
         showGate(err.message || 'Could not verify.');
         return;
     }
     if (!ok) {
+        setBtnLoading(submitBtn, false);
         showGate('Invalid username or password.');
         return;
     }
@@ -2312,16 +2341,22 @@ document.getElementById('floorAuthForm')?.addEventListener('submit', async (e) =
     } catch (err) {
         if (err && err.code === 401) showGate('Session invalid.');
         else showGate(err.message || 'Could not load.');
+    } finally {
+        setBtnLoading(submitBtn, false);
     }
 });
 
-document.getElementById('floorRefreshBtn')?.addEventListener('click', async () => {
+document.getElementById('floorRefreshBtn')?.addEventListener('click', async (e) => {
+    const refreshBtn = e.currentTarget;
+    setBtnLoading(refreshBtn, true);
     try {
         await refreshAll({ reloadLocalFromDisk: true });
         showToast('Updated.');
     } catch (e) {
         showToast(e.message || 'Refresh failed.');
         if (e && e.code === 401) showGate('Sign in again.');
+    } finally {
+        setBtnLoading(refreshBtn, false);
     }
 });
 

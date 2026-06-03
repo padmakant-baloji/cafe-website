@@ -1540,10 +1540,7 @@ async function applyCouponFromCheckout() {
     }
 
     const prevLabel = applyBtn ? applyBtn.textContent : '';
-    if (applyBtn) {
-        applyBtn.disabled = true;
-        applyBtn.textContent = 'Applying…';
-    }
+    setBtnLoading(applyBtn, true);
 
     try {
         const res = await fetch('/api/coupons/validate', {
@@ -1570,8 +1567,8 @@ async function applyCouponFromCheckout() {
         setCouponFeedback(err.message || 'Could not apply coupon.', 'error');
         renderCheckoutTotals();
     } finally {
+        setBtnLoading(applyBtn, false);
         if (applyBtn) {
-            applyBtn.disabled = false;
             // Preserve Apply/Remove label based on state.
             applyBtn.textContent = appliedCoupon?.code ? 'Remove' : (prevLabel || 'Apply');
         }
@@ -3292,6 +3289,45 @@ function initOrderSuccessModal() {
 }
 
 // ============================================
+// Loading helpers
+// ============================================
+function setBtnLoading(btn, loading) {
+    if (!btn) return;
+    if (loading) {
+        btn.classList.add('is-loading');
+        btn.dataset.wasDisabled = btn.disabled ? '1' : '0';
+        btn.disabled = true;
+    } else {
+        btn.classList.remove('is-loading');
+        btn.disabled = btn.dataset.wasDisabled === '1';
+        delete btn.dataset.wasDisabled;
+    }
+}
+
+function showAppLoading(text = 'Working…') {
+    let el = document.getElementById('appLoadingOverlay');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'appLoadingOverlay';
+        el.className = 'app-loading-overlay';
+        el.setAttribute('role', 'status');
+        el.setAttribute('aria-live', 'polite');
+        el.innerHTML = '<div class="app-loading-spinner" aria-hidden="true"></div><p class="app-loading-text"></p>';
+        document.body.appendChild(el);
+    }
+    const textEl = el.querySelector('.app-loading-text');
+    if (textEl) textEl.textContent = text;
+    requestAnimationFrame(() => {
+        el.dataset.show = '1';
+    });
+}
+
+function hideAppLoading() {
+    const el = document.getElementById('appLoadingOverlay');
+    if (el) el.dataset.show = '0';
+}
+
+// ============================================
 // Place Order
 // ============================================
 async function placeOrder() {
@@ -3367,10 +3403,8 @@ async function placeOrder() {
 
     const submitBtn = document.getElementById('checkoutSubmitBtn');
     const prevSubmitHtml = submitBtn ? submitBtn.innerHTML : '';
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = 'Placing…';
-    }
+    setBtnLoading(submitBtn, true);
+    showAppLoading('Placing your order…');
 
     try {
         const res = await fetch(getOrderApiUrl(), {
@@ -3412,8 +3446,9 @@ async function placeOrder() {
                 : '';
         alert((err.message || 'Could not place order.') + hint);
     } finally {
+        hideAppLoading();
+        setBtnLoading(submitBtn, false);
         if (submitBtn) {
-            submitBtn.disabled = false;
             submitBtn.innerHTML = prevSubmitHtml;
             renderCheckoutTotals();
         }

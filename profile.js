@@ -94,6 +94,17 @@ function renderProfile(profile) {
     renderSavedAddresses(profile?.addresses || []);
 }
 
+function setBtnLoading(btn, loading) {
+    if (!btn) return;
+    if (loading) {
+        btn.classList.add('is-loading');
+        btn.disabled = true;
+    } else {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+    }
+}
+
 function setFeedback(message, type = 'info') {
     const feedback = document.getElementById('profileFormFeedback');
     if (!feedback) return;
@@ -197,10 +208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             setFeedback('Please enter your name and select your city.', 'error');
             return;
         }
-        if (saveBtn) {
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'Saving...';
-        }
+        setBtnLoading(saveBtn, true);
         setFeedback('');
         try {
             const customer = await updateProfile(name, city);
@@ -210,10 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             setFeedback(error.message || 'Could not update profile.', 'error');
         } finally {
-            if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'Save changes';
-            }
+            setBtnLoading(saveBtn, false);
         }
     });
 
