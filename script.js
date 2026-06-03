@@ -959,6 +959,62 @@ function initOrderingAvailability() {
     });
 }
 
+// ============================================
+// "Not accepting orders" overlay (admin controlled)
+// ============================================
+let storeAcceptingOrders = true;
+
+function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text || '';
+}
+
+function applyStoreClosedOverlay(status) {
+    const overlay = document.getElementById('storeClosedOverlay');
+    if (!overlay) return;
+
+    const accepting = !status || status.acceptingOrders !== false;
+    storeAcceptingOrders = accepting;
+
+    if (accepting || !status || !status.notice) {
+        overlay.hidden = true;
+        document.body.classList.remove('store-closed-locked');
+        return;
+    }
+
+    const notice = status.notice;
+    setText('storeClosedIcon', notice.icon || '🏪');
+    setText('storeClosedTitleEn', notice.titleEn || 'We are not accepting orders right now');
+    setText('storeClosedTitleHi', notice.titleHi || 'हम अभी ऑर्डर स्वीकार नहीं कर रहे हैं');
+    setText('storeClosedReasonEn', notice.reasonEn || '');
+    setText('storeClosedReasonHi', notice.reasonHi || '');
+    setText('storeClosedMessageEn', notice.messageEn || '');
+    setText('storeClosedMessageHi', notice.messageHi || '');
+
+    overlay.hidden = false;
+    document.body.classList.add('store-closed-locked');
+}
+
+async function fetchStoreStatus() {
+    try {
+        const res = await fetch('/api/store-status', { cache: 'no-store' });
+        if (!res.ok) return;
+        const status = await res.json();
+        applyStoreClosedOverlay(status);
+    } catch {
+        // Network/API issue: never block ordering on a failed status check.
+        applyStoreClosedOverlay({ acceptingOrders: true });
+    }
+}
+
+function initStoreStatus() {
+    fetchStoreStatus();
+    setInterval(fetchStoreStatus, 30000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') fetchStoreStatus();
+    });
+}
+
 // Load cart from localStorage
 function loadCart() {
     const savedCart = localStorage.getItem('balojiCart');
@@ -3535,6 +3591,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initMenuSearch();
     initMenuItemActions();
     initOrderingAvailability();
+    initStoreStatus();
     initGallery();
     initTestimonials();
     loadCart();

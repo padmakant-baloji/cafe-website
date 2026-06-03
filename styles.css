@@ -8350,3 +8350,122 @@ body.legal-page {
     text-decoration: underline;
 }
 
+/* ============================================
+   Not Accepting Orders Overlay
+   ============================================ */
+.store-closed-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(26, 35, 126, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: storeClosedFade 0.25s ease;
+}
+
+.store-closed-overlay[hidden] {
+    display: none;
+}
+
+@keyframes storeClosedFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.store-closed-card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--warm-white, #fffef9);
+    border-radius: 22px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+    padding: 2rem 1.6rem;
+    text-align: center;
+}
+
+.store-closed-icon {
+    width: 84px;
+    height: 84px;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.6rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+    box-shadow: inset 0 0 0 2px rgba(255, 140, 66, 0.25);
+}
+
+.store-closed-title {
+    font-family: var(--font-display, serif);
+    font-size: 1.4rem;
+    line-height: 1.3;
+    color: var(--text-dark, #2c2c2c);
+    margin: 0 0 0.35rem;
+}
+
+.store-closed-title-hi {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--primary-red, #d32f2f);
+    margin: 0 0 1rem;
+}
+
+.store-closed-reason {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 999px;
+    background: #fff3e0;
+    border: 1px solid rgba(255, 140, 66, 0.4);
+}
+
+.store-closed-reason-en {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--accent-red, #c62828);
+}
+
+.store-closed-reason-hi {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-dark, #2c2c2c);
+}
+
+.store-closed-message {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--text-light, #666);
+    margin: 0 0 0.4rem;
+}
+
+.store-closed-message-hi {
+    margin-bottom: 1rem;
+}
+
+.store-closed-footnote {
+    font-size: 0.8rem;
+    color: var(--text-light, #666);
+    margin: 0;
+    opacity: 0.85;
+}
+
+body.store-closed-locked {
+    overflow: hidden;
+}
+
+@media (max-width: 480px) {
+    .store-closed-card {
+        padding: 1.6rem 1.2rem;
+    }
+    .store-closed-title {
+        font-size: 1.2rem;
+    }
+}
+

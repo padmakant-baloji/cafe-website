@@ -301,6 +301,31 @@ async function patchOrder(orderId, action, extra = {}) {
     return data.order;
 }
 
+async function fetchStoreStatus() {
+    const res = await fetch('/api/admin/store-status', {
+        headers: adminHeaders(),
+        cache: 'no-store'
+    });
+    if (res.status === 401) throw Object.assign(new Error('Authentication required'), { code: 401 });
+    if (!res.ok) throw new Error(`Could not load store status (${res.status})`);
+    return res.json();
+}
+
+async function saveStoreStatus(acceptingOrders, reason) {
+    const res = await fetch('/api/admin/store-status', {
+        method: 'POST',
+        headers: {
+            ...adminHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ acceptingOrders, reason })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    return data;
+}
+
 async function verifyAdminCredentials(user, pass) {
     const res = await fetch('/api/admin/session', {
         headers: adminHeaders({ user: String(user || '').trim(), pass: String(pass || '').trim() })
@@ -1064,6 +1089,105 @@ document.addEventListener('DOMContentLoaded', () => {
     const payModalUpiBtn = document.getElementById('adminCompletePayUpiBtn');
     let completePayOrderId = null;
 
+    const storeStatusEl = document.getElementById('adminStoreStatus');
+    const storeStatusPill = document.getElementById('adminStoreStatusPill');
+    const storeStatusNote = document.getElementById('adminStoreStatusNote');
+    const storeAcceptBtn = document.getElementById('adminStoreAcceptBtn');
+    const storePauseBtn = document.getElementById('adminStorePauseBtn');
+    const storeReasonWrap = document.getElementById('adminStoreReasonWrap');
+    const storeReasonSelect = document.getElementById('adminStoreReason');
+    const storeSaveBtn = document.getElementById('adminStoreSaveBtn');
+    const storeStatusMsg = document.getElementById('adminStoreStatusMsg');
+
+    let storeAccepting = true;
+
+    function setStoreStatusMessage(text, state) {
+        if (!storeStatusMsg) return;
+        storeStatusMsg.textContent = text || '';
+        if (state) storeStatusMsg.setAttribute('data-state', state);
+        else storeStatusMsg.removeAttribute('data-state');
+    }
+
+    function renderStoreStatusControls() {
+        if (storeAcceptBtn) storeAcceptBtn.setAttribute('data-active', String(storeAccepting));
+        if (storePauseBtn) storePauseBtn.setAttribute('data-active', String(!storeAccepting));
+        if (storeReasonWrap) storeReasonWrap.hidden = storeAccepting;
+        if (storeStatusEl) storeStatusEl.setAttribute('data-state', storeAccepting ? 'open' : 'paused');
+        if (storeStatusPill) {
+            storeStatusPill.setAttribute('data-state', storeAccepting ? 'open' : 'paused');
+            storeStatusPill.textContent = storeAccepting ? 'Accepting orders' : 'Orders paused';
+        }
+        if (storeStatusNote) {
+            storeStatusNote.textContent = storeAccepting
+                ? 'Customers can place orders on the website.'
+                : 'Customers see a “not accepting orders” overlay and cannot order.';
+        }
+    }
+
+    function applyStoreStatus(status) {
+        if (!status || typeof status !== 'object') return;
+        storeAccepting = status.acceptingOrders !== false;
+        if (!storeAccepting && status.reason && storeReasonSelect) {
+            storeReasonSelect.value = status.reason;
+        }
+        renderStoreStatusControls();
+    }
+
+    async function loadStoreStatus() {
+        if (!storeStatusEl) return;
+        try {
+            const status = await fetchStoreStatus();
+            applyStoreStatus(status);
+            setStoreStatusMessage('', null);
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired. Enter admin credentials again.');
+            } else {
+                setStoreStatusMessage('Could not load store status.', 'error');
+            }
+        }
+    }
+
+    async function persistStoreStatus() {
+        if (!storeSaveBtn) return;
+        const reason = storeAccepting ? '' : (storeReasonSelect ? storeReasonSelect.value : '');
+        storeSaveBtn.disabled = true;
+        setStoreStatusMessage('Saving…', null);
+        try {
+            const data = await saveStoreStatus(storeAccepting, reason);
+            applyStoreStatus(data);
+            setStoreStatusMessage(
+                storeAccepting ? 'Orders are now open.' : 'Orders paused — customers will see the overlay.',
+                'success'
+            );
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired. Enter admin credentials again.');
+            } else {
+                setStoreStatusMessage(err.message || 'Could not save store status.', 'error');
+            }
+        } finally {
+            storeSaveBtn.disabled = false;
+        }
+    }
+
+    storeAcceptBtn?.addEventListener('click', () => {
+        storeAccepting = true;
+        renderStoreStatusControls();
+        setStoreStatusMessage('Press Save to apply.', null);
+    });
+    storePauseBtn?.addEventListener('click', () => {
+        storeAccepting = false;
+        renderStoreStatusControls();
+        setStoreStatusMessage('Choose a reason, then press Save.', null);
+    });
+    storeReasonSelect?.addEventListener('change', () => {
+        if (!storeAccepting) setStoreStatusMessage('Press Save to apply.', null);
+    });
+    storeSaveBtn?.addEventListener('click', persistStoreStatus);
+
     fillAdminDefaults();
 
     const hashKey = String(window.location.hash || '').replace(/^#/, '').trim();
@@ -1598,9 +1722,7 @@ document.addEventListener('DOMContentLoaded', () => {
             saveAdminCredentials(user, pass);
             hideAdminGate();
             await refresh();
-            if (!refreshTimer) {
-                refreshTimer = setInterval(refresh, 2500);
-            }
+            loadStoreStatus();
         }
         if (authSubmit) {
             authSubmit.disabled = false;
@@ -1633,7 +1755,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         hideAdminGate();
         refresh();
-        refreshTimer = setInterval(refresh, 2500);
+        loadStoreStatus();
     };
 
     initAdmin();

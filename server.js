@@ -25,6 +25,7 @@ const {
 } = require('./lib/order-service');
 const { placeOrderForCustomer } = require('./lib/place-order');
 const { validateCoupon } = require('./lib/coupon-service');
+const { getStoreStatus, setStoreStatus } = require('./lib/store-status');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -279,6 +280,45 @@ app.post('/api/coupons/validate', requireCustomer, async (req, res) => {
             console.error('coupons/validate:', err.message);
         }
         return res.status(code).json({ ok: false, error: err.message || 'Could not validate coupon.' });
+    }
+});
+
+app.get('/api/store-status', async (req, res) => {
+    try {
+        await ensureSchema();
+        const status = await getStoreStatus();
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        return res.json(status);
+    } catch (err) {
+        console.error('store-status:', err.message);
+        return res.json({ acceptingOrders: true, reason: null, notice: null, updatedAt: null });
+    }
+});
+
+app.post('/api/admin/store-status', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const body = req.body || {};
+        const status = await setStoreStatus({
+            acceptingOrders: Boolean(body.acceptingOrders),
+            reason: typeof body.reason === 'string' ? body.reason : ''
+        });
+        return res.json({ ok: true, ...status });
+    } catch (err) {
+        console.error('admin store-status:', err.message);
+        return res.status(500).json({ error: 'Could not update store status.' });
+    }
+});
+
+app.get('/api/admin/store-status', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const status = await getStoreStatus();
+        res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        return res.json(status);
+    } catch (err) {
+        console.error('admin store-status get:', err.message);
+        return res.status(500).json({ error: 'Could not load store status.' });
     }
 });
 
