@@ -43,55 +43,6 @@ function formatOrderStatus(status) {
     return map[status] || status;
 }
 
-/** Same 1-minute window as the API: pending (from created_at) or accepted (from updated_at). */
-const CUSTOMER_CANCEL_MS = 1 * 60 * 1000;
-
-function customerCancelCanSubmit(order) {
-    const st = String(order?.status ?? '')
-        .trim()
-        .toLowerCase();
-    if (st === 'pending') {
-        const raw = order.created_at ?? order.createdAt;
-        if (!raw) return true;
-        const t = new Date(raw).getTime();
-        if (!Number.isFinite(t)) return true;
-        return Date.now() - t < CUSTOMER_CANCEL_MS;
-    }
-    if (st === 'accepted') {
-        const raw = order.updated_at ?? order.updatedAt;
-        if (!raw) return true;
-        const t = new Date(raw).getTime();
-        if (!Number.isFinite(t)) return true;
-        return Date.now() - t < CUSTOMER_CANCEL_MS;
-    }
-    return false;
-}
-
-function cancelDeadlineMs(order) {
-    const st = String(order?.status ?? '')
-        .trim()
-        .toLowerCase();
-    if (st === 'accepted') {
-        const raw = order.updated_at ?? order.updatedAt;
-        if (!raw) return Date.now() + CUSTOMER_CANCEL_MS;
-        const t = new Date(raw).getTime();
-        if (!Number.isFinite(t)) return Date.now() + CUSTOMER_CANCEL_MS;
-        return t + CUSTOMER_CANCEL_MS;
-    }
-    const raw = order?.created_at ?? order?.createdAt;
-    if (!raw) return Date.now() + CUSTOMER_CANCEL_MS;
-    const t = new Date(raw).getTime();
-    if (!Number.isFinite(t)) return Date.now() + CUSTOMER_CANCEL_MS;
-    return t + CUSTOMER_CANCEL_MS;
-}
-
-function formatCancelTimeLabel(msLeft) {
-    const s = Math.max(0, Math.ceil(msLeft / 1000));
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return `${m}:${String(r).padStart(2, '0')}`;
-}
-
 const ACTIVE_ORDER_STATUSES = new Set(['pending', 'accepted', 'preparing', 'out_for_delivery']);
 
 /** order id (string) → last seen normalized status (for detecting transitions to completed) */
@@ -149,39 +100,7 @@ function formatTimeUntilArrival(deadlineMs) {
     return `${s}s`;
 }
 
-let ordersCancelTickTimer = null;
 let ordersArrivalTickTimer = null;
-
-function scheduleOrdersCancelTick() {
-    clearInterval(ordersCancelTickTimer);
-    ordersCancelTickTimer = null;
-    const list = document.getElementById('ordersList');
-    if (!list || !list.querySelector('[data-cancel-deadline]')) return;
-
-    ordersCancelTickTimer = setInterval(() => {
-        const wraps = list.querySelectorAll('[data-cancel-deadline]');
-        if (!wraps.length) {
-            clearInterval(ordersCancelTickTimer);
-            ordersCancelTickTimer = null;
-            return;
-        }
-        let expired = false;
-        wraps.forEach((wrap) => {
-            const end = parseInt(wrap.dataset.cancelDeadline, 10);
-            const ttl = wrap.querySelector('.my-order-cancel-note');
-            const kind = wrap.dataset.cancelKind || 'pending';
-            const left = end - Date.now();
-            if (left <= 0) expired = true;
-            else if (ttl) {
-                ttl.textContent =
-                    kind === 'accepted'
-                        ? `Cancel within ${formatCancelTimeLabel(left)} after accept`
-                        : `Cancel within ${formatCancelTimeLabel(left)}`;
-            }
-        });
-        if (expired) fetchMyOrders();
-    }, 1000);
-}
 
 function tickOrdersArrivalCountdowns() {
     const list = document.getElementById('ordersList');
@@ -207,22 +126,6 @@ function scheduleOrdersArrivalTick() {
     if (!list || !list.querySelector('[data-arrival-deadline]')) return;
     tickOrdersArrivalCountdowns();
     ordersArrivalTickTimer = setInterval(tickOrdersArrivalCountdowns, 1000);
-}
-
-async function cancelOrderRequest(orderId) {
-    const token = getCustomerToken();
-    const profile = getCustomerProfile();
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (profile?.mobile) headers['x-customer-mobile'] = String(profile.mobile);
-
-    const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}/cancel`, {
-        method: 'POST',
-        headers
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Could not cancel order.');
-    return data.order;
 }
 
 function maybePromptGoogleReviewAfterOrdersRender(orders) {
@@ -357,19 +260,6 @@ function renderMyOrders(orders) {
             const placedLabel = formatFriendlyPlacedAt(createdRaw);
             const status = order.status || '';
             const stLower = String(status).trim().toLowerCase();
-            const canSubmitCancel = customerCancelCanSubmit(order);
-            const deadline = cancelDeadlineMs(order);
-            const cancelKind = stLower === 'accepted' ? 'accepted' : 'pending';
-            const cancelHintDisplay =
-                cancelKind === 'accepted'
-                    ? `Cancel within ${formatCancelTimeLabel(Math.max(0, deadline - Date.now()))} after accept`
-                    : `Cancel within ${formatCancelTimeLabel(Math.max(0, deadline - Date.now()))}`;
-            const cancelBlock = canSubmitCancel
-                ? `<div class="my-order-cancel" data-cancel-kind="${cancelKind}" data-cancel-deadline="${deadline}">
-                        <p class="my-order-cancel-note">${escapeHtml(cancelHintDisplay)}</p>
-                        <button type="button" class="btn btn-cancel-order" data-cancel-order-id="${escapeHtml(String(order.id))}">Cancel order</button>
-                    </div>`
-                : '';
 
             let arrivalBlock = '';
             if (ACTIVE_ORDER_STATUSES.has(stLower) && createdRaw) {
@@ -407,14 +297,12 @@ function renderMyOrders(orders) {
                             <span class="my-order-total-label">Total</span>
                             <span class="my-order-total-amt">₹${Number(order.total) || 0}</span>
                         </div>
-                        ${cancelBlock}
                     </div>
                 </article>
             `;
         })
         .join('');
 
-    scheduleOrdersCancelTick();
     scheduleOrdersArrivalTick();
     maybePromptGoogleReviewAfterOrdersRender(orders);
 }
@@ -473,29 +361,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const listEl = document.getElementById('ordersList');
-    listEl?.addEventListener('click', async (e) => {
-        const btn = e.target.closest('[data-cancel-order-id]');
-        if (!btn) return;
-        const id = btn.getAttribute('data-cancel-order-id');
-        if (!id) return;
-        if (
-            !window.confirm(
-                'Cancel this order? You can place a new order from the menu anytime.'
-            )
-        ) {
-            return;
-        }
-        btn.disabled = true;
-        try {
-            await cancelOrderRequest(id);
-            await fetchMyOrders();
-        } catch (err) {
-            alert(err && err.message ? err.message : 'Could not cancel order.');
-            btn.disabled = false;
-        }
-    });
+    const refreshBtn = document.getElementById('refreshOrdersBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            if (refreshBtn.dataset.loading === '1') return;
+            refreshBtn.dataset.loading = '1';
+            refreshBtn.classList.add('is-refreshing');
+            const original = refreshBtn.dataset.label || refreshBtn.textContent;
+            refreshBtn.dataset.label = original;
+            refreshBtn.textContent = 'Refreshing…';
+            try {
+                await fetchMyOrders();
+            } finally {
+                refreshBtn.dataset.loading = '0';
+                refreshBtn.classList.remove('is-refreshing');
+                refreshBtn.textContent = original;
+            }
+        });
+    }
 
     fetchMyOrders();
-    setInterval(fetchMyOrders, 3000);
 });

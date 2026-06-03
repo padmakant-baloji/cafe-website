@@ -15,7 +15,7 @@
     <!-- Primary Meta Tags -->
     <title>Order Online — Baloji's Cafe, Kudachi</title>
     <meta name="title" content="Order Online — Baloji's Cafe, Kudachi">
-    <meta name="description" content="Order vegetarian food from Baloji's Cafe, Kudachi. Browse the menu, add to cart, and place your order by email. Open 1 PM–10 PM. Free delivery in Kudachi.">
+    <meta name="description" content="Order vegetarian food from Baloji's Cafe, Kudachi. Browse the menu, add to cart, and place your order by email. Open 1 PM–10 PM. Flat ₹20 delivery in Kudachi.">
     <meta name="keywords" content="Baloji's Cafe, order online Kudachi, food delivery Kudachi, vegetarian restaurant Kudachi">
     <meta name="author" content="Baloji's Cafe">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
@@ -44,7 +44,7 @@
     <meta property="og:type" content="restaurant">
     <meta property="og:url" content="https://www.balojicafe.com/">
     <meta property="og:title" content="Order Online — Baloji's Cafe, Kudachi">
-    <meta property="og:description" content="Browse the menu and place your order by email. Fresh vegetarian food, free delivery in Kudachi. Open 1 PM–10 PM.">
+    <meta property="og:description" content="Browse the menu and place your order by email. Fresh vegetarian food, flat ₹20 delivery in Kudachi. Open 1 PM–10 PM.">
     <meta property="og:image" content="https://www.balojicafe.com/images/logo/logo-large.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -88,7 +88,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Playfair+Display:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Styles -->
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=3">
     
     <!-- Enhanced Schema.org Structured Data -->
     <script type="application/ld+json">
@@ -105,7 +105,7 @@
         "https://www.balojicafe.com/images/Margherita%20pizza.jpg",
         "https://www.balojicafe.com/images/Veg%20Burger.jpg"
       ],
-      "description": "Vegetarian cafe in Kudachi — order online by email. Pizza, Chinese, momos, beverages, and more. Open 1 PM–10 PM with free delivery in Kudachi.",
+      "description": "Vegetarian cafe in Kudachi — order online by email. Pizza, Chinese, momos, beverages, and more. Open 1 PM–10 PM with flat ₹20 delivery in Kudachi.",
       "address": {
         "@type": "PostalAddress",
         "streetAddress": "Opp. to Railway Station, Near Bus Stop",
@@ -295,7 +295,7 @@
                 <p class="order-header-lead">Build your cart and checkout from the menu. Track status updates on the separate My orders page. UPI or cash on delivery.</p>
                 <div class="order-header-badges">
                     <span class="order-badge">Open 1 PM – 10 PM</span>
-                    <span class="order-badge">Free delivery</span>
+                    <span class="order-badge">₹20 delivery in Kudachi</span>
                     <span class="order-badge">100% veg</span>
                 </div>
                 <div class="order-header-actions">
@@ -469,9 +469,20 @@
                 <p class="cart-empty">Your cart is empty</p>
             </div>
             <div class="cart-footer">
-                <div class="cart-total">
-                    <strong>Total: ₹<span id="cartTotal">0</span></strong>
-                </div>
+                <dl class="cart-summary">
+                    <div class="cart-summary-row">
+                        <dt>Items</dt>
+                        <dd>₹<span id="cartSubtotal">0</span></dd>
+                    </div>
+                    <div class="cart-summary-row" id="cartDeliveryRow" hidden>
+                        <dt>Delivery</dt>
+                        <dd>₹<span id="cartDeliveryFee">0</span></dd>
+                    </div>
+                    <div class="cart-summary-row cart-summary-row--total">
+                        <dt>To pay</dt>
+                        <dd>₹<span id="cartTotal">0</span></dd>
+                    </div>
+                </dl>
                 <p class="delivery-note" id="cartDeliveryNote" hidden></p>
                 <p class="ordering-closed-note" id="orderingClosedNoteCart" hidden role="status"></p>
                 <button class="btn btn-checkout" id="checkoutBtn">Checkout</button>
@@ -579,12 +590,6 @@
                 </div>
                 <p class="order-success-copy" id="orderSuccessCopy">We’ll notify you as your order moves along. The countdown above is a friendly estimate — open My orders anytime for live status.</p>
             </div>
-            <div class="order-success-cancel-panel" id="orderSuccessCancelPanel" hidden>
-                <p class="order-success-cancel-hint" id="orderSuccessCancelHint">
-                    Change your mind? You can cancel within <strong id="orderSuccessCancelCountdown">1:00</strong> (while the restaurant hasn’t started).
-                </p>
-                <button type="button" class="btn btn-cancel-order order-success-cancel-btn" id="orderSuccessCancelBtn">Cancel order</button>
-            </div>
             <div class="order-success-actions order-success-actions--stack">
                 <button type="button" class="btn btn-primary" id="trackOrderBtn">Track order</button>
                 <button type="button" class="btn btn-secondary" id="orderSuccessCloseBtn">Keep browsing menu</button>
@@ -598,7 +603,7 @@
                 <div class="footer-section">
                     <h3>Baloji's Cafe</h3>
                     <p class="order-footer-tagline">Vegetarian food · Kudachi</p>
-                    <p>1 PM – 10 PM daily · Free delivery in Kudachi</p>
+                    <p>1 PM – 10 PM daily · Flat ₹20 delivery in Kudachi</p>
                 </div>
                 <div class="footer-section">
                     <h4>Order</h4>
@@ -669,7 +674,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="script.js?v=13" defer></script>
+    <script src="script.js?v=14" defer></script>
     <script src="/review-prompt.js" defer></script>
     <script src="/pwa-client.js" defer></script>
 </body>

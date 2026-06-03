@@ -1460,9 +1460,8 @@ function getCartTotal() {
 }
 
 const MIN_NON_KUDACHI_ORDER_VALUE = 200;
-const MIN_FREE_DELIVERY_ORDER_VALUE = 500;
-const NON_KUDACHI_DELIVERY_FEE = 40;
-const MIN_KUDACHI_FREE_DELIVERY_VALUE = 80;
+// Flat delivery charge applied to every order, irrespective of order value.
+const NON_KUDACHI_DELIVERY_FEE = 45;
 const KUDACHI_DELIVERY_FEE = 20;
 
 function getNormalizedCustomerCity() {
@@ -1476,17 +1475,9 @@ function getCheckoutSelectedCity() {
 }
 
 function getDeliveryFee(subtotal, cityLower) {
-    if (!cityLower) return 0;
-    if (cityLower === 'kudachi') {
-        // Kudachi: free delivery when subtotal hits the minimum, small fee below.
-        if (subtotal <= 0) return 0;
-        if (subtotal < MIN_KUDACHI_FREE_DELIVERY_VALUE) return KUDACHI_DELIVERY_FEE;
-        return 0;
-    }
-    // For non-Kudachi, delivery fee applies only once minimum order is met.
-    if (subtotal < MIN_NON_KUDACHI_ORDER_VALUE) return 0;
-    if (subtotal >= MIN_FREE_DELIVERY_ORDER_VALUE) return 0;
-    return NON_KUDACHI_DELIVERY_FEE;
+    if (!cityLower || subtotal <= 0) return 0;
+    // Flat delivery charge regardless of order value: ₹20 in Kudachi, ₹45 elsewhere.
+    return cityLower === 'kudachi' ? KUDACHI_DELIVERY_FEE : NON_KUDACHI_DELIVERY_FEE;
 }
 
 function isCheckoutAllowed(subtotal, cityLower) {
@@ -1587,6 +1578,24 @@ async function applyCouponFromCheckout() {
     }
 }
 
+function renderCartSummary() {
+    const subtotalEl = document.getElementById('cartSubtotal');
+    const deliveryEl = document.getElementById('cartDeliveryFee');
+    const deliveryRow = document.getElementById('cartDeliveryRow');
+    const totalEl = document.getElementById('cartTotal');
+
+    const subtotal = getCartTotal();
+    const cityLower = getNormalizedCustomerCity();
+    const allowed = isCheckoutAllowed(subtotal, cityLower);
+    const showDelivery = !!cityLower && subtotal > 0 && allowed;
+    const deliveryFee = showDelivery ? getDeliveryFee(subtotal, cityLower) : 0;
+
+    if (subtotalEl) subtotalEl.textContent = String(subtotal);
+    if (deliveryEl) deliveryEl.textContent = String(deliveryFee);
+    if (deliveryRow) deliveryRow.hidden = !showDelivery;
+    if (totalEl) totalEl.textContent = String(subtotal + deliveryFee);
+}
+
 function renderCartDeliveryNote() {
     const el = document.getElementById('cartDeliveryNote');
     if (!el) return;
@@ -1608,12 +1617,7 @@ function renderCartDeliveryNote() {
     }
 
     if (cityLower === 'kudachi') {
-        if (subtotal < MIN_KUDACHI_FREE_DELIVERY_VALUE) {
-            const remaining = MIN_KUDACHI_FREE_DELIVERY_VALUE - subtotal;
-            el.innerHTML = `₹${KUDACHI_DELIVERY_FEE} delivery charge in <strong>Kudachi</strong> for orders under ₹${MIN_KUDACHI_FREE_DELIVERY_VALUE}. Add <strong>₹${remaining}</strong> more for <strong>free delivery</strong>.`;
-        } else {
-            el.innerHTML = 'Free delivery in <strong>Kudachi</strong>.';
-        }
+        el.innerHTML = `Flat <strong>₹${KUDACHI_DELIVERY_FEE}</strong> delivery charge in <strong>Kudachi</strong>.`;
         el.hidden = false;
         return;
     }
@@ -1626,14 +1630,7 @@ function renderCartDeliveryNote() {
         return;
     }
 
-    if (subtotal < MIN_FREE_DELIVERY_ORDER_VALUE) {
-        const remaining = MIN_FREE_DELIVERY_ORDER_VALUE - subtotal;
-        el.innerHTML = `Add <strong>₹${remaining}</strong> more to get <strong>free delivery</strong> (₹${NON_KUDACHI_DELIVERY_FEE} delivery charge becomes ₹0).`;
-        el.hidden = false;
-        return;
-    }
-
-    el.innerHTML = `You unlocked <strong>free delivery</strong> for orders ₹${MIN_FREE_DELIVERY_ORDER_VALUE}+ .`;
+    el.innerHTML = `Flat <strong>₹${NON_KUDACHI_DELIVERY_FEE}</strong> delivery charge outside <strong>Kudachi</strong>.`;
     el.hidden = false;
 }
 
@@ -1682,17 +1679,13 @@ function renderCheckoutTotals() {
         if (!cityLower) {
             noteEl.textContent = 'Select your city to see delivery charges.';
             noteEl.hidden = false;
-        } else if (cityLower === 'kudachi' && subtotal > 0 && subtotal < MIN_KUDACHI_FREE_DELIVERY_VALUE) {
-            const remaining = MIN_KUDACHI_FREE_DELIVERY_VALUE - subtotal;
-            noteEl.textContent = `₹${KUDACHI_DELIVERY_FEE} delivery charge for Kudachi orders under ₹${MIN_KUDACHI_FREE_DELIVERY_VALUE}. Add ₹${remaining} more for free delivery.`;
-            noteEl.hidden = false;
         } else if (cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
             const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
             noteEl.textContent = `Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Add ₹${remaining} more to place your order.`;
             noteEl.hidden = false;
-        } else if (cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_FREE_DELIVERY_ORDER_VALUE) {
-            const remaining = MIN_FREE_DELIVERY_ORDER_VALUE - subtotal;
-            noteEl.textContent = `Add ₹${remaining} more to make your order ₹${MIN_FREE_DELIVERY_ORDER_VALUE} and get free delivery (₹${NON_KUDACHI_DELIVERY_FEE} delivery charge becomes ₹0).`;
+        } else if (subtotal > 0) {
+            const fee = cityLower === 'kudachi' ? KUDACHI_DELIVERY_FEE : NON_KUDACHI_DELIVERY_FEE;
+            noteEl.textContent = `Flat ₹${fee} delivery charge${cityLower === 'kudachi' ? ' in Kudachi' : ''}.`;
             noteEl.hidden = false;
         } else {
             noteEl.textContent = '';
@@ -1737,9 +1730,7 @@ function updateCartUI() {
         if (cartItems) {
             cartItems.innerHTML = '<p class="cart-empty">Your cart is empty</p>';
         }
-        if (cartTotal) {
-            cartTotal.textContent = '0';
-        }
+        renderCartSummary();
         renderCartDeliveryNote();
     } else {
         if (cartItems) {
@@ -1758,9 +1749,7 @@ function updateCartUI() {
                 </div>
             `).join('');
         }
-        if (cartTotal) {
-            cartTotal.textContent = getCartTotal();
-        }
+        renderCartSummary();
         renderCartDeliveryNote();
     }
 
@@ -3210,22 +3199,9 @@ function getOrderSuccessMessage() {
     return 'We’ll notify you as your order moves along. The countdown above is a friendly estimate — open My orders anytime for live status.';
 }
 
-const CUSTOMER_CANCEL_WINDOW_MS = 1 * 60 * 1000;
-
-/** @type {{ orderId: number, deadlineMs: number } | null} */
-let orderSuccessCancelContext = null;
-let orderSuccessCancelIntervalId = null;
-
 /** Target time (ms) for the order-success arrival countdown. */
 let orderSuccessArrivalDeadlineMs = 0;
 let orderSuccessArrivalIntervalId = null;
-
-function clearOrderSuccessCancelTimer() {
-    if (orderSuccessCancelIntervalId != null) {
-        clearInterval(orderSuccessCancelIntervalId);
-        orderSuccessCancelIntervalId = null;
-    }
-}
 
 function clearOrderSuccessArrivalTimer() {
     if (orderSuccessArrivalIntervalId != null) {
@@ -3239,30 +3215,6 @@ function tickOrderSuccessArrivalCountdown() {
     const el = document.getElementById('orderSuccessArrivalCountdown');
     if (!el || !orderSuccessArrivalDeadlineMs) return;
     el.textContent = formatTimeUntilArrival(orderSuccessArrivalDeadlineMs);
-}
-
-function formatCancelCountdownMmSs(ms) {
-    const s = Math.max(0, Math.ceil(ms / 1000));
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return `${m}:${String(r).padStart(2, '0')}`;
-}
-
-function tickOrderSuccessCancelCountdown() {
-    const countdownEl = document.getElementById('orderSuccessCancelCountdown');
-    const panel = document.getElementById('orderSuccessCancelPanel');
-    const cancelBtn = document.getElementById('orderSuccessCancelBtn');
-    if (!orderSuccessCancelContext) return;
-    if (!countdownEl) return;
-    const left = orderSuccessCancelContext.deadlineMs - Date.now();
-    if (left <= 0) {
-        clearOrderSuccessCancelTimer();
-        orderSuccessCancelContext = null;
-        if (panel) panel.hidden = true;
-        if (cancelBtn) cancelBtn.disabled = false;
-        return;
-    }
-    countdownEl.textContent = formatCancelCountdownMmSs(left);
 }
 
 function resetOrderSuccessModalChrome() {
@@ -3304,37 +3256,13 @@ function showOrderSuccessModal(placedAtMs) {
         successCopy.textContent = getOrderSuccessMessage();
     }
 
-    const cancelPanel = document.getElementById('orderSuccessCancelPanel');
-    const cancelBtn = document.getElementById('orderSuccessCancelBtn');
-    clearOrderSuccessCancelTimer();
-
-    if (orderSuccessCancelContext && cancelPanel && cancelBtn) {
-        if (!Number.isFinite(orderSuccessCancelContext.deadlineMs)) {
-            orderSuccessCancelContext.deadlineMs = Date.now() + CUSTOMER_CANCEL_WINDOW_MS;
-        }
-        const left = orderSuccessCancelContext.deadlineMs - Date.now();
-        if (left > 0) {
-            cancelPanel.hidden = false;
-            cancelBtn.disabled = false;
-            tickOrderSuccessCancelCountdown();
-            orderSuccessCancelIntervalId = setInterval(tickOrderSuccessCancelCountdown, 1000);
-        } else {
-            cancelPanel.hidden = true;
-            orderSuccessCancelContext = null;
-        }
-    } else if (cancelPanel) {
-        cancelPanel.hidden = true;
-    }
-
     successModal.classList.add('active');
     successModal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
 }
 
 function closeOrderSuccessModal() {
-    clearOrderSuccessCancelTimer();
     clearOrderSuccessArrivalTimer();
-    orderSuccessCancelContext = null;
     const successModal = document.getElementById('orderSuccessModal');
     if (!successModal) return;
     successModal.classList.remove('active');
@@ -3346,7 +3274,6 @@ function initOrderSuccessModal() {
     const successModal = document.getElementById('orderSuccessModal');
     const closeBtn = document.getElementById('orderSuccessCloseBtn');
     const trackBtn = document.getElementById('trackOrderBtn');
-    const cancelBtn = document.getElementById('orderSuccessCancelBtn');
     if (!successModal) return;
 
     closeBtn?.addEventListener('click', () => {
@@ -3355,43 +3282,6 @@ function initOrderSuccessModal() {
 
     trackBtn?.addEventListener('click', () => {
         window.location.assign('/orders');
-    });
-
-    cancelBtn?.addEventListener('click', async () => {
-        if (!orderSuccessCancelContext) return;
-        if (!window.confirm('Cancel this order? You can place a new order from the menu anytime.')) {
-            return;
-        }
-        cancelBtn.disabled = true;
-        try {
-            const res = await fetch(
-                `/api/orders/${encodeURIComponent(orderSuccessCancelContext.orderId)}/cancel`,
-                { method: 'POST', headers: getAuthHeaders() }
-            );
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || 'Could not cancel order.');
-            clearOrderSuccessCancelTimer();
-            clearOrderSuccessArrivalTimer();
-            orderSuccessCancelContext = null;
-            const cancelPanel = document.getElementById('orderSuccessCancelPanel');
-            const waitBlock = document.getElementById('orderSuccessWaitBlock');
-            const eyebrow = document.getElementById('orderSuccessEyebrow');
-            const successCopy = document.getElementById('orderSuccessCopy');
-            const title = document.getElementById('orderSuccessTitle');
-            const icon = document.querySelector('#orderSuccessModal .order-success-icon');
-            if (cancelPanel) cancelPanel.hidden = true;
-            if (waitBlock) waitBlock.hidden = true;
-            if (eyebrow) eyebrow.textContent = 'Cancelled';
-            if (title) title.textContent = 'Order cancelled';
-            if (icon) icon.setAttribute('hidden', 'true');
-            if (successCopy) {
-                successCopy.textContent =
-                    'Your order was cancelled. Head back to the menu whenever you’re ready to order again.';
-            }
-        } catch (err) {
-            alert(err && err.message ? err.message : 'Could not cancel order.');
-            cancelBtn.disabled = false;
-        }
     });
 
     successModal.addEventListener('click', (e) => {
@@ -3506,11 +3396,6 @@ async function placeOrder() {
         document.getElementById('checkoutForm').reset();
         updateCheckoutProfileUI();
 
-        const rawOrderId = data.orderId ?? data.order_id ?? data.id;
-        const orderNum =
-            rawOrderId != null && rawOrderId !== ''
-                ? Number(typeof rawOrderId === 'string' ? rawOrderId.trim() : rawOrderId)
-                : NaN;
         const createdRaw = data.created_at ?? data.createdAt;
         let createdMs =
             createdRaw != null && createdRaw !== ''
@@ -3519,11 +3404,6 @@ async function placeOrder() {
         if (!Number.isFinite(createdMs)) {
             createdMs = Date.now();
         }
-        const deadlineMs = createdMs + CUSTOMER_CANCEL_WINDOW_MS;
-        orderSuccessCancelContext =
-            Number.isFinite(orderNum) && orderNum > 0
-                ? { orderId: orderNum, deadlineMs }
-                : null;
         showOrderSuccessModal(createdMs);
     } catch (err) {
         const hint =

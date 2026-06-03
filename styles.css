@@ -3167,6 +3167,48 @@ body.app-mobile .combo-grid {
     font-weight: 700;
 }
 
+.cart-summary {
+    margin: 0 0 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.cart-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.98rem;
+    color: var(--logo-dark-blue);
+}
+
+.cart-summary-row dt {
+    margin: 0;
+    color: #5b6470;
+}
+
+.cart-summary-row dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+.cart-summary-row--total {
+    margin-top: 0.4rem;
+    padding-top: 0.7rem;
+    border-top: 1px dashed rgba(0, 0, 0, 0.16);
+    font-size: 1.25rem;
+}
+
+.cart-summary-row--total dt {
+    color: var(--logo-dark-blue);
+    font-weight: 700;
+}
+
+.cart-summary-row--total dd {
+    font-weight: 800;
+}
+
 .delivery-note {
     margin: 0 0 0.9rem;
     padding: 0.75rem 0.9rem;
@@ -5462,6 +5504,26 @@ body.fast-scroll .video-background video {
     flex-wrap: wrap;
     gap: 0.75rem;
     align-items: center;
+}
+
+#refreshOrdersBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+#refreshOrdersBtn .refresh-icon {
+    flex: 0 0 auto;
+    transition: transform 0.2s ease;
+}
+#refreshOrdersBtn.is-refreshing .refresh-icon {
+    animation: orders-refresh-spin 0.8s linear infinite;
+}
+#refreshOrdersBtn[data-loading="1"] {
+    opacity: 0.85;
+    cursor: progress;
+}
+@keyframes orders-refresh-spin {
+    to { transform: rotate(360deg); }
 }
 
 .order-header .btn-primary {
