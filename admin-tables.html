@@ -1020,6 +1020,138 @@
         }
         .toast[data-show="1"] { transform: translateX(-50%) translateY(0); }
 
+        /* ---- Add open / custom item dialog ---- */
+        .open-item-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease;
+        }
+        .open-item-modal[data-open="1"] { opacity: 1; pointer-events: auto; }
+        .open-item-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(2px);
+        }
+        .open-item-card {
+            position: relative;
+            width: min(420px, 100%);
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 1.1rem 1.1rem 1rem;
+            transform: translateY(12px) scale(0.98);
+            transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .open-item-modal[data-open="1"] .open-item-card { transform: translateY(0) scale(1); }
+        .open-item-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.9rem;
+        }
+        .open-item-head h3 { margin: 0; font-size: 1.05rem; }
+        .open-item-x {
+            border: none;
+            background: transparent;
+            font-size: 1.5rem;
+            line-height: 1;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 0.1rem 0.4rem;
+            border-radius: 8px;
+        }
+        .open-item-x:hover { background: var(--bg-soft, rgba(0,0,0,0.05)); }
+        .open-item-field { display: flex; flex-direction: column; gap: 0.3rem; }
+        .open-item-field > span {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+        }
+        .open-item-field input {
+            font: inherit;
+            font-size: 1rem;
+            padding: 0.7rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--text);
+            width: 100%;
+        }
+        .open-item-field input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        .open-item-grid {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0.75rem;
+            margin-top: 0.8rem;
+            align-items: start;
+        }
+        .open-item-qty {
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.2rem;
+        }
+        .open-item-qty-btn {
+            width: 2.5rem;
+            height: 2.5rem;
+            border: none;
+            background: var(--bg-soft, rgba(0,0,0,0.04));
+            border-radius: 8px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--text);
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .open-item-qty-btn:active { transform: scale(0.94); }
+        .open-item-qty-val {
+            min-width: 2.25rem;
+            text-align: center;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+        .open-item-err {
+            margin: 0.75rem 0 0;
+            color: #be123c;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .open-item-actions {
+            display: flex;
+            gap: 0.6rem;
+            margin-top: 1rem;
+        }
+        .open-item-actions .floor-btn { flex: 1; min-height: 2.85rem; font-size: 0.95rem; }
+        @media (max-width: 720px) {
+            .open-item-modal { align-items: flex-end; padding: 0; }
+            .open-item-card {
+                width: 100%;
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0;
+                padding-bottom: max(1rem, env(safe-area-inset-bottom));
+                transform: translateY(100%);
+            }
+            .open-item-modal[data-open="1"] .open-item-card { transform: translateY(0); }
+        }
+
         /* ============================================================
            Mobile KOT capture — menu is the full-screen primary surface,
            the running order is a slide-up sheet, plus one thumb-friendly
@@ -1319,6 +1451,39 @@
 
     <div class="toast" id="floorToast" data-show="0"></div>
 
-    <script src="/admin-tables.js?v=36"></script>
+    <div class="open-item-modal" id="openItemModal" data-open="0" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="openItemTitle">
+        <div class="open-item-backdrop" data-open-close="1"></div>
+        <div class="open-item-card" role="document">
+            <div class="open-item-head">
+                <h3 id="openItemTitle">Add open item</h3>
+                <button type="button" class="open-item-x" data-open-close="1" aria-label="Close">×</button>
+            </div>
+            <label class="open-item-field">
+                <span>Item name</span>
+                <input type="text" id="openItemName" placeholder="e.g. Water bottle" autocomplete="off" autocapitalize="words">
+            </label>
+            <div class="open-item-grid">
+                <label class="open-item-field">
+                    <span>Price (₹)</span>
+                    <input type="number" id="openItemPrice" min="0" inputmode="numeric" placeholder="0">
+                </label>
+                <div class="open-item-field">
+                    <span>Quantity</span>
+                    <div class="open-item-qty" role="group" aria-label="Quantity">
+                        <button type="button" class="open-item-qty-btn" data-open-qty="-1" aria-label="Decrease quantity">−</button>
+                        <span class="open-item-qty-val" id="openItemQty">1</span>
+                        <button type="button" class="open-item-qty-btn" data-open-qty="1" aria-label="Increase quantity">+</button>
+                    </div>
+                </div>
+            </div>
+            <p class="open-item-err" id="openItemErr" hidden></p>
+            <div class="open-item-actions">
+                <button type="button" class="floor-btn floor-btn--ghost" data-open-close="1">Cancel</button>
+                <button type="button" class="floor-btn floor-btn--primary" id="openItemAdd">Add to order</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin-tables.js?v=37"></script>
 </body>
 </html>

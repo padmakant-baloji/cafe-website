@@ -1883,18 +1883,118 @@ function focusNextKotLineEntry(lineBox) {
     focusKotComposerSearch(lineBox);
 }
 
-function appendOpenKotLine(lineBox, name = '') {
-    if (!lineBox) return null;
-    const row = ensureSingleKotComposerRow(lineBox);
-    if (!row) return null;
-    delete row.dataset.placeholder;
-    row.dataset.needsPrice = '1';
-    const inp = row.querySelector('.kot-name-input');
-    if (inp && name) inp.value = name;
-    if (name) row.querySelector('.kot-price')?.focus();
-    else inp?.focus();
-    lineBox.dispatchEvent(new CustomEvent('floor:kot-line-updated', { bubbles: true }));
-    return row;
+/** Quantity currently selected in the open-item dialog. */
+let openItemQty = 1;
+
+function setOpenItemQty(n) {
+    openItemQty = Math.max(1, Math.min(99, n || 1));
+    const el = document.getElementById('openItemQty');
+    if (el) el.textContent = String(openItemQty);
+}
+
+function setOpenItemError(msg) {
+    const el = document.getElementById('openItemErr');
+    if (!el) return;
+    if (msg) {
+        el.textContent = msg;
+        el.hidden = false;
+    } else {
+        el.textContent = '';
+        el.hidden = true;
+    }
+}
+
+function closeOpenItemDialog() {
+    const modal = document.getElementById('openItemModal');
+    if (!modal) return;
+    modal.dataset.open = '0';
+    modal.setAttribute('aria-hidden', 'true');
+}
+
+/** Open a clean, explicit form to capture a custom/open item (name + price + qty). */
+function openOpenItemDialog(prefillName = '') {
+    initOpenItemDialog();
+    const modal = document.getElementById('openItemModal');
+    const nameEl = document.getElementById('openItemName');
+    const priceEl = document.getElementById('openItemPrice');
+    if (!modal || !nameEl || !priceEl) return;
+    nameEl.value = prefillName || '';
+    priceEl.value = '';
+    setOpenItemQty(1);
+    setOpenItemError('');
+    modal.dataset.open = '1';
+    modal.setAttribute('aria-hidden', 'false');
+    // Focus the field the user still needs to fill: price when the name is known,
+    // otherwise the name. The modal owns the screen, so showing the keyboard is wanted.
+    const focusEl = prefillName ? priceEl : nameEl;
+    window.setTimeout(() => focusEl.focus(), 60);
+}
+
+function commitOpenItemDialog() {
+    const nameEl = document.getElementById('openItemName');
+    const priceEl = document.getElementById('openItemPrice');
+    if (!nameEl || !priceEl) return;
+    const name = String(nameEl.value || '').trim();
+    const price = parseInt(String(priceEl.value), 10);
+    if (!name) {
+        setOpenItemError('Enter an item name.');
+        nameEl.focus();
+        return;
+    }
+    if (!Number.isFinite(price) || price < 1) {
+        setOpenItemError('Enter a price (₹) for this item.');
+        priceEl.focus();
+        return;
+    }
+    const draftBox = document.getElementById('kotDraftLines');
+    if (!draftBox) {
+        setOpenItemError('Open a table first.');
+        return;
+    }
+    addOrMergeKotDraftLine(draftBox, {
+        name,
+        quantity: openItemQty,
+        price,
+        category_type: 'Open item'
+    });
+    draftBox.dispatchEvent(new CustomEvent('floor:kot-draft-updated', { bubbles: true }));
+    closeOpenItemDialog();
+    showToast(`Added ${openItemQty}× ${name}`);
+}
+
+let openItemDialogBound = false;
+function initOpenItemDialog() {
+    if (openItemDialogBound) return;
+    const modal = document.getElementById('openItemModal');
+    if (!modal) return;
+    openItemDialogBound = true;
+
+    modal.querySelectorAll('[data-open-close]').forEach((el) => {
+        el.addEventListener('click', closeOpenItemDialog);
+    });
+    modal.querySelectorAll('[data-open-qty]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            setOpenItemQty(openItemQty + parseInt(btn.getAttribute('data-open-qty'), 10));
+        });
+    });
+    const addBtn = document.getElementById('openItemAdd');
+    if (addBtn) addBtn.addEventListener('click', commitOpenItemDialog);
+
+    const priceEl = document.getElementById('openItemPrice');
+    const nameEl = document.getElementById('openItemName');
+    [priceEl, nameEl].forEach((el) => {
+        if (!el) return;
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                commitOpenItemDialog();
+            }
+        });
+        el.addEventListener('input', () => setOpenItemError(''));
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.dataset.open === '1') closeOpenItemDialog();
+    });
 }
 
 /** After leaving a filled line, move it to the left draft panel and add a new composer row. */
@@ -2023,8 +2123,8 @@ function renderKotMenuBrowser(panel, lineBox) {
     panel.querySelectorAll('.kot-menu-pick').forEach((btn) => {
         btn.addEventListener('click', () => {
             if (btn.classList.contains('kot-open-pick')) {
-                appendOpenKotLine(lineBox, (btn.getAttribute('data-open-name') || '').trim());
                 closeAllKotSuggest(null);
+                openOpenItemDialog((btn.getAttribute('data-open-name') || '').trim());
                 return;
             }
             const target = ensureSingleKotComposerRow(lineBox);
