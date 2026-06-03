@@ -85,6 +85,11 @@
             font-size: 1rem;
             position: relative;
         }
+        .admin-icon-btn svg {
+            width: 1.2rem;
+            height: 1.2rem;
+            display: block;
+        }
         .admin-icon-btn:hover {
             background: var(--surface-muted);
         }
@@ -923,7 +928,8 @@
             .admin-toolbar {
                 width: 100%;
             }
-            .admin-toolbar button {
+            .admin-toolbar button,
+            .admin-toolbar .admin-icon-btn {
                 width: 100%;
                 text-align: center;
             }
@@ -953,6 +959,30 @@
 
             .admin-sidebar-actions {
                 display: none;
+            }
+
+            /* Larger touch targets for the shop open/close popup on phones. */
+            .admin-store-status-toggle {
+                gap: 0.5rem;
+            }
+            .admin-store-toggle-btn {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.9rem;
+            }
+            .admin-store-reason select {
+                padding: 0.7rem 0.6rem;
+                font-size: 0.95rem;
+            }
+            .admin-store-status-foot {
+                flex-wrap: wrap;
+            }
+            .admin-store-save-btn {
+                flex: 1 1 auto;
+                padding: 0.7rem 0.9rem;
+                font-size: 0.9rem;
+            }
+            .admin-store-status-msg {
+                flex-basis: 100%;
             }
         }
 
@@ -1170,6 +1200,28 @@
         .admin-store-status-msg[data-state="success"] {
             color: #166534;
         }
+        /* Inside the popup the modal card supplies the chrome. */
+        .admin-modal .admin-store-status {
+            border: none;
+            background: transparent;
+            padding: 0;
+            margin: 0.6rem 0 0;
+            box-shadow: none;
+        }
+        .admin-modal .admin-store-status[data-state="paused"] {
+            border: none;
+            background: transparent;
+        }
+        /* Toolbar icon reflects current ordering state. */
+        #adminStoreStatusBtn[data-state="paused"] {
+            background: #fee2e2;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.18);
+        }
+        #adminStoreStatusBtn[data-state="open"] {
+            background: #dcfce7;
+            border-color: #16a34a;
+        }
     </style>
 </head>
 <body>
@@ -1193,10 +1245,16 @@
             <p>Delivery: Accept → Preparing → Out for delivery → Complete (Cash/UPI). Floor KOTs are managed on the tables screen.</p>
         </div>
             <div class="admin-toolbar">
-                <a class="admin-icon-btn" href="/admin/tables" data-tip="Floor / tables" aria-label="Floor tables and KOTs" style="text-decoration:none;">▦</a>
+                <a class="admin-icon-btn" href="/admin/tables" data-tip="Floor / tables" aria-label="Floor tables and KOTs" style="text-decoration:none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="4" width="7" height="7" rx="1.5"/>
+                        <rect x="14" y="4" width="7" height="7" rx="1.5"/>
+                        <rect x="3" y="13" width="7" height="7" rx="1.5"/>
+                        <rect x="14" y="13" width="7" height="7" rx="1.5"/>
+                    </svg>
+                </a>
                 <button type="button" id="adminRefreshBtn" class="admin-icon-btn" data-tip="Refresh" aria-label="Refresh">⟳</button>
-            <button type="button" id="adminEnableSoundBtn" class="admin-icon-btn" data-tip="Sound" aria-label="Sound">🔊</button>
-            <button type="button" id="adminEnableNotifyBtn" class="admin-icon-btn" data-tip="Notifications" aria-label="Notifications" hidden>🔔</button>
+            <button type="button" id="adminStoreStatusBtn" class="admin-icon-btn" data-tip="Online orders" aria-label="Online orders status" data-state="loading">🏪</button>
             <button type="button" id="adminLogoutBtn" class="admin-icon-btn admin-icon-btn--danger" data-tip="Logout" aria-label="Logout">⎋</button>
         </div>
     </header>
@@ -1220,30 +1278,6 @@
         </section>
 
         <aside class="admin-sidebar">
-            <section class="admin-store-status" id="adminStoreStatus" aria-label="Online ordering status">
-                <div class="admin-store-status-head">
-                    <h3>Online orders</h3>
-                    <span class="admin-store-status-pill" id="adminStoreStatusPill" data-state="loading">Loading…</span>
-                </div>
-                <p class="admin-store-status-note" id="adminStoreStatusNote">Control whether customers can place orders on the website.</p>
-                <div class="admin-store-status-toggle">
-                    <button type="button" class="admin-store-toggle-btn" id="adminStoreAcceptBtn" data-active="false">Accepting orders</button>
-                    <button type="button" class="admin-store-toggle-btn admin-store-toggle-btn--stop" id="adminStorePauseBtn" data-active="false">Not accepting</button>
-                </div>
-                <div class="admin-store-reason" id="adminStoreReasonWrap" hidden>
-                    <label for="adminStoreReason">Reason shown to customers</label>
-                    <select id="adminStoreReason">
-                        <option value="no_electricity">No electricity / बिजली नहीं है</option>
-                        <option value="shop_closed">Shop closed / दुकान बंद है</option>
-                        <option value="no_delivery_boy">No delivery boy / डिलीवरी बॉय नहीं</option>
-                    </select>
-                </div>
-                <div class="admin-store-status-foot">
-                    <button type="button" class="admin-store-save-btn" id="adminStoreSaveBtn">Save</button>
-                    <span class="admin-store-status-msg" id="adminStoreStatusMsg" role="status"></span>
-                </div>
-            </section>
-
             <section class="admin-desktop-analytics" id="adminDesktopAnalytics" aria-label="Analytics">
                 <div class="admin-analytics-head">
                     <div class="admin-analytics-title">Today’s analytics</div>
@@ -1363,6 +1397,40 @@
         </div>
     </div>
 
-    <script src="/admin.js?v=8"></script>
+    <div id="adminStoreStatusModal" class="admin-modal" hidden>
+        <div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminStoreStatusModalTitle">
+            <div class="admin-modal-head">
+                <div>
+                    <div class="admin-modal-title" id="adminStoreStatusModalTitle">Online orders</div>
+                    <div class="admin-modal-sub">Control whether customers can place orders on the website.</div>
+                </div>
+                <button type="button" id="adminStoreStatusCloseBtn" class="admin-popup-close" aria-label="Close">Close</button>
+            </div>
+            <section class="admin-store-status" id="adminStoreStatus" aria-label="Online ordering status">
+                <div class="admin-store-status-head">
+                    <span class="admin-store-status-pill" id="adminStoreStatusPill" data-state="loading">Loading…</span>
+                </div>
+                <p class="admin-store-status-note" id="adminStoreStatusNote">Control whether customers can place orders on the website.</p>
+                <div class="admin-store-status-toggle">
+                    <button type="button" class="admin-store-toggle-btn" id="adminStoreAcceptBtn" data-active="false">Accepting orders</button>
+                    <button type="button" class="admin-store-toggle-btn admin-store-toggle-btn--stop" id="adminStorePauseBtn" data-active="false">Not accepting</button>
+                </div>
+                <div class="admin-store-reason" id="adminStoreReasonWrap" hidden>
+                    <label for="adminStoreReason">Reason shown to customers</label>
+                    <select id="adminStoreReason">
+                        <option value="no_electricity">No electricity / बिजली नहीं है</option>
+                        <option value="shop_closed">Shop closed / दुकान बंद है</option>
+                        <option value="no_delivery_boy">No delivery boy / डिलीवरी बॉय नहीं</option>
+                    </select>
+                </div>
+                <div class="admin-store-status-foot">
+                    <button type="button" class="admin-store-save-btn" id="adminStoreSaveBtn">Save</button>
+                    <span class="admin-store-status-msg" id="adminStoreStatusMsg" role="status"></span>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/admin.js?v=10"></script>
 </body>
 </html>

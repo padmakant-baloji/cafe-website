@@ -5,10 +5,6 @@ const DEFAULT_ADMIN_PASS = 'admin';
 const ADMIN_STORAGE_KEY = 'balojiAdminCredentials';
 const SESSION_STORAGE_SEEN = 'balojiAdminSeenPendingIds';
 const SESSION_STORAGE_LAST_ORDER = 'balojiAdminLastOrderId';
-const ringingOrderIds = new Set();
-let ringingTimer = null;
-let audioCtx = null;
-let audioUnlocked = false;
 let refreshTimer = null;
 let currentAdminCredentials = null;
 
@@ -932,132 +928,6 @@ function showToast(message) {
     showToast._t = setTimeout(() => el.classList.remove('admin-toast--show'), 4500);
 }
 
-function maybeNotifyNewOrder(order) {
-    if (typeof Notification === 'undefined') return;
-    if (Notification.permission === 'granted') {
-        try {
-            new Notification("New order at Baloji's Cafe", {
-                body: `#${order.id} · ${order.name || ''} · ₹${order.total}`,
-                tag: `order-${order.id}`
-            });
-        } catch {
-            /* ignore */
-        }
-    }
-}
-
-function getAudioContext() {
-    if (!audioCtx) {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!Ctx) return null;
-        audioCtx = new Ctx();
-    }
-    return audioCtx;
-}
-
-async function unlockAudio() {
-    const ctx = getAudioContext();
-    if (!ctx) return false;
-    try {
-        if (ctx.state !== 'running') {
-            await ctx.resume();
-        }
-        audioUnlocked = ctx.state === 'running';
-        return audioUnlocked;
-    } catch {
-        return false;
-    }
-}
-
-async function playNewOrderAlert() {
-    try {
-        const ctx = getAudioContext();
-        if (!ctx || !audioUnlocked) return;
-
-        // Some browsers suspend audio in background tabs. If the user already
-        // enabled sound once, resuming often succeeds without a new click.
-        if (ctx.state !== 'running') {
-            try {
-                await ctx.resume();
-            } catch {
-                /* ignore resume errors */
-            }
-        }
-
-        if (ctx.state !== 'running') return;
-        const master = ctx.createGain();
-        master.gain.setValueAtTime(0.0001, ctx.currentTime);
-        // Louder + sharper: faster attack, slightly higher peak, quicker decay.
-        master.gain.exponentialRampToValueAtTime(1.0, ctx.currentTime + 0.01);
-        master.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 2.0);
-        master.connect(ctx.destination);
-
-        const makeTone = (freq, start, duration, type = 'sine', peak = 0.36, detune = 0) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, start);
-            osc.detune.setValueAtTime(detune, start);
-            gain.gain.setValueAtTime(0.0001, start);
-            // Very fast attack + shorter decay => "sharp" bell edge.
-            gain.gain.exponentialRampToValueAtTime(peak, start + 0.006);
-            gain.gain.exponentialRampToValueAtTime(peak * 0.45, start + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-            osc.connect(gain);
-            gain.connect(master);
-            osc.start(start);
-            osc.stop(start + duration + 0.03);
-        };
-
-        const ringBurst = (start) => {
-            // Telephone bell-like dual partials with a metallic pulse.
-            makeTone(440, start, 0.20, 'triangle', 0.42, -6);
-            makeTone(480, start, 0.20, 'triangle', 0.34, 6);
-            makeTone(880, start + 0.008, 0.13, 'sine', 0.18);
-
-            makeTone(440, start + 0.13, 0.20, 'triangle', 0.42, -6);
-            makeTone(480, start + 0.13, 0.20, 'triangle', 0.34, 6);
-            makeTone(880, start + 0.138, 0.13, 'sine', 0.18);
-        };
-
-        const t = ctx.currentTime;
-        // Classic telephone bell cadence: ring-ring, pause, ring-ring.
-        ringBurst(t);
-        ringBurst(t + 0.72);
-        ringBurst(t + 1.44);
-    } catch {
-        /* ignore */
-    }
-    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-        navigator.vibrate([350, 120, 350, 120, 350, 120, 350]);
-    }
-}
-
-function startRingingUntilHandled() {
-    if (ringingTimer) return;
-    if (!audioUnlocked) {
-        showToast('Tap anywhere on this page once to enable ringing sound.');
-    }
-    playNewOrderAlert();
-    ringingTimer = setInterval(() => {
-        playNewOrderAlert();
-    }, 1400);
-}
-
-function stopRingingIfAny() {
-    if (!ringingTimer) return;
-    clearInterval(ringingTimer);
-    ringingTimer = null;
-}
-
-function updateSoundButtonState() {
-    const btn = document.getElementById('adminEnableSoundBtn');
-    if (!btn) return;
-    btn.classList.toggle('admin-icon-btn--on', audioUnlocked);
-    btn.title = audioUnlocked ? 'Sound enabled' : 'Enable sound';
-    btn.setAttribute('aria-label', audioUnlocked ? 'Sound enabled' : 'Enable sound');
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     const listEl = document.getElementById('adminOrderList');
     const tabsEl = document.getElementById('adminTabs');
@@ -1067,8 +937,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCopyTodaySummary = document.getElementById('btnCopyTodaySummary');
     const btnDownloadCsv = document.getElementById('btnDownloadCsv');
     const refreshBtn = document.getElementById('adminRefreshBtn');
-    const enableSoundBtn = document.getElementById('adminEnableSoundBtn');
-    const enableNotifyBtn = document.getElementById('adminEnableNotifyBtn');
     const logoutBtn = document.getElementById('adminLogoutBtn');
     const authForm = document.getElementById('adminAuthForm');
     const authSubmit = document.getElementById('adminAuthSubmit');
@@ -1089,6 +957,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const payModalUpiBtn = document.getElementById('adminCompletePayUpiBtn');
     let completePayOrderId = null;
 
+    const storeStatusBtn = document.getElementById('adminStoreStatusBtn');
+    const storeStatusModal = document.getElementById('adminStoreStatusModal');
+    const storeStatusCloseBtn = document.getElementById('adminStoreStatusCloseBtn');
     const storeStatusEl = document.getElementById('adminStoreStatus');
     const storeStatusPill = document.getElementById('adminStoreStatusPill');
     const storeStatusNote = document.getElementById('adminStoreStatusNote');
@@ -1121,6 +992,15 @@ document.addEventListener('DOMContentLoaded', () => {
             storeStatusNote.textContent = storeAccepting
                 ? 'Customers can place orders on the website.'
                 : 'Customers see a “not accepting orders” overlay and cannot order.';
+        }
+        if (storeStatusBtn) {
+            storeStatusBtn.setAttribute('data-state', storeAccepting ? 'open' : 'paused');
+            storeStatusBtn.textContent = storeAccepting ? '🏪' : '⛔';
+            storeStatusBtn.setAttribute('data-tip', storeAccepting ? 'Orders: ON' : 'Orders: OFF');
+            storeStatusBtn.setAttribute(
+                'aria-label',
+                storeAccepting ? 'Online orders: accepting' : 'Online orders: paused'
+            );
         }
     }
 
@@ -1187,6 +1067,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!storeAccepting) setStoreStatusMessage('Press Save to apply.', null);
     });
     storeSaveBtn?.addEventListener('click', persistStoreStatus);
+
+    function openStoreStatusModal() {
+        if (!storeStatusModal) return;
+        storeStatusModal.hidden = false;
+        loadStoreStatus();
+    }
+    function closeStoreStatusModal() {
+        if (storeStatusModal) storeStatusModal.hidden = true;
+    }
+    storeStatusBtn?.addEventListener('click', openStoreStatusModal);
+    storeStatusCloseBtn?.addEventListener('click', closeStoreStatusModal);
+    storeStatusModal?.addEventListener('click', (e) => {
+        if (e.target === storeStatusModal) closeStoreStatusModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && storeStatusModal && !storeStatusModal.hidden) {
+            closeStoreStatusModal();
+        }
+    });
 
     fillAdminDefaults();
 
@@ -1427,43 +1326,6 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(url);
     });
 
-    const updateNotifyButtonState = () => {
-        if (!enableNotifyBtn) return;
-        if (typeof Notification === 'undefined') {
-            enableNotifyBtn.hidden = true;
-            return;
-        }
-        if (Notification.permission === 'granted') {
-            enableNotifyBtn.hidden = true;
-            return;
-        }
-        enableNotifyBtn.hidden = false;
-        enableNotifyBtn.classList.toggle('admin-icon-btn--on', Notification.permission === 'granted');
-        const tip =
-            Notification.permission === 'denied'
-                ? 'Notifications blocked in browser settings'
-                : 'Enable notifications';
-        enableNotifyBtn.setAttribute('data-tip', Notification.permission === 'denied' ? 'Notifications blocked' : 'Notifications');
-        enableNotifyBtn.setAttribute(
-            'aria-label',
-            Notification.permission === 'denied'
-                ? 'Notifications blocked'
-                : 'Enable notifications'
-        );
-        enableNotifyBtn.title = tip; // fallback tooltip for touch / long-press
-        enableNotifyBtn.disabled = Notification.permission === 'denied';
-    };
-    updateNotifyButtonState();
-
-    enableNotifyBtn?.addEventListener('click', async () => {
-        if (typeof Notification === 'undefined') return;
-        try {
-            await Notification.requestPermission();
-        } finally {
-            updateNotifyButtonState();
-        }
-    });
-
     popupCloseBtn?.addEventListener('click', () => {
         if (!newOrderPopupOpen) {
             hideNewOrderPopup();
@@ -1525,39 +1387,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastOrderId = loadLastOrderId();
     let bootstrapped = false;
 
-    const unlockHandler = async () => {
-        const ok = await unlockAudio();
-        updateSoundButtonState();
-        if (ok && ringingOrderIds.size > 0) {
-            playNewOrderAlert();
-        }
-    };
-    document.addEventListener('click', unlockHandler, { passive: true });
-    document.addEventListener('keydown', unlockHandler);
-    document.addEventListener('touchstart', unlockHandler, { passive: true });
-
-    enableSoundBtn?.addEventListener('click', async () => {
-        const ok = await unlockAudio();
-        updateSoundButtonState();
-        if (ok && ringingOrderIds.size > 0) {
-            playNewOrderAlert();
-        }
-    });
-
-    document.addEventListener('visibilitychange', async () => {
-        // After you previously tapped/clicked this page, some browsers suspend audio in background tabs.
-        // When the tab becomes visible again, try resuming (no-op if the browser still blocks it).
-        if (!document.hidden) {
-            const ok = await unlockAudio();
-            updateSoundButtonState();
-            if (ok && ringingOrderIds.size > 0) {
-                playNewOrderAlert();
-            }
-        }
-    });
-
-    updateSoundButtonState();
-
     async function refresh() {
         try {
             const orders = await fetchOrders();
@@ -1584,16 +1413,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Stop ringing for orders that were handled.
-            for (const id of [...ringingOrderIds]) {
-                if (!pendingSet.has(id)) {
-                    ringingOrderIds.delete(id);
-                }
-            }
-            if (ringingOrderIds.size === 0) {
-                stopRingingIfAny();
-            }
-
             if (orders.length > 0) {
                 const latest = parseInt(String(orders[0].id), 10);
                 if (Number.isFinite(latest) && latest > lastOrderId) {
@@ -1617,9 +1436,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     seenPending.add(sid);
                     saveSeenIds(seenPending);
                     showToast(`New order #${sid}`);
-                    maybeNotifyNewOrder(o);
-                    ringingOrderIds.add(sid);
-                    startRingingUntilHandled();
 
                     if (!pendingPopupQueueIds.has(sid)) {
                         pendingPopupQueue.push(o);

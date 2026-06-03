@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
-const PRECACHE = 'baloji-pwa-cache-v6';
-const RUNTIME = 'baloji-pwa-runtime-v2';
+const PRECACHE = 'baloji-pwa-cache-v7';
+const RUNTIME = 'baloji-pwa-runtime-v3';
 
 self.addEventListener('install', (event) => {
   const assets = [
