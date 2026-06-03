@@ -451,8 +451,14 @@
             border: 1px solid var(--border);
             background: var(--card);
         }
-        .kot-draft-name {
+        .kot-draft-name-cell {
             flex: 1 1 auto;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+        }
+        .kot-draft-name {
             min-width: 0;
             font-size: 0.8125rem;
             font-weight: 600;
@@ -461,6 +467,15 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+        .kot-draft-price {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #b45309;
+        }
+        .kot-draft-price span {
+            color: var(--muted);
+            font-weight: 500;
         }
         .kot-draft-qty-wrap {
             display: flex;
@@ -876,6 +891,7 @@
             gap: 0.35rem;
         }
         .kot-menu-pick {
+            position: relative;
             font: inherit;
             font-size: 0.72rem;
             padding: 0.35rem 0.5rem;
@@ -890,11 +906,41 @@
             border-color: rgba(5, 150, 105, 0.45);
             background: rgba(52, 211, 153, 0.12);
         }
+        .kot-menu-pick-end {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
         .kot-menu-pick-price {
             color: var(--accent2);
             font-weight: 700;
             margin-left: 0.25rem;
         }
+        /* Selected (already-in-order) menu items: green highlight + quantity badge.
+           Badge space is always reserved (visibility toggle, not display) so the
+           chip never changes size when an item is selected. */
+        .kot-menu-pick--selected {
+            border-color: rgba(5, 150, 105, 0.6);
+            background: rgba(52, 211, 153, 0.18);
+            box-shadow: inset 0 0 0 1px rgba(5, 150, 105, 0.3);
+        }
+        .kot-menu-pick--selected .kot-menu-pick-price { color: #047857; }
+        .kot-menu-pick-badge {
+            display: inline-block;
+            visibility: hidden;
+            min-width: 1.25rem;
+            height: 1.25rem;
+            padding: 0 0.3rem;
+            border-radius: 999px;
+            background: var(--accent);
+            color: #ffffff;
+            font-size: 0.7rem;
+            font-weight: 800;
+            line-height: 1.25rem;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(5, 150, 105, 0.35);
+        }
+        .kot-menu-pick--selected .kot-menu-pick-badge { visibility: visible; }
         .kot-suggest li { margin: 0; }
         .kot-suggest-btn {
             width: 100%;
@@ -973,6 +1019,244 @@
             text-align: center;
         }
         .toast[data-show="1"] { transform: translateX(-50%) translateY(0); }
+
+        /* ============================================================
+           Mobile KOT capture — menu is the full-screen primary surface,
+           the running order is a slide-up sheet, plus one thumb-friendly
+           action bar with live item count, total and a big Save button.
+           ============================================================ */
+        @media (max-width: 720px) {
+            .floor-drawer-head { padding: 0.85rem 0.9rem 0.65rem; padding-top: max(0.85rem, env(safe-area-inset-top)); }
+            .floor-drawer-title { font-size: 1.05rem; }
+            .floor-drawer-sub { font-size: 0.74rem; }
+
+            .floor-kot-shell {
+                display: flex;
+                flex-direction: column;
+                grid-template-columns: none;
+                grid-template-rows: none;
+                position: relative;
+            }
+
+            /* Menu / add-items becomes the full primary surface */
+            .floor-kot-form-col {
+                order: 0;
+                flex: 1 1 auto;
+                min-height: 0;
+                border: none;
+                background: var(--bg0);
+            }
+            /* One natural scroll for the whole menu so the search can stay sticky */
+            .floor-kot-form-scroll {
+                display: block;
+                padding: 0 0.85rem 0.85rem;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .floor-kot-form-scroll .add-kot {
+                display: block;
+                flex: none;
+                min-height: 0;
+                padding: 0;
+                background: transparent;
+                border: none;
+            }
+            .add-kot > h3,
+            .add-kot .add-kot-hint { display: none; }
+
+            /* Sticky search bar at the top of the menu */
+            .kot-line-inputs-wrap {
+                position: sticky;
+                top: 0;
+                z-index: 6;
+                margin: 0 -0.85rem 0.5rem;
+                padding: 0.6rem 0.85rem 0.55rem;
+                background: linear-gradient(var(--bg0) 80%, rgba(248, 250, 252, 0));
+            }
+            .kot-line-row { margin-bottom: 0; }
+            .kot-line-row input.kot-name-input {
+                font-size: 1rem;
+                padding: 0.8rem 0.9rem;
+                border-radius: 13px;
+                box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+            }
+            .kot-line-row input.kot-price {
+                font-size: 1rem;
+                padding: 0.8rem 0.55rem;
+                border-radius: 13px;
+            }
+            .kot-line-main .kot-line-remove { min-height: 2.85rem; border-radius: 13px; }
+            .kot-line-meta-row { display: none; }
+            .kot-line-row[data-needs-price="1"] .kot-line-meta-row { display: flex; }
+
+            /* Big, two-up, tappable menu chips */
+            .kot-menu-browser-wrap { display: block; flex: none; min-height: 0; margin-top: 0; }
+            .kot-menu-browser {
+                display: block;
+                flex: none;
+                border: none;
+                background: transparent;
+                padding: 0;
+                min-height: 0;
+                overflow: visible;
+            }
+            .kot-menu-browser-section { margin-bottom: 1rem; }
+            .kot-menu-browser-cat { font-size: 0.78rem; margin-bottom: 0.5rem; }
+            .kot-menu-browser-items { gap: 0.5rem; }
+            .kot-menu-pick {
+                flex: 1 1 calc(50% - 0.25rem);
+                min-height: 3rem;
+                padding: 0.7rem 0.85rem;
+                font-size: 0.9rem;
+                border-radius: 13px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.4rem;
+                background: var(--card);
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+            }
+            .kot-menu-pick-price { font-size: 0.92rem; margin-left: 0; }
+            .kot-preset-chip, .kot-open-pick { min-height: 2.75rem; }
+
+            /* Desktop clear-table footer is hidden; button is relocated into the sheet */
+            .kot-form-footer--fixed { display: none; }
+
+            /* Hide the settle hint footer until payment is actually ready */
+            #drawerFooter[data-settle="0"] { display: none; }
+
+            /* The running order becomes a slide-up bottom sheet */
+            .floor-kot-list-col {
+                order: 5;
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                max-height: 86dvh;
+                z-index: 96;
+                background: var(--card);
+                border-top: 1px solid var(--border);
+                border-radius: 20px 20px 0 0;
+                box-shadow: 0 -18px 48px rgba(15, 23, 42, 0.28);
+                transform: translateY(112%);
+                transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .floor-kot-list-col.kot-no-anim { transition: none !important; }
+            .floor-kot-list-col[data-sheet-open="1"] { transform: translateY(0); }
+
+            .kot-sheet-handle {
+                flex-shrink: 0;
+                display: grid;
+                grid-template-columns: 1fr auto;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.85rem 1rem 0.6rem;
+                border-bottom: 1px solid var(--border);
+                position: relative;
+            }
+            .kot-sheet-grip {
+                position: absolute;
+                top: 0.4rem;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 2.6rem;
+                height: 0.28rem;
+                border-radius: 999px;
+                background: rgba(148, 163, 184, 0.6);
+            }
+            .kot-sheet-title { font-size: 0.95rem; font-weight: 700; }
+            .kot-sheet-close {
+                border: none;
+                background: var(--surface-muted);
+                color: var(--text);
+                font: inherit;
+                font-weight: 700;
+                font-size: 0.85rem;
+                padding: 0.5rem 0.95rem;
+                border-radius: 11px;
+                cursor: pointer;
+            }
+            .floor-kot-list-scroll { padding: 0.75rem 1rem 1rem; }
+            .kot-draft-qty-btn { flex: 0 0 2.4rem; width: 2.4rem; font-size: 1.15rem; }
+            .kot-draft-qty-val { flex: 0 0 2.5rem; min-width: 2.5rem; line-height: 2.4rem; }
+            .kot-draft-line { padding: 0.6rem; }
+            .kot-draft-remove { flex: 0 0 2.2rem; width: 2.2rem; height: 2.2rem; }
+            .kot-line-served-btn { width: 100%; padding: 0.6rem !important; font-size: 0.85rem !important; }
+            .kot-sheet-clear { margin-top: 1rem; }
+            .kot-sheet-clear .floor-kot-clear-table { width: 100%; margin: 0; }
+
+            .kot-draft-actions--fixed {
+                padding: 0.7rem 1rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+            }
+            .kot-draft-actions--fixed .floor-btn { min-height: 3rem; font-size: 0.9rem; }
+
+            .kot-sheet-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.45);
+                backdrop-filter: blur(2px);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.25s ease;
+                z-index: 95;
+            }
+            .kot-sheet-backdrop[data-open="1"] { opacity: 1; pointer-events: auto; }
+
+            /* Persistent thumb-friendly action bar */
+            .kot-mobile-bar {
+                order: 4;
+                flex-shrink: 0;
+                display: flex;
+                align-items: stretch;
+                gap: 0.6rem;
+                padding: 0.6rem 0.85rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
+                border-top: 1px solid var(--border);
+                background: var(--card);
+                box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.1);
+                z-index: 7;
+            }
+            .kot-mobile-review {
+                flex: 1 1 auto;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                justify-content: center;
+                gap: 0.05rem;
+                border: 1px solid var(--border);
+                border-radius: 13px;
+                background: var(--surface-muted);
+                color: var(--text);
+                font: inherit;
+                padding: 0.4rem 0.85rem;
+                cursor: pointer;
+                text-align: left;
+            }
+            .kot-mobile-review-line {
+                display: flex;
+                align-items: baseline;
+                gap: 0.5rem;
+                font-weight: 800;
+                font-size: 1rem;
+            }
+            .kot-mobile-total { color: #b45309; }
+            .kot-mobile-view { font-size: 0.66rem; color: var(--muted); font-weight: 600; }
+            .kot-mobile-save {
+                flex: 0 0 auto;
+                min-width: 8.5rem;
+                justify-content: center;
+                font-size: 0.95rem;
+                font-weight: 800;
+                border-radius: 13px;
+            }
+            .kot-mobile-bar--pulse .kot-mobile-review { animation: kotBarPulse 0.42s ease; }
+            @keyframes kotBarPulse {
+                0% { transform: scale(1); }
+                40% { transform: scale(1.035); border-color: rgba(5, 150, 105, 0.6); }
+                100% { transform: scale(1); }
+            }
+        }
     </style>
 </head>
 <body>
@@ -1035,6 +1319,6 @@
 
     <div class="toast" id="floorToast" data-show="0"></div>
 
-    <script src="/admin-tables.js?v=31"></script>
+    <script src="/admin-tables.js?v=36"></script>
 </body>
 </html>

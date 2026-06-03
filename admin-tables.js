@@ -46,6 +46,10 @@ let kotSuggestRepositionHandler = null;
 let kotComposerActiveRow = null;
 /** @type {string|null} Saved KOT id when draft is editing an existing ticket. */
 let kotEditingId = null;
+/** Phone breakpoint for the touch-first KOT capture flow (menu + slide-up order sheet). */
+const KOT_MOBILE_MQL = window.matchMedia('(max-width: 720px)');
+/** Whether the mobile order sheet is currently expanded (persists across drawer re-renders). */
+let mobileSheetOpen = false;
 
 function loadCreds() {
     try {
@@ -989,8 +993,12 @@ function renderSlotButton({ kind, num, order }) {
         const metaEl = document.createElement('div');
         metaEl.className = 'slot-meta';
         const meta = floorMeta(order);
+        const itemCount = (meta.kots || []).reduce(
+            (sum, k) => sum + (k.lines || []).reduce((a, l) => a + (Number(l.quantity) || 0), 0),
+            0
+        );
         const idShow = isLocalFloorId(order.id) ? 'Draft' : `#${order.id}`;
-        metaEl.textContent = `${idShow} · ${meta.kots.length} KOT${meta.kots.length === 1 ? '' : 's'}`;
+        metaEl.textContent = `${idShow} · ${itemCount} item${itemCount === 1 ? '' : 's'}`;
         const tot = document.createElement('div');
         tot.className = 'slot-total';
         tot.textContent = `${formatRupee(order.total)}${pending ? ` · ${pending} to serve` : ''}`;
@@ -1066,6 +1074,8 @@ function refreshKotDraftLineDisplay(el) {
     const pr = Number.isFinite(price) && price >= 0 ? price : 0;
     const qtyVal = el.querySelector('.kot-draft-qty-val');
     if (qtyVal) qtyVal.textContent = String(qty);
+    const priceEl = el.querySelector('.kot-draft-price');
+    if (priceEl) priceEl.innerHTML = `${formatRupee(qty * pr)} <span>(${formatRupee(pr)} ea)</span>`;
     const nameEl = el.querySelector('.kot-draft-name');
     if (nameEl) {
         const cat = (el.getAttribute('data-category') || '').trim();
@@ -1099,8 +1109,12 @@ function appendKotDraftLine(draftBox, data) {
     el.setAttribute('data-qty', String(qty));
     el.setAttribute('data-price', String(price));
     if (cat) el.setAttribute('data-category', cat);
-    const titleBits = [cat, formatRupee(qty * price)].filter(Boolean).join(' · ');
-    el.innerHTML = `<span class="kot-draft-name"${titleBits ? ` title="${escapeAttr(titleBits)}"` : ''}>${escapeHtml(data.name)}</span>
+    const lineTotal = qty * price;
+    const priceLabel = `${formatRupee(lineTotal)} <span>(${formatRupee(price)} ea)</span>`;
+    el.innerHTML = `<div class="kot-draft-name-cell">
+            <span class="kot-draft-name">${escapeHtml(data.name)}</span>
+            <span class="kot-draft-price">${priceLabel}</span>
+        </div>
         <div class="kot-draft-qty-wrap" role="group" aria-label="Quantity">
             <button type="button" class="kot-draft-qty-btn" data-draft-qty-delta="-1" aria-label="Decrease quantity">−</button>
             <span class="kot-draft-qty-val">${qty}</span>
@@ -1110,6 +1124,93 @@ function appendKotDraftLine(draftBox, data) {
     draftBox.appendChild(el);
     updateKotDraftEmptyVisible(draftBox);
     return el;
+}
+
+/** Merge two sets of KOT lines into one, summing quantities for the same item + price. */
+function mergeKotLineArrays(...lineGroups) {
+    const map = new Map();
+    const order = [];
+    const addLine = (ln) => {
+        if (!ln) return;
+        const name = String(ln.name || '').trim();
+        if (!name) return;
+        const price = parseInt(String(ln.price), 10) || 0;
+        let qty = parseInt(String(ln.quantity), 10);
+        if (!Number.isFinite(qty) || qty < 1) return;
+        const key = `${name.toLowerCase()}\u0000${price}`;
+        const cat = String(ln.category_type || ln.category || '').trim();
+        if (map.has(key)) {
+            map.get(key).quantity = Math.min(99, map.get(key).quantity + qty);
+        } else {
+            const row = { name, quantity: Math.min(99, qty), price };
+            if (cat) row.category_type = cat;
+            map.set(key, row);
+            order.push(row);
+        }
+    };
+    for (const group of lineGroups) {
+        for (const ln of group || []) addLine(ln);
+    }
+    return order;
+}
+
+/** Stable identity for matching draft lines to menu chips (same item + price). */
+function menuPickKey(name, price) {
+    const nm = String(name || '').trim().toLowerCase();
+    const p = parseInt(String(price), 10);
+    return `${nm}\u0000${Number.isFinite(p) ? p : 0}`;
+}
+
+/** Add a line, or bump the quantity of an identical existing line, so a menu item maps to one draft row. */
+function addOrMergeKotDraftLine(draftBox, data) {
+    if (!draftBox || !data?.name) return null;
+    const key = menuPickKey(data.name, data.price);
+    const existing = [...draftBox.querySelectorAll('.kot-draft-line')].find(
+        (el) => menuPickKey(el.getAttribute('data-name'), el.getAttribute('data-price')) === key
+    );
+    if (existing) {
+        const cur = parseInt(existing.getAttribute('data-qty') || '1', 10) || 1;
+        const add = Number.isFinite(data.quantity) ? data.quantity : 1;
+        existing.setAttribute('data-qty', String(Math.min(99, cur + add)));
+        refreshKotDraftLineDisplay(existing);
+        updateKotDraftEmptyVisible(draftBox);
+        return existing;
+    }
+    return appendKotDraftLine(draftBox, data);
+}
+
+/** Map of "item + price" -> total quantity currently in the draft. */
+function buildDraftQtyMap(draftBox) {
+    const map = new Map();
+    const box = draftBox || document.getElementById('kotDraftLines');
+    if (!box) return map;
+    box.querySelectorAll('.kot-draft-line').forEach((el) => {
+        const name = (el.getAttribute('data-name') || '').trim();
+        if (!name) return;
+        const price = parseInt(el.getAttribute('data-price') || '0', 10) || 0;
+        const qty = parseInt(el.getAttribute('data-qty') || '1', 10) || 0;
+        const key = menuPickKey(name, price);
+        map.set(key, (map.get(key) || 0) + qty);
+    });
+    return map;
+}
+
+/** Highlight menu chips that are in the current draft and show their quantity badge. */
+function syncMenuPickSelection() {
+    const map = buildDraftQtyMap();
+    document.querySelectorAll('#kotMenuBrowser .kot-menu-pick:not(.kot-open-pick)').forEach((btn) => {
+        const qty = map.get(menuPickKey(btn.dataset.name, btn.dataset.price)) || 0;
+        const badge = btn.querySelector('.kot-menu-pick-badge');
+        if (qty > 0) {
+            btn.classList.add('kot-menu-pick--selected');
+            btn.setAttribute('aria-pressed', 'true');
+            if (badge) badge.textContent = `×${qty}`;
+        } else {
+            btn.classList.remove('kot-menu-pick--selected');
+            btn.removeAttribute('aria-pressed');
+            if (badge) badge.textContent = '';
+        }
+    });
 }
 
 function collectKotDraftLines(draftBox) {
@@ -1180,6 +1281,10 @@ function ensureSingleKotComposerRow(lineBox) {
     return row;
 }
 
+function isKotMobile() {
+    return !!(KOT_MOBILE_MQL && KOT_MOBILE_MQL.matches);
+}
+
 function focusKotComposerSearch(lineBox) {
     if (!lineBox) return;
     const row = ensureSingleKotComposerRow(lineBox);
@@ -1189,7 +1294,9 @@ function focusKotComposerSearch(lineBox) {
     if (!inp) return;
     window.setTimeout(() => {
         if (!lineBox.contains(row)) return;
-        inp.focus();
+        // On phones, re-focusing after every menu tap pops the keyboard back over
+        // the menu. Keep the menu visible and let the staff keep tapping items.
+        if (!isKotMobile()) inp.focus();
         handleKotComposerInput(row, lineBox);
     }, 0);
 }
@@ -1198,7 +1305,7 @@ function promoteKotLineToDraft(row, lineBox, draftBox) {
     if (!row || !lineBox || !draftBox) return false;
     const data = readKotLineRowData(row);
     if (!data) return false;
-    appendKotDraftLine(draftBox, data);
+    addOrMergeKotDraftLine(draftBox, data);
     resetKotComposerRow(row);
     ensureSingleKotComposerRow(lineBox);
     draftBox.dispatchEvent(new CustomEvent('floor:kot-draft-updated', { bubbles: true }));
@@ -1211,7 +1318,7 @@ function syncKotDraftState(draftBox, saveBtn, modifyBtn, cancelBtn, kots) {
     const modifiable = findLastModifiableKot(kots);
     if (saveBtn) {
         saveBtn.disabled = n === 0;
-        saveBtn.textContent = kotEditingId ? 'Update KOT' : 'Save KOT';
+        saveBtn.textContent = kotEditingId ? 'Update KOT' : modifiable ? 'Add to order' : 'Save KOT';
     }
     if (modifyBtn) {
         if (kotEditingId) {
@@ -1244,6 +1351,171 @@ function tryPromoteComposerRow(row, lineBox) {
 function closeKotMenuBrowserForLineBox(lineBox) {
     const kotMenuBrowser = lineBox?.closest('#addKotBox')?.querySelector('#kotMenuBrowser');
     if (kotMenuBrowser) setKotMenuBrowserOpen(kotMenuBrowser, null, lineBox, false);
+}
+
+function setMobileSheetOpen(open, animate = true) {
+    const sheet = document.getElementById('kotListColumn');
+    const backdrop = document.getElementById('kotSheetBackdrop');
+    mobileSheetOpen = !!open && isKotMobile();
+    if (sheet) {
+        if (!animate) {
+            sheet.classList.add('kot-no-anim');
+            requestAnimationFrame(() =>
+                requestAnimationFrame(() => sheet.classList.remove('kot-no-anim'))
+            );
+        }
+        sheet.dataset.sheetOpen = mobileSheetOpen ? '1' : '0';
+    }
+    if (backdrop) backdrop.dataset.open = mobileSheetOpen ? '1' : '0';
+}
+
+/**
+ * Touch-first KOT capture: the menu fills the screen, the running order lives in
+ * a slide-up sheet, and a persistent bottom bar shows the live count/total + Save.
+ * Re-run after every drawer render; a no-op (and self-cleaning) on desktop widths.
+ */
+function setupMobileKotUx(meta) {
+    const shell = document.querySelector('.floor-kot-shell');
+    const listCol = document.getElementById('kotListColumn');
+    const formCol = document.getElementById('kotFormColumn');
+    const draftBox = document.getElementById('kotDraftLines');
+    const footer = document.getElementById('drawerFooter');
+    if (!shell || !listCol || !formCol) return;
+
+    if (!isKotMobile()) {
+        shell.classList.remove('kot-mobile');
+        return;
+    }
+    shell.classList.add('kot-mobile');
+
+    const hasSettle = !!(footer && footer.querySelector('[data-pay]'));
+    if (footer) footer.dataset.settle = hasSettle ? '1' : '0';
+
+    const listScroll = listCol.querySelector('.floor-kot-list-scroll');
+
+    if (!listCol.querySelector('.kot-sheet-handle')) {
+        const head = document.createElement('div');
+        head.className = 'kot-sheet-handle';
+        head.innerHTML = `<span class="kot-sheet-grip" aria-hidden="true"></span>
+            <span class="kot-sheet-title">Order details</span>
+            <button type="button" class="kot-sheet-close" aria-label="Close order details">Done</button>`;
+        listCol.prepend(head);
+        head.querySelector('.kot-sheet-close')?.addEventListener('click', () => setMobileSheetOpen(false));
+    }
+
+    // Move "Clear this table" out of the (hidden) form footer into the sheet.
+    const voidBtn = document.getElementById('voidFloorBtn');
+    if (voidBtn && listScroll && !listScroll.contains(voidBtn)) {
+        const wrap = document.createElement('div');
+        wrap.className = 'kot-sheet-clear';
+        wrap.appendChild(voidBtn);
+        listScroll.appendChild(wrap);
+    }
+
+    let backdrop = document.getElementById('kotSheetBackdrop');
+    if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.id = 'kotSheetBackdrop';
+        backdrop.className = 'kot-sheet-backdrop';
+        backdrop.dataset.open = '0';
+        backdrop.addEventListener('click', () => setMobileSheetOpen(false));
+        shell.appendChild(backdrop);
+    }
+
+    let bar = shell.querySelector('.kot-mobile-bar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.className = 'kot-mobile-bar';
+        bar.innerHTML = `<button type="button" class="kot-mobile-review">
+                <span class="kot-mobile-review-line">
+                    <span class="kot-mobile-count">0 items</span>
+                    <span class="kot-mobile-total">${formatRupee(0)}</span>
+                </span>
+                <span class="kot-mobile-view">Tap to review</span>
+            </button>
+            <button type="button" class="floor-btn floor-btn--primary kot-mobile-save">Save KOT</button>`;
+        shell.appendChild(bar);
+        bar.querySelector('.kot-mobile-review')?.addEventListener('click', () => setMobileSheetOpen(true));
+        bar.querySelector('.kot-mobile-save')?.addEventListener('click', () => {
+            const sb = document.getElementById('submitKotBtn');
+            if (sb && !sb.disabled) sb.click();
+            else setMobileSheetOpen(true);
+        });
+    }
+
+    const countEl = bar.querySelector('.kot-mobile-count');
+    const totalEl = bar.querySelector('.kot-mobile-total');
+    const viewEl = bar.querySelector('.kot-mobile-view');
+    const barSave = bar.querySelector('.kot-mobile-save');
+
+    const sumLines = (lines) => {
+        let qty = 0;
+        let amount = 0;
+        for (const ln of lines || []) {
+            const q = parseInt(String(ln.quantity), 10) || 0;
+            const p = parseInt(String(ln.price), 10) || 0;
+            qty += q;
+            amount += q * p;
+        }
+        return { qty, amount };
+    };
+
+    const updateBar = () => {
+        // Items already saved on this table (so the bar still shows the real total
+        // after a KOT is saved and the draft is cleared — it must never read ₹0).
+        let savedItems = 0;
+        let savedAmount = 0;
+        for (const kot of meta?.kots || []) {
+            const s = sumLines(kot.lines);
+            savedItems += s.qty;
+            savedAmount += s.amount;
+        }
+        // While editing an existing KOT, the draft replaces that KOT (avoid double-count).
+        let editItems = 0;
+        let editAmount = 0;
+        if (kotEditingId) {
+            const k = (meta?.kots || []).find((x) => x && String(x.id) === String(kotEditingId));
+            const s = sumLines(k && k.lines);
+            editItems = s.qty;
+            editAmount = s.amount;
+        }
+        // Unsaved items currently in the draft.
+        let draftItems = 0;
+        let draftAmount = 0;
+        if (draftBox) {
+            draftBox.querySelectorAll('.kot-draft-line').forEach((el) => {
+                const q = parseInt(el.getAttribute('data-qty') || '0', 10) || 0;
+                const p = parseInt(el.getAttribute('data-price') || '0', 10) || 0;
+                draftItems += q;
+                draftAmount += q * p;
+            });
+        }
+        const items = Math.max(0, savedItems - editItems + draftItems);
+        const total = Math.max(0, savedAmount - editAmount + draftAmount);
+        if (countEl) countEl.textContent = `${items} item${items === 1 ? '' : 's'}`;
+        if (totalEl) totalEl.textContent = formatRupee(total);
+        const sb = document.getElementById('submitKotBtn');
+        if (barSave) {
+            barSave.disabled = !sb || sb.disabled;
+            barSave.textContent = sb ? sb.textContent : 'Save KOT';
+        }
+        if (viewEl) {
+            viewEl.textContent = savedItems > 0 ? 'Tap to view order' : 'Tap to review';
+        }
+        if (draftItems > 0) {
+            bar.classList.remove('kot-mobile-bar--pulse');
+            void bar.offsetWidth;
+            bar.classList.add('kot-mobile-bar--pulse');
+        }
+    };
+
+    if (draftBox && draftBox.dataset.mobileBound !== '1') {
+        draftBox.dataset.mobileBound = '1';
+        draftBox.addEventListener('floor:kot-draft-updated', updateBar);
+    }
+    updateBar();
+
+    setMobileSheetOpen(mobileSheetOpen, false);
 }
 
 function renderDrawer() {
@@ -1409,6 +1681,7 @@ function renderDrawer() {
             true
         );
         draftBox.addEventListener('floor:kot-draft-updated', refreshDraftUi);
+        draftBox.addEventListener('floor:kot-draft-updated', syncMenuPickSelection);
     }
 
     body.querySelector('#kotListColumn')?.addEventListener('click', (e) => {
@@ -1489,16 +1762,31 @@ function renderDrawer() {
             return;
         }
         try {
-            const action = kotEditingId ? 'floor_replace_kot' : 'floor_add_kot';
-            const payload = kotEditingId
-                ? { action, kot_id: kotEditingId, lines }
-                : { action, lines };
+            // One KOT per table: when the table already has an editable ticket, merge the
+            // new items into it (replace) instead of opening another KOT.
+            let payload;
+            if (kotEditingId) {
+                payload = { action: 'floor_replace_kot', kot_id: kotEditingId, lines };
+            } else {
+                const target = findLastModifiableKot(meta.kots);
+                if (target) {
+                    payload = {
+                        action: 'floor_replace_kot',
+                        kot_id: String(target.id),
+                        lines: mergeKotLineArrays(target.lines, lines)
+                    };
+                } else {
+                    payload = { action: 'floor_add_kot', lines };
+                }
+            }
             const updated = await patchOrder(order.id, payload);
-            showToast(kotEditingId ? 'KOT updated.' : 'KOT saved.');
+            showToast('Order updated.');
             if (updated && !isLocalFloorId(updated.id)) {
                 selectedOrderId = String(updated.id);
                 upsertApiFloorOrderInCache(updated);
             }
+            // Collapse the sheet back to the menu so staff can start the next round of items.
+            mobileSheetOpen = false;
             floorOrders = mergeFloorOrdersApiAndLocal(lastApiFloorRows, localFloorSessions);
             renderSlots();
             renderDrawer();
@@ -1583,6 +1871,8 @@ function renderDrawer() {
     } else {
         footer.innerHTML = `<div style="font-size:0.8rem;color:var(--muted);text-align:center;line-height:1.45;">Settle appears when <strong>every line</strong> on every KOT is <strong>marked served</strong>. Then choose cash or UPI.</div>`;
     }
+
+    setupMobileKotUx(meta);
 }
 
 function ensureTrailingKotPlaceholderRow(lineBox) {
@@ -1723,7 +2013,7 @@ function renderKotMenuBrowser(panel, lineBox) {
             const chips = items
                 .map((h) => {
                     const kotUnit = kotFloorUnitPriceFromMenuListPrice(h.price);
-                    return `<button type="button" class="kot-menu-pick" data-name="${escapeAttr(h.name)}" data-price="${kotUnit}" data-category="${escapeAttr(h.category_type)}">${escapeHtml(h.name)} <span class="kot-menu-pick-price">${formatRupee(kotUnit)}</span></button>`;
+                    return `<button type="button" class="kot-menu-pick" data-name="${escapeAttr(h.name)}" data-price="${kotUnit}" data-category="${escapeAttr(h.category_type)}"><span class="kot-menu-pick-label">${escapeHtml(h.name)}</span><span class="kot-menu-pick-end"><span class="kot-menu-pick-badge" aria-hidden="true"></span><span class="kot-menu-pick-price">${formatRupee(kotUnit)}</span></span></button>`;
                 })
                 .join('');
             return `<div class="kot-menu-browser-section"><h4 class="kot-menu-browser-cat">${escapeHtml(cat)}</h4><div class="kot-menu-browser-items">${chips}</div></div>`;
@@ -1751,6 +2041,7 @@ function renderKotMenuBrowser(panel, lineBox) {
             tryPromoteComposerRow(target, lineBox);
         });
     });
+    syncMenuPickSelection();
 }
 
 function initFloorDrawerDelegates() {
@@ -1821,6 +2112,7 @@ function escapeAttr(s) {
 
 function openDrawer(orderId) {
     selectedOrderId = String(orderId);
+    mobileSheetOpen = false;
     renderDrawer();
 }
 
@@ -1887,6 +2179,16 @@ function showGate(msg = '') {
 
 document.getElementById('drawerClose')?.addEventListener('click', closeDrawer);
 document.getElementById('drawerBackdrop')?.addEventListener('click', closeDrawer);
+
+// Rebuild the open drawer when switching between the phone and desktop layouts.
+const onKotBreakpointChange = () => {
+    if (selectedOrderId) {
+        mobileSheetOpen = false;
+        renderDrawer();
+    }
+};
+if (KOT_MOBILE_MQL.addEventListener) KOT_MOBILE_MQL.addEventListener('change', onKotBreakpointChange);
+else if (KOT_MOBILE_MQL.addListener) KOT_MOBILE_MQL.addListener(onKotBreakpointChange);
 
 document.getElementById('floorAuthForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
