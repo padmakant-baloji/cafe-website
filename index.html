@@ -88,7 +88,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Playfair+Display:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Styles -->
-    <link rel="stylesheet" href="styles.css?v=5">
+    <link rel="stylesheet" href="styles.css?v=9">
     
     <!-- Enhanced Schema.org Structured Data -->
     <script type="application/ld+json">
@@ -521,9 +521,33 @@
             <form class="checkout-form" id="checkoutForm">
                 <div class="checkout-form-scroll">
                     <div class="checkout-delivery-card">
-                        <p class="checkout-delivery-card-label">Delivering to</p>
+                        <div class="checkout-delivery-card-head">
+                            <p class="checkout-delivery-card-label">Delivering to</p>
+                            <button type="button" class="checkout-delivery-change" id="checkoutChangeAddressBtn" aria-expanded="false" aria-controls="checkoutAddressChooser" hidden>Change</button>
+                        </div>
                         <p class="checkout-delivery-card-city" id="checkoutDeliveryCityDisplay"></p>
                         <p class="checkout-delivery-card-address" id="checkoutDeliveryAddressDisplay"></p>
+                    </div>
+
+                    <div class="checkout-address-chooser" id="checkoutAddressChooser" hidden>
+                        <p class="checkout-address-chooser-title">Choose delivery address</p>
+                        <div class="checkout-address-options" id="checkoutAddressOptions" role="radiogroup" aria-label="Choose delivery address"></div>
+                    </div>
+
+                    <div class="checkout-address-footer" id="checkoutAddressWrap">
+                        <textarea
+                            id="addressLine"
+                            name="addressLine"
+                            maxlength="300"
+                            rows="2"
+                            placeholder="Street / landmark — we save this for next time"
+                            autocomplete="street-address"
+                            aria-label="Delivery location"
+                        ></textarea>
+                        <div class="checkout-address-actions">
+                            <button type="button" class="checkout-address-btn checkout-address-btn--cancel" id="checkoutAddressCancelBtn">Cancel</button>
+                            <button type="button" class="checkout-address-btn checkout-address-btn--save" id="checkoutAddressSaveBtn">Save address</button>
+                        </div>
                     </div>
 
                     <p class="checkout-delivery-note" id="checkoutDeliveryNote" hidden></p>
@@ -579,17 +603,6 @@
                             <dd>₹<span id="checkoutDeliveryFee">0</span></dd>
                         </div>
                     </dl>
-                    <div class="checkout-address-footer" id="checkoutAddressWrap">
-                        <input
-                            type="text"
-                            id="addressLine"
-                            name="addressLine"
-                            maxlength="300"
-                            placeholder="Street / landmark — we save this for next time"
-                            autocomplete="street-address"
-                            aria-label="Delivery location"
-                        >
-                    </div>
                     <button type="submit" class="btn btn-primary btn-checkout-place" id="checkoutSubmitBtn">Place order · ₹<span id="checkoutSubmitAmount">0</span></button>
                 </div>
             </form>
@@ -695,7 +708,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="script.js?v=17" defer></script>
+    <script src="script.js?v=22" defer></script>
     <script src="/review-prompt.js" defer></script>
     <script src="/pwa-client.js" defer></script>
 </body>

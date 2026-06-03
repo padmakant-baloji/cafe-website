@@ -20,7 +20,9 @@
     
     /* Typography */
     --font-display: 'Playfair Display', serif;
-    --font-body: 'Poppins', sans-serif;
+    /* Single source of truth for UI text. Plus Jakarta Sans is the primary app font,
+       with Poppins kept as a graceful fallback. */
+    --font-body: 'Plus Jakarta Sans', 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
     
     /* Spacing */
     --spacing-xs: 0.5rem;
@@ -3239,7 +3241,6 @@ body.app-mobile .combo-grid {
 .remove-btn {
     background: none;
     border: none;
-    font-size: 1.2rem;
     cursor: pointer;
     padding: 0.5rem;
     min-width: 44px;
@@ -3247,13 +3248,17 @@ body.app-mobile .combo-grid {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform var(--transition-fast);
+    transition: transform var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
     touch-action: manipulation;
     border-radius: 50%;
+    color: #94a3b8;
 }
 
-.remove-btn:hover {
-    transform: scale(1.2);
+.remove-btn:hover,
+.remove-btn:focus-visible {
+    transform: scale(1.08);
+    color: var(--primary-red, #d32f2f);
+    background: rgba(211, 47, 47, 0.08);
 }
 
 .cart-footer {
@@ -3632,6 +3637,115 @@ body.app-mobile .combo-grid {
     line-height: 1.45;
 }
 
+.checkout-delivery-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.checkout-delivery-change {
+    flex: 0 0 auto;
+    border: 1px solid rgba(76, 175, 80, 0.4);
+    background: #fff;
+    color: #15803d;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.checkout-delivery-change:hover,
+.checkout-delivery-change:focus-visible {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: rgba(76, 175, 80, 0.7);
+}
+
+/* Address chooser */
+.checkout-address-chooser {
+    margin: -0.4rem 0 1rem;
+    padding: 0.85rem 0.9rem;
+    border: 1px solid rgba(76, 175, 80, 0.22);
+    border-radius: 14px;
+    background: #fff;
+}
+
+.checkout-address-chooser[hidden] {
+    display: none;
+}
+
+.checkout-address-chooser-title {
+    margin: 0 0 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+}
+
+.checkout-address-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.checkout-address-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.7rem 0.75rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.checkout-address-option:hover {
+    border-color: rgba(76, 175, 80, 0.5);
+}
+
+.checkout-address-option:has(input:checked) {
+    border-color: var(--logo-green, #4caf50);
+    background: rgba(76, 175, 80, 0.08);
+}
+
+.checkout-address-option input[type="radio"] {
+    margin-top: 0.15rem;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--logo-green, #4caf50);
+    flex: 0 0 auto;
+}
+
+.checkout-address-option-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.checkout-address-option-line {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-dark, #2c2c2c);
+    line-height: 1.35;
+}
+
+.checkout-address-option-city {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-light, #666);
+}
+
+.checkout-address-option--new .checkout-address-option-line {
+    color: #15803d;
+}
+
 .checkout-expand {
     margin-bottom: 0.85rem;
     border-radius: 14px;
@@ -3726,7 +3840,8 @@ body.app-mobile .combo-grid {
     display: none !important;
 }
 
-.checkout-address-footer input {
+.checkout-address-footer input,
+.checkout-address-footer textarea {
     width: 100%;
     padding: 0.7rem 0.9rem;
     border: 1px solid rgba(148, 163, 184, 0.45);
@@ -3737,16 +3852,69 @@ body.app-mobile .combo-grid {
     transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
 
-.checkout-address-footer input:focus {
+.checkout-address-footer textarea {
+    display: block;
+    min-height: 64px;
+    line-height: 1.45;
+    resize: vertical;
+}
+
+.checkout-address-footer input:focus,
+.checkout-address-footer textarea:focus {
     outline: none;
     border-color: var(--logo-green);
     background: #fff;
     box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.12);
 }
 
-.checkout-address-footer input::placeholder {
+.checkout-address-footer input::placeholder,
+.checkout-address-footer textarea::placeholder {
     color: #94a3b8;
     font-weight: 500;
+}
+
+.checkout-address-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+
+.checkout-address-btn {
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.5rem 1.1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.checkout-address-btn--cancel {
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    color: var(--text-light, #666);
+}
+
+.checkout-address-btn--cancel:hover,
+.checkout-address-btn--cancel:focus-visible {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
+.checkout-address-btn--cancel[hidden] {
+    display: none;
+}
+
+.checkout-address-btn--save {
+    background: var(--logo-green, #4caf50);
+    color: #fff;
+}
+
+.checkout-address-btn--save:hover,
+.checkout-address-btn--save:focus-visible {
+    background: #15803d;
 }
 
 .checkout-coupon-inline .coupon-input-wrap input {
@@ -5924,7 +6092,7 @@ body.app-mobile {
     --fo-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
     --fo-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.07);
 
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-family: var(--font-body);
     background: var(--fo-canvas);
     color: var(--fo-text);
     -webkit-tap-highlight-color: transparent;
@@ -6186,7 +6354,7 @@ body.app-mobile .app-hero-eyebrow {
 }
 
 body.app-mobile .app-home-hero .order-header-title {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-body);
     font-size: clamp(1.5rem, 5.5vw, 1.875rem);
     font-weight: 700;
     letter-spacing: -0.03em;
@@ -6272,7 +6440,7 @@ body.app-mobile .container {
 }
 
 body.app-mobile .section-title {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-body);
     font-size: 1.375rem;
     font-weight: 700;
     letter-spacing: -0.03em;
@@ -6407,7 +6575,7 @@ body.app-mobile .menu-subsection:first-of-type {
 }
 
 body.app-mobile .menu-category-title {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-body);
     font-size: 1.0625rem;
     font-weight: 700;
     color: var(--fo-text);
@@ -6484,7 +6652,7 @@ body.app-mobile .menu-item-header {
 
 body.app-mobile .menu-item-content h3,
 body.app-mobile .menu-item-name {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-body);
     font-size: 0.9375rem;
     font-weight: 600;
     line-height: 1.3;
@@ -6501,7 +6669,7 @@ body.app-mobile .menu-item-name {
 
 body.app-mobile .menu-item-content .price,
 body.app-mobile .menu-item-content .price .price-main {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-body);
     font-size: 0.9375rem;
     font-weight: 700;
     color: var(--fo-text);
@@ -6722,7 +6890,7 @@ body.app-mobile .contact-icon {
 }
 
 body.app-mobile .contact-details h3 {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-body);
     font-size: 1rem;
     font-weight: 600;
     color: var(--fo-text);
@@ -6788,7 +6956,7 @@ body.app-mobile .footer.order-footer {
 
 body.app-mobile .order-footer .footer-section h3,
 body.app-mobile .order-footer .footer-section h4 {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-body);
     color: #fff;
     font-weight: 600;
 }
@@ -6888,7 +7056,7 @@ body.app-mobile .checkout-modal-header {
 
 body.app-mobile .cart-modal-header h2,
 body.app-mobile .checkout-modal-header h2 {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-body);
     font-size: 1.125rem;
     font-weight: 700;
     color: var(--fo-text);
@@ -7064,7 +7232,7 @@ body.session-gate-open {
 }
 
 .session-gate-title {
-    font-family: 'Plus Jakarta Sans', 'Poppins', sans-serif;
+    font-family: var(--font-body);
     font-size: 1.5rem;
     font-weight: 700;
     margin: 0 0 0.35rem;
@@ -8438,7 +8606,7 @@ body.app-mobile .app-tab {
 /* —— Legal pages (privacy policy, etc.) —— */
 body.legal-page {
     margin: 0;
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-body);
     background: #f8fafc;
     color: #0f172a;
     line-height: 1.6;

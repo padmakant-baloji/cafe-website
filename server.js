@@ -13,6 +13,7 @@ const {
     getCustomerByMobile,
     listCustomerAddresses,
     upsertDefaultCustomerAddress,
+    updateCustomerAddressById,
     updateCustomerProfile,
     listOrdersForCustomer,
     listAllOrdersForAdmin,
@@ -202,6 +203,35 @@ app.patch('/api/auth/profile', requireCustomer, async (req, res) => {
             console.error('auth/profile:', err.message);
         }
         return res.status(code).json({ error: err.message || 'Could not update profile.' });
+    }
+});
+
+app.patch('/api/auth/address', requireCustomer, async (req, res) => {
+    try {
+        await ensureSchema();
+        const body = req.body || {};
+        const mobile = req.customerSession.mobile;
+        const addressLine =
+            typeof body.addressLine === 'string' ? body.addressLine.trim().slice(0, 300) : '';
+        const city = typeof body.city === 'string' ? body.city.trim().slice(0, 200) : '';
+        if (!addressLine) {
+            return res.status(400).json({ error: 'Delivery address is required.' });
+        }
+        const payload = { label: 'Delivery', addressLine, city };
+        if (body.addressId != null && String(body.addressId).trim() !== '') {
+            await updateCustomerAddressById(mobile, body.addressId, payload, { makeDefault: true });
+        } else {
+            await upsertDefaultCustomerAddress(mobile, payload);
+        }
+        const row = await getCustomerByMobile(mobile);
+        return res.json({ customer: await serializeCustomer(row) });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) {
+            console.error('auth/address:', err.message);
+        }
+        return res.status(code).json({ error: err.message || 'Could not save address.' });
     }
 });
 

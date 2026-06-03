@@ -85,8 +85,24 @@ function apiFailureMessage(res, rawText, data) {
 /** @type {{ customerId?: string, name: string, city: string, mobile: string } | null} */
 let currentCustomer = null;
 
+function escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function getCustomerAddresses() {
     return Array.isArray(currentCustomer?.addresses) ? currentCustomer.addresses : [];
+}
+
+/** Saved addresses that have a usable backend id. */
+function getSavedAddressesWithId() {
+    return getCustomerAddresses().filter(
+        (address) => address && address.id != null && String(address.id).trim() !== ''
+    );
 }
 
 function getDefaultCustomerAddress() {
@@ -94,30 +110,135 @@ function getDefaultCustomerAddress() {
     return addresses.find((address) => address && address.isDefault) || addresses[0] || null;
 }
 
+function getCheckoutAddressById(id) {
+    if (id == null) return null;
+    return getCustomerAddresses().find((a) => String(a.id) === String(id)) || null;
+}
+
 function formatSavedAddress(address) {
     if (!address || typeof address !== 'object') return '';
     return String(address.addressLine || address.address_line || '').trim();
 }
 
-/** Hides the delivery line when we already have a saved row (by id); prefills if saved line exists but no id yet. */
+// null = "use a new address" mode; otherwise the id of the selected saved address.
+let checkoutSelectedAddressId = null;
+// Whether the inline address editor (textarea + Save/Cancel) is expanded.
+let addressEditing = false;
+// The saved-address id currently being edited (null = creating a new address).
+let addressEditingId = null;
+// Snapshot used to restore state when the user cancels editing.
+let addressEditPrevId = null;
+let addressEditPrevValue = '';
+
+/** Builds the radio list of saved addresses plus a "new address" option. */
+function buildCheckoutAddressOptions() {
+    const wrap = document.getElementById('checkoutAddressOptions');
+    if (!wrap) return;
+
+    const addresses = getSavedAddressesWithId();
+    const rows = addresses.map((addr) => {
+        const id = String(addr.id);
+        const line = formatSavedAddress(addr) || 'Saved address';
+        const city = String(addr.city || '').trim();
+        const meta = [city, addr.isDefault ? 'Default' : ''].filter(Boolean).join(' · ');
+        return `<label class="checkout-address-option">
+            <input type="radio" name="checkoutAddress" value="${escapeHtml(id)}">
+            <span class="checkout-address-option-body">
+                <span class="checkout-address-option-line">${escapeHtml(line)}</span>
+                ${meta ? `<span class="checkout-address-option-city">${escapeHtml(meta)}</span>` : ''}
+            </span>
+        </label>`;
+    });
+
+    rows.push(`<label class="checkout-address-option checkout-address-option--new">
+        <input type="radio" name="checkoutAddress" value="__new__">
+        <span class="checkout-address-option-body">
+            <span class="checkout-address-option-line">Use a new address</span>
+            <span class="checkout-address-option-city">Type a street or landmark</span>
+        </span>
+    </label>`);
+
+    wrap.innerHTML = rows.join('');
+}
+
+/** Syncs the radio state, editor visibility, city, card display and totals to the current selection. */
+function applyCheckoutAddressSelection() {
+    const wrap = document.getElementById('checkoutAddressWrap');
+    const input = document.getElementById('addressLine');
+    const optionsWrap = document.getElementById('checkoutAddressOptions');
+    const chooser = document.getElementById('checkoutAddressChooser');
+    const changeBtn = document.getElementById('checkoutChangeAddressBtn');
+    const cancelBtn = document.getElementById('checkoutAddressCancelBtn');
+    if (!wrap || !input) return;
+
+    const isNew = checkoutSelectedAddressId == null;
+    const hasSaved = getSavedAddressesWithId().length > 0;
+
+    if (optionsWrap) {
+        optionsWrap.querySelectorAll('input[name="checkoutAddress"]').forEach((radio) => {
+            const isNewRadio = radio.value === '__new__';
+            radio.checked = isNewRadio
+                ? isNew
+                : !isNew && String(radio.value) === String(checkoutSelectedAddressId);
+        });
+    }
+
+    // The editor (textarea + Save/Cancel) only shows while editing a new/typed address.
+    const editorVisible = addressEditing && isNew;
+    wrap.hidden = !editorVisible;
+    input.required = editorVisible;
+
+    // Saved-address options only matter while editing and when some exist.
+    if (chooser) chooser.hidden = !(addressEditing && hasSaved);
+
+    if (changeBtn) {
+        changeBtn.hidden = addressEditing;
+        changeBtn.setAttribute('aria-expanded', addressEditing ? 'true' : 'false');
+    }
+    if (cancelBtn) cancelBtn.hidden = !hasSaved;
+
+    if (!isNew) {
+        const selected = getCheckoutAddressById(checkoutSelectedAddressId);
+        const citySelect = document.getElementById('customerCity');
+        if (selected?.city && citySelect && citySelect.querySelector(`option[value="${CSS.escape(selected.city)}"]`)) {
+            citySelect.value = selected.city;
+        }
+    }
+
+    renderCheckoutTotals();
+}
+
+/** Initializes the address chooser + selection when checkout opens (or profile changes). */
 function refreshCheckoutAddressUI() {
     const wrap = document.getElementById('checkoutAddressWrap');
     const input = document.getElementById('addressLine');
     if (!wrap || !input) return;
 
-    const def = getDefaultCustomerAddress();
-    const savedLine = def ? formatSavedAddress(def) : '';
-    const hasSavedRow = !!(def && def.id != null && String(def.id).trim() !== '');
+    const addresses = getSavedAddressesWithId();
+    const hasSaved = addresses.length > 0;
 
-    wrap.hidden = hasSavedRow;
-    input.required = !hasSavedRow;
-    if (hasSavedRow) {
-        input.value = '';
-    } else {
-        input.value = savedLine;
+    buildCheckoutAddressOptions();
+
+    // Keep the current selection if it's still valid, else fall back to the default address.
+    let selId = checkoutSelectedAddressId;
+    if (selId != null && !addresses.some((a) => String(a.id) === String(selId))) {
+        selId = null;
+    }
+    if (selId == null && hasSaved) {
+        const def = getDefaultCustomerAddress();
+        selId = def && def.id != null ? String(def.id) : String(addresses[0].id);
+    }
+    checkoutSelectedAddressId = hasSaved ? selId : null;
+
+    // First-time customers (no saved address) start with the editor open so they can type one.
+    addressEditing = !hasSaved;
+
+    if (checkoutSelectedAddressId == null) {
+        // Prefill the editor with any legacy saved line.
+        input.value = formatSavedAddress(getDefaultCustomerAddress());
     }
 
-    renderCheckoutDeliveryCard();
+    applyCheckoutAddressSelection();
 }
 
 function renderCheckoutDeliveryCard() {
@@ -125,19 +246,21 @@ function renderCheckoutDeliveryCard() {
     const addrEl = document.getElementById('checkoutDeliveryAddressDisplay');
     if (!cityEl || !addrEl) return;
 
+    const isNew = checkoutSelectedAddressId == null;
+    const selected = isNew ? null : getCheckoutAddressById(checkoutSelectedAddressId);
+
     const city =
-        (document.getElementById('customerCity')?.value || currentCustomer?.city || '').trim() ||
-        'Select city';
+        (selected?.city ||
+            document.getElementById('customerCity')?.value ||
+            currentCustomer?.city ||
+            '').trim() || 'Select city';
     cityEl.textContent = city;
 
-    const wrap = document.getElementById('checkoutAddressWrap');
-    const input = document.getElementById('addressLine');
-    const savedLine = formatSavedAddress(getDefaultCustomerAddress());
-
-    if (wrap?.hidden) {
-        addrEl.textContent = savedLine || 'Saved delivery address';
-    } else {
+    if (isNew) {
+        const input = document.getElementById('addressLine');
         addrEl.textContent = (input?.value || '').trim() || 'Enter street / landmark below';
+    } else {
+        addrEl.textContent = formatSavedAddress(selected) || 'Saved delivery address';
     }
 }
 
@@ -1008,8 +1131,8 @@ async function fetchStoreStatus() {
 }
 
 function initStoreStatus() {
+    // Fetch once on load. Refresh when the tab regains focus (event-driven, not polling).
     fetchStoreStatus();
-    setInterval(fetchStoreStatus, 30000);
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') fetchStoreStatus();
     });
@@ -1716,7 +1839,9 @@ function updateCartUI() {
                         <button class="qty-btn" onclick="updateQuantity(${index}, -1)">−</button>
                         <span class="qty-value">${item.quantity}</span>
                         <button class="qty-btn" onclick="updateQuantity(${index}, 1)">+</button>
-                        <button class="remove-btn" onclick="removeFromCart(${index})">🗑️</button>
+                        <button class="remove-btn" onclick="removeFromCart(${index})" aria-label="Remove ${escapeHtml(item.name)}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -3297,6 +3422,117 @@ function initCheckoutModal() {
         renderCheckoutDeliveryCard();
     });
 
+    const changeAddressBtn = document.getElementById('checkoutChangeAddressBtn');
+    const focusAddressInput = () => {
+        const input = document.getElementById('addressLine');
+        if (!input) return;
+        requestAnimationFrame(() => {
+            try { input.focus({ preventScroll: false }); } catch { input.focus(); }
+            const len = input.value.length;
+            try { input.setSelectionRange(len, len); } catch { /* no-op */ }
+        });
+    };
+
+    // "Change" opens the inline editor with the current address prefilled for editing.
+    changeAddressBtn?.addEventListener('click', () => {
+        const input = document.getElementById('addressLine');
+        if (!input) return;
+        addressEditPrevId = checkoutSelectedAddressId;
+        addressEditPrevValue = input.value || '';
+        // Editing the currently selected saved address (if any), else creating a new one.
+        addressEditingId = checkoutSelectedAddressId;
+        const currentLine =
+            checkoutSelectedAddressId != null
+                ? formatSavedAddress(getCheckoutAddressById(checkoutSelectedAddressId))
+                : (input.value || '').trim();
+        checkoutSelectedAddressId = null;
+        addressEditing = true;
+        input.value = currentLine;
+        applyCheckoutAddressSelection();
+        focusAddressInput();
+    });
+
+    document.getElementById('checkoutAddressOptions')?.addEventListener('change', (e) => {
+        const radio = e.target.closest('input[name="checkoutAddress"]');
+        if (!radio) return;
+        if (radio.value === '__new__') {
+            checkoutSelectedAddressId = null;
+            addressEditingId = null; // creating a brand-new address
+            addressEditing = true;
+            applyCheckoutAddressSelection();
+            focusAddressInput();
+        } else {
+            checkoutSelectedAddressId = radio.value;
+            addressEditing = false;
+            applyCheckoutAddressSelection();
+        }
+    });
+
+    // Save the typed address: persist it to the DB, then collapse the editor.
+    document.getElementById('checkoutAddressSaveBtn')?.addEventListener('click', async (e) => {
+        const input = document.getElementById('addressLine');
+        if (!input) return;
+        const value = (input.value || '').replace(/\s*\n\s*/g, ', ').trim();
+        if (!value) {
+            showToast('Add a short delivery location (street or landmark) first.', { type: 'error', duration: 4000 });
+            focusAddressInput();
+            return;
+        }
+        input.value = value;
+
+        const token = getCustomerToken();
+        if (!token) {
+            showToast('Please sign in with your mobile number first.', { type: 'error' });
+            return;
+        }
+
+        const saveBtn = e.currentTarget;
+        const city =
+            (document.getElementById('customerCity')?.value || currentCustomer?.city || '').trim();
+        setBtnLoading(saveBtn, true);
+        try {
+            const res = await fetch('/api/auth/address', {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    addressId: addressEditingId != null ? String(addressEditingId) : undefined,
+                    addressLine: value,
+                    city
+                })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data.error || `Could not save address (${res.status})`);
+            }
+
+            currentCustomer = data.customer || currentCustomer;
+            setCustomerProfile(currentCustomer);
+
+            // Select the freshly saved (now default) address.
+            buildCheckoutAddressOptions();
+            const def = getDefaultCustomerAddress();
+            checkoutSelectedAddressId = def && def.id != null ? String(def.id) : null;
+            addressEditingId = null;
+            addressEditing = false;
+            applyCheckoutAddressSelection();
+            showToast('Delivery address saved', { type: 'success' });
+        } catch (err) {
+            showToast(err.message || 'Could not save address.', { type: 'error', duration: 4000 });
+        } finally {
+            setBtnLoading(saveBtn, false);
+        }
+    });
+
+    // Cancel editing: restore the previous selection / value.
+    document.getElementById('checkoutAddressCancelBtn')?.addEventListener('click', () => {
+        const input = document.getElementById('addressLine');
+        checkoutSelectedAddressId = addressEditPrevId;
+        if (input) input.value = addressEditPrevValue || '';
+        addressEditingId = null;
+        addressEditing = false;
+        applyCheckoutAddressSelection();
+    });
+
     applyCouponBtn?.addEventListener('click', () => {
         void applyCouponFromCheckout();
     });
@@ -3554,8 +3790,6 @@ async function placeOrder() {
         return;
     }
 
-    const addressWrap = document.getElementById('checkoutAddressWrap');
-    const usingSavedAddressOnly = addressWrap?.hidden;
     const payload = {
         items: cart.map((item) => ({
             name: item.name,
@@ -3566,18 +3800,21 @@ async function placeOrder() {
         couponCode: appliedCoupon?.code || ''
     };
 
-    if (usingSavedAddressOnly) {
-        const def = getDefaultCustomerAddress();
-        if (!def?.id) {
-            showToast('We could not load your saved delivery spot. Add one line in the box below, then try again.', { type: 'error', duration: 4000 });
+    const usingSavedAddress = checkoutSelectedAddressId != null;
+    if (usingSavedAddress) {
+        const selected = getCheckoutAddressById(checkoutSelectedAddressId);
+        if (!selected?.id) {
+            showToast('That saved address is no longer available. Choose another or add a new one.', { type: 'error', duration: 4000 });
             return;
         }
-        payload.addressId = String(def.id);
+        payload.addressId = String(selected.id);
     } else {
-        const addressLine = (document.getElementById('addressLine')?.value || '').trim();
+        const addressInput = document.getElementById('addressLine');
+        const addressLine = (addressInput?.value || '').trim();
         if (!addressLine) {
             showToast('Add a short delivery location (street or landmark), then place your order.', { type: 'error', duration: 4000 });
-            const addressInput = document.getElementById('addressLine');
+            addressEditing = true;
+            applyCheckoutAddressSelection();
             if (addressInput) {
                 try { addressInput.focus({ preventScroll: false }); } catch { addressInput.focus(); }
             }
