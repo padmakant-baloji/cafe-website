@@ -1058,7 +1058,7 @@ function addToCart(itemName, price, options = {}) {
     saveCart();
     updateCartUI();
     if (options.skipToast) return;
-    showCartNotification();
+    showCartNotification(itemName);
 }
 
 function getCartQuantityForLine(lineName) {
@@ -1193,7 +1193,7 @@ function openAddonsModal({ title, subtitle, addons, onConfirm }) {
     const close = () => modal.classList.remove('active');
     const handleConfirm = () => {
         if (!isOnlineOrderingWindowOpenIST()) {
-            alert(getOrderingWindowClosedMessage());
+            showToast(getOrderingWindowClosedMessage(), { type: 'info' });
             return;
         }
         const selected = [];
@@ -1747,21 +1747,99 @@ function updateCartUI() {
     syncMenuItemSteppers();
 }
 
-// Show cart notification
-function showCartNotification() {
-    const notification = document.createElement('div');
-    notification.className = 'cart-notification';
-    notification.textContent = 'Item added to cart!';
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.classList.add('show');
-    }, 10);
-    
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-    }, 2000);
+// ============================================
+// Toast / Snackbar — non-blocking feedback
+// ============================================
+let toastStack = null;
+
+function ensureToastStack() {
+    if (toastStack && document.body.contains(toastStack)) return toastStack;
+    toastStack = document.createElement('div');
+    toastStack.className = 'app-toast-stack';
+    toastStack.setAttribute('role', 'status');
+    toastStack.setAttribute('aria-live', 'polite');
+    document.body.appendChild(toastStack);
+    return toastStack;
+}
+
+/**
+ * Show a transient, non-blocking message.
+ * @param {string} message
+ * @param {{type?: 'success'|'error'|'info', duration?: number, key?: string,
+ *          action?: {label: string, onClick: () => void}}} [options]
+ */
+function showToast(message, options = {}) {
+    const { type = 'info', key } = options;
+    const stack = ensureToastStack();
+
+    // Replace any existing toast that shares the same key (e.g. rapid add-to-cart).
+    if (key) {
+        stack.querySelectorAll(`[data-toast-key="${key}"]`).forEach((el) => el.remove());
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `app-toast app-toast--${type}`;
+    if (key) toast.dataset.toastKey = key;
+
+    const iconEl = document.createElement('span');
+    iconEl.className = 'app-toast-icon';
+    iconEl.setAttribute('aria-hidden', 'true');
+    iconEl.textContent = type === 'success' ? '✓' : type === 'error' ? '!' : 'i';
+
+    const msgEl = document.createElement('span');
+    msgEl.className = 'app-toast-msg';
+    msgEl.textContent = message;
+
+    toast.append(iconEl, msgEl);
+
+    let removed = false;
+    const remove = () => {
+        if (removed) return;
+        removed = true;
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    };
+
+    const action = options.action;
+    if (action && action.label) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'app-toast-action';
+        btn.textContent = action.label;
+        btn.addEventListener('click', () => {
+            remove();
+            try { action.onClick && action.onClick(); } catch { /* no-op */ }
+        });
+        toast.appendChild(btn);
+    }
+
+    stack.appendChild(toast);
+    // Keep the stack tidy.
+    while (stack.children.length > 3) stack.firstElementChild.remove();
+
+    requestAnimationFrame(() => toast.classList.add('show'));
+
+    const duration = options.duration || (action ? 4500 : 2600);
+    setTimeout(remove, duration);
+    return toast;
+}
+
+/** Open the cart modal from anywhere (used by toast actions). */
+function openCartModalGlobal() {
+    const cartModal = document.getElementById('cartModal');
+    if (!cartModal) return;
+    cartModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+// Show cart notification (item added)
+function showCartNotification(itemName) {
+    const message = itemName ? `Added ${itemName}` : 'Added to cart';
+    showToast(message, {
+        type: 'success',
+        key: 'cart-add',
+        action: { label: 'View cart', onClick: openCartModalGlobal }
+    });
 }
 
 // ============================================
@@ -2588,6 +2666,136 @@ function itemIsListed(item) {
     return item && item.enabled !== false;
 }
 
+// ============================================
+// Floating category switcher (jump bottom-sheet)
+// ============================================
+let categoryJumpInitialized = false;
+
+function getCategoryListedCount(category) {
+    if (Array.isArray(category.subsections) && category.subsections.length > 0) {
+        return category.subsections.reduce(
+            (n, sub) => n + (sub.items || []).filter(itemIsListed).length,
+            0
+        );
+    }
+    return (category.items || []).filter(itemIsListed).length;
+}
+
+function buildCategorySheet() {
+    const list = document.getElementById('categorySheetList');
+    if (!list || !menuData) return;
+    list.innerHTML = menuData.categories
+        .map((cat) => {
+            const icon = CATEGORY_TAB_ICONS[cat.id] || '🍽';
+            const count = getCategoryListedCount(cat);
+            return `<li>
+                <button type="button" class="category-sheet-item" data-category="${cat.id}">
+                    <span class="category-sheet-item-icon" aria-hidden="true">${icon}</span>
+                    <span class="category-sheet-item-name">${cat.name}</span>
+                    <span class="category-sheet-item-count">${count}</span>
+                </button>
+            </li>`;
+        })
+        .join('');
+}
+
+function markActiveCategorySheetItem() {
+    const list = document.getElementById('categorySheetList');
+    if (!list) return;
+    const activeTab = document.querySelector('.category-tab.active');
+    const activeId = activeTab ? activeTab.dataset.category : null;
+    list.querySelectorAll('.category-sheet-item').forEach((btn) => {
+        const on = btn.dataset.category === activeId;
+        btn.classList.toggle('active', on);
+        if (on) {
+            requestAnimationFrame(() => btn.scrollIntoView({ block: 'nearest' }));
+        }
+    });
+}
+
+function initCategoryJump() {
+    if (categoryJumpInitialized) return;
+    const fab = document.getElementById('categoryJumpFab');
+    const sheet = document.getElementById('categorySheet');
+    const backdrop = document.getElementById('categorySheetBackdrop');
+    const closeBtn = document.getElementById('categorySheetClose');
+    const list = document.getElementById('categorySheetList');
+    const menuSection = document.getElementById('menu');
+    if (!fab || !sheet || !menuSection) return;
+    categoryJumpInitialized = true;
+
+    let lastFocused = null;
+
+    const openSheet = () => {
+        buildCategorySheet();
+        markActiveCategorySheetItem();
+        lastFocused = document.activeElement;
+        sheet.hidden = false;
+        fab.classList.remove('visible');
+        requestAnimationFrame(() => sheet.classList.add('open'));
+        document.body.style.overflow = 'hidden';
+        closeBtn?.focus();
+    };
+
+    const closeSheet = () => {
+        sheet.classList.remove('open');
+        document.body.style.overflow = '';
+        const finish = () => {
+            sheet.hidden = true;
+            sheet.removeEventListener('transitionend', finish);
+        };
+        sheet.addEventListener('transitionend', finish);
+        setTimeout(finish, 320);
+        // Restore the FAB if the menu is still on screen.
+        const r = menuSection.getBoundingClientRect();
+        if (r.top < window.innerHeight && r.bottom > 0) {
+            fab.classList.add('visible');
+        }
+        if (lastFocused && typeof lastFocused.focus === 'function') {
+            try { lastFocused.focus(); } catch { /* no-op */ }
+        }
+    };
+
+    fab.addEventListener('click', openSheet);
+    backdrop?.addEventListener('click', closeSheet);
+    closeBtn?.addEventListener('click', closeSheet);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !sheet.hidden) {
+            e.preventDefault();
+            closeSheet();
+        }
+    });
+
+    list?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.category-sheet-item');
+        if (!btn) return;
+        const categoryId = btn.dataset.category;
+        if (!categoryId) return;
+        closeSheet();
+        // Let the sheet begin closing before scrolling for a smoother feel.
+        requestAnimationFrame(() => scrollMenuToCategory(categoryId));
+    });
+
+    // Only surface the FAB while the menu is actually on screen.
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    const show = entry.isIntersecting && sheet.hidden;
+                    fab.hidden = false;
+                    fab.classList.toggle('visible', show);
+                });
+            },
+            { threshold: 0, rootMargin: '-10% 0px -15% 0px' }
+        );
+        observer.observe(menuSection);
+    } else {
+        fab.hidden = false;
+        fab.classList.add('visible');
+    }
+}
+
 function renderMenu(searchQuery = '') {
     if (!menuData) return;
     
@@ -2756,7 +2964,9 @@ function renderMenu(searchQuery = '') {
     // This will update cache references without re-adding event listeners
     if (!searchQuery.trim()) {
         buildCategoryTabs();
+        buildCategorySheet();
         initMenuCategories();
+        initCategoryJump();
     }
     
     // Update cached menu top position after menu is rendered (if sticky tabs initialized)
@@ -2861,7 +3071,7 @@ function createMenuItem(item, categoryId) {
 // ============================================
 function handleAddToCart(item, selectedSize = null) {
     if (!isOnlineOrderingWindowOpenIST()) {
-        alert(getOrderingWindowClosedMessage());
+        showToast(getOrderingWindowClosedMessage(), { type: 'info' });
         return;
     }
     const menuItem = document.querySelector(`[data-item-id="${item.id}"]`);
@@ -3006,11 +3216,11 @@ function initCartModal() {
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', () => {
             if (!isOnlineOrderingWindowOpenIST()) {
-                alert(getOrderingWindowClosedMessage());
+                showToast(getOrderingWindowClosedMessage(), { type: 'info' });
                 return;
             }
             if (cart.length === 0) {
-                alert('Your cart is empty!');
+                showToast('Your cart is empty. Add a few items to continue.', { type: 'info' });
                 return;
             }
             const subtotal = getCartTotal();
@@ -3018,7 +3228,7 @@ function initCartModal() {
             if (!isCheckoutAllowed(subtotal, cityLower)) {
                 if (cityLower !== 'kudachi') {
                     const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
-                    alert(`Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Please add ₹${remaining} more to continue.`);
+                    showToast(`Add ₹${remaining} more — minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}.`, { type: 'error' });
                 }
                 return;
             }
@@ -3308,17 +3518,17 @@ function hideAppLoading() {
 async function placeOrder() {
     const token = getCustomerToken();
     if (!token) {
-        alert('Please sign in with your mobile number on the welcome screen first.');
+        showToast('Please sign in with your mobile number first.', { type: 'error' });
         return;
     }
 
     if (!isOnlineOrderingWindowOpenIST()) {
-        alert(getOrderingWindowClosedMessage());
+        showToast(getOrderingWindowClosedMessage(), { type: 'info' });
         return;
     }
 
     if (!cart.length) {
-        alert('Your cart is empty.');
+        showToast('Your cart is empty.', { type: 'info' });
         return;
     }
 
@@ -3327,7 +3537,7 @@ async function placeOrder() {
     if (!isCheckoutAllowed(subtotal, cityLower)) {
         if (cityLower !== 'kudachi') {
             const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
-            alert(`Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Please add ₹${remaining} more to continue.`);
+            showToast(`Add ₹${remaining} more — minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}.`, { type: 'error' });
         }
         return;
     }
@@ -3340,7 +3550,7 @@ async function placeOrder() {
     const citySelect = document.getElementById('customerCity');
     const city = (citySelect && citySelect.value) || currentCustomer?.city || '';
     if (!city) {
-        alert('Please select your city.');
+        showToast('Please select your city.', { type: 'error' });
         return;
     }
 
@@ -3359,14 +3569,18 @@ async function placeOrder() {
     if (usingSavedAddressOnly) {
         const def = getDefaultCustomerAddress();
         if (!def?.id) {
-            alert('We could not load your saved delivery spot. Add one line in the box below, then try again.');
+            showToast('We could not load your saved delivery spot. Add one line in the box below, then try again.', { type: 'error', duration: 4000 });
             return;
         }
         payload.addressId = String(def.id);
     } else {
         const addressLine = (document.getElementById('addressLine')?.value || '').trim();
         if (!addressLine) {
-            alert('Add a short delivery location (street or landmark), then place your order.');
+            showToast('Add a short delivery location (street or landmark), then place your order.', { type: 'error', duration: 4000 });
+            const addressInput = document.getElementById('addressLine');
+            if (addressInput) {
+                try { addressInput.focus({ preventScroll: false }); } catch { addressInput.focus(); }
+            }
             return;
         }
         payload.address = {
@@ -3419,7 +3633,7 @@ async function placeOrder() {
             window.location.protocol === 'file:'
                 ? ' Open this site using the local server: run `yarn install` then `yarn start` in the project folder.'
                 : '';
-        alert((err.message || 'Could not place order.') + hint);
+        showToast((err.message || 'Could not place order.') + hint, { type: 'error', duration: 5000 });
     } finally {
         hideAppLoading();
         setBtnLoading(submitBtn, false);

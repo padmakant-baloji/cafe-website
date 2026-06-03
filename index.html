@@ -88,7 +88,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Playfair+Display:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Styles -->
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=5">
     
     <!-- Enhanced Schema.org Structured Data -->
     <script type="application/ld+json">
@@ -347,6 +347,27 @@
             </div>
         </div>
     </section>
+
+    <!-- Floating category switcher (jump between menu sections) -->
+    <button type="button" class="category-jump-fab" id="categoryJumpFab" aria-haspopup="dialog" aria-controls="categorySheet" hidden>
+        <svg class="category-jump-fab-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+        <span class="category-jump-fab-label">Categories</span>
+    </button>
+
+    <div class="category-sheet" id="categorySheet" hidden>
+        <div class="category-sheet-backdrop" id="categorySheetBackdrop"></div>
+        <div class="category-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="categorySheetTitle">
+            <div class="category-sheet-grabber" aria-hidden="true"></div>
+            <div class="category-sheet-header">
+                <h3 class="category-sheet-title" id="categorySheetTitle">Jump to category</h3>
+                <button type="button" class="category-sheet-close" id="categorySheetClose" aria-label="Close">&times;</button>
+            </div>
+            <ul class="category-sheet-list" id="categorySheetList"></ul>
+        </div>
+    </div>
 
     <section class="order-help" id="help">
         <div class="container">
@@ -674,7 +695,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="script.js?v=15" defer></script>
+    <script src="script.js?v=17" defer></script>
     <script src="/review-prompt.js" defer></script>
     <script src="/pwa-client.js" defer></script>
 </body>
