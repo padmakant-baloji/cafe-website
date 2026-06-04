@@ -106,10 +106,42 @@
   }
 
   function renderIOS() {
+    // iOS/Safari has no programmatic install — guide the manual Home Screen add.
     show(byId('downloadActions'), false);
+    show(byId('downloadStatus'), false);
+    var sub = byId('downloadSub');
+    if (sub) sub.textContent = 'On iPhone & iPad, add the app to your Home Screen — it only takes a few taps.';
+    show(byId('iosStepsTitle'), true);
     show(byId('iosSteps'), true);
-    if (!isIOSSafari()) {
-      setNote('Tip: open this page in Safari, then add the app to your home screen.');
+    show(byId('iosSafariWarn'), !isIOSSafari());
+  }
+
+  function renderDesktop() {
+    // This PWA is intended for phones — guide desktop visitors to their phone.
+    show(byId('downloadActions'), false);
+    show(byId('downloadStatus'), false);
+    show(byId('iosSteps'), false);
+    show(byId('iosStepsTitle'), false);
+    var sub = byId('downloadSub');
+    if (sub) sub.textContent = 'Made for your phone — order faster with the app on your home screen.';
+    var urlEl = byId('desktopUrl');
+    if (urlEl) urlEl.textContent = location.host + '/download';
+    show(byId('desktopBlock'), true);
+
+    var copyBtn = byId('copyLinkBtn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var url = location.origin + '/download';
+        var done = function () {
+          copyBtn.textContent = 'Copied ✓';
+          setTimeout(function () { copyBtn.textContent = 'Copy link'; }, 2000);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(done).catch(done);
+        } else {
+          done();
+        }
+      });
     }
   }
 
@@ -148,7 +180,13 @@
     btn.addEventListener('click', function () {
       var dp = window.__deferredInstallPrompt;
       if (!dp) {
-        manualHint(os);
+        // No native installer available. If this is actually an iPhone/iPad
+        // (e.g. detection was fooled by an in-app browser), show the iOS steps.
+        if (os === 'ios' || /iPad|iPhone|iPod/.test(navigator.userAgent || '')) {
+          renderIOS();
+        } else {
+          manualHint(os);
+        }
         return;
       }
       setStatus('busy', 'Opening installer…');
@@ -197,8 +235,10 @@
 
     if (os === 'ios') {
       renderIOS();
-    } else {
+    } else if (os === 'android') {
       renderInstallable(os);
+    } else {
+      renderDesktop();
     }
   }
 
