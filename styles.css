@@ -3137,6 +3137,8 @@ body.app-mobile .combo-grid {
     background: none;
     border: none;
     font-size: 2rem;
+    line-height: 1;
+    padding: 0;
     color: var(--text-dark);
     cursor: pointer;
     width: 40px;
@@ -3210,8 +3212,8 @@ body.app-mobile .combo-grid {
 }
 
 .qty-btn {
-    width: 30px;
-    height: 30px;
+    width: 44px;
+    height: 44px;
     min-width: 44px;
     min-height: 44px;
     border-radius: 50%;
@@ -3219,6 +3221,8 @@ body.app-mobile .combo-grid {
     color: white;
     border: none;
     font-size: 1.2rem;
+    line-height: 1;
+    padding: 0;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -3251,7 +3255,7 @@ body.app-mobile .combo-grid {
     transition: transform var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
     touch-action: manipulation;
     border-radius: 50%;
-    color: #94a3b8;
+    color: var(--primary-red, #d32f2f);
 }
 
 .remove-btn:hover,
