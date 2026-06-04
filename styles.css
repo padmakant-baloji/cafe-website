@@ -3957,6 +3957,11 @@ body.app-mobile .combo-grid {
     margin: 0;
     font-weight: 800;
     color: var(--text-dark);
+    font-variant-numeric: tabular-nums;
+}
+
+.btn-checkout-place {
+    font-variant-numeric: tabular-nums;
 }
 
 .checkout-discount-amt {
@@ -6079,6 +6084,7 @@ body.app-mobile {
     --fo-space-4: 1rem;
     --fo-space-5: 1.25rem;
     --fo-space-6: 1.5rem;
+    --fo-space-7: 1.75rem;
     --fo-space-8: 2rem;
     --fo-canvas: #f4f4f5;
     --fo-surface: #ffffff;
@@ -6127,12 +6133,66 @@ body.app-mobile .app-topbar {
     max-width: var(--fo-max);
     z-index: 1100;
     padding: env(safe-area-inset-top, 0px) max(1rem, env(safe-area-inset-right, 0px)) 0 max(1rem, env(safe-area-inset-left, 0px));
-    background: var(--fo-surface);
+    background: rgba(255, 255, 255, 0.88);
+    -webkit-backdrop-filter: saturate(1.8) blur(16px);
+    backdrop-filter: saturate(1.8) blur(16px);
     border-bottom: 1px solid var(--fo-border);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+    transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 body.app-mobile .app-topbar.scrolled {
-    box-shadow: var(--fo-shadow-md);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+body.app-mobile .app-topbar-status {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.36rem 0.72rem 0.36rem 0.6rem;
+    border-radius: 999px;
+    background: var(--fo-accent-soft);
+    border: 1px solid rgba(22, 163, 74, 0.24);
+    color: var(--fo-accent-dark);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+body.app-mobile .app-topbar-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--fo-accent);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.5);
+    animation: topbarStatusPulse 2.4s ease-out infinite;
+}
+
+body.app-mobile .app-topbar-status--closed {
+    background: #f4f4f5;
+    border-color: var(--fo-border);
+    color: var(--fo-muted);
+}
+
+body.app-mobile .app-topbar-status--closed .app-topbar-status-dot {
+    background: #a1a1aa;
+    box-shadow: none;
+    animation: none;
+}
+
+@keyframes topbarStatusPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+    70%  { box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.app-mobile .app-topbar-status-dot {
+        animation: none;
+    }
 }
 
 body.app-mobile .app-topbar-inner {
@@ -6161,12 +6221,14 @@ body.app-mobile .app-brand:focus-visible {
 
 body.app-mobile .app-brand-logo-wrap {
     flex-shrink: 0;
-    width: 42px;
-    height: 42px;
-    border-radius: var(--fo-radius-sm);
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
     overflow: hidden;
-    background: var(--fo-surface);
+    background: #fff;
     border: 1px solid var(--fo-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+    padding: 2px;
 }
 
 body.app-mobile .app-brand-logo {
@@ -6176,18 +6238,18 @@ body.app-mobile .app-brand-logo {
 }
 
 body.app-mobile .app-brand-name {
-    font-weight: 700;
+    font-weight: 800;
     font-size: 1.0625rem;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.03em;
     color: var(--fo-text);
-    line-height: 1.2;
+    line-height: 1.15;
 }
 
 body.app-mobile .app-brand-sub {
     font-size: 0.6875rem;
     font-weight: 500;
     color: var(--fo-muted);
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
 }
 
 body.app-mobile .app-topbar .nav-cart,
@@ -6324,6 +6386,156 @@ body.app-mobile .app-tab-label {
     line-height: 1;
 }
 
+/* —— Sticky "View cart" bar —— */
+.cart-bar {
+    display: none;
+}
+
+body.app-mobile .cart-bar {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--fo-nav) + env(safe-area-inset-bottom, 0px) + var(--fo-space-2));
+    transform: translateX(-50%);
+    width: min(calc(100% - 2 * var(--fo-space-4)), calc(var(--fo-max) - 2 * var(--fo-space-4)));
+    z-index: 1095;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--fo-space-3);
+    padding: var(--fo-space-2) var(--fo-space-3) var(--fo-space-2) var(--fo-space-2);
+    min-height: 58px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--fo-accent), var(--fo-accent-dark));
+    color: #fff;
+    box-shadow: 0 12px 30px rgba(22, 163, 74, 0.34), 0 4px 10px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.3s cubic-bezier(0.34, 1.16, 0.64, 1), opacity 0.22s ease;
+}
+
+body.app-mobile .cart-bar:active {
+    transform: translateX(-50%) scale(0.985);
+}
+
+/* Bump animation when an item is added (replaces the top toast). */
+@keyframes cartBarBump {
+    0%   { transform: translateX(-50%) scale(1); }
+    28%  { transform: translateX(-50%) scale(1.045); }
+    55%  { transform: translateX(-50%) scale(0.99); }
+    100% { transform: translateX(-50%) scale(1); }
+}
+
+body.app-mobile .cart-bar.cart-bar--bump {
+    animation: cartBarBump 0.42s cubic-bezier(0.34, 1.4, 0.64, 1);
+    box-shadow: 0 14px 36px rgba(22, 163, 74, 0.45), 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+@keyframes cartBarBadgePop {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.28); }
+    100% { transform: scale(1); }
+}
+
+body.app-mobile .cart-bar.cart-bar--bump .cart-bar-badge {
+    animation: cartBarBadgePop 0.42s cubic-bezier(0.34, 1.4, 0.64, 1);
+    background: rgba(255, 255, 255, 0.32);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.app-mobile .cart-bar.cart-bar--bump,
+    body.app-mobile .cart-bar.cart-bar--bump .cart-bar-badge {
+        animation: none;
+    }
+}
+
+body.app-mobile .cart-bar.cart-bar--hidden {
+    transform: translateX(-50%) translateY(calc(100% + var(--fo-nav) + 24px));
+    opacity: 0;
+    pointer-events: none;
+}
+
+body.app-mobile .cart-bar-info {
+    display: flex;
+    align-items: center;
+    gap: var(--fo-space-3);
+    min-width: 0;
+}
+
+body.app-mobile .cart-bar-badge {
+    flex-shrink: 0;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.22);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+body.app-mobile .cart-bar-labels {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-width: 0;
+}
+
+body.app-mobile .cart-bar-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+body.app-mobile .cart-bar-meta {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+body.app-mobile .cart-bar-cta {
+    display: flex;
+    align-items: center;
+    gap: var(--fo-space-1);
+    flex-shrink: 0;
+}
+
+body.app-mobile .cart-bar-total {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+}
+
+body.app-mobile .cart-bar-badge {
+    font-variant-numeric: tabular-nums;
+}
+
+body.app-mobile .cart-bar-arrow {
+    display: block;
+    opacity: 0.92;
+}
+
+/* Lift content above the cart bar so the last item isn't covered */
+body.app-mobile.has-cart-bar .app-shell {
+    padding-bottom: calc(var(--fo-nav) + env(safe-area-inset-bottom, 0px) + 84px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.app-mobile .cart-bar {
+        transition: opacity 0.2s ease;
+    }
+}
+
 /* —— Hero —— */
 body.app-mobile .order-header-inner {
     max-width: 100%;
@@ -6337,34 +6549,69 @@ body.app-mobile .order-header-text {
 }
 
 body.app-mobile .app-home-hero.order-header {
+    position: relative;
     margin: 0;
-    padding: var(--fo-space-6) var(--fo-space-5) var(--fo-space-8);
+    padding: var(--fo-space-7, 1.75rem) var(--fo-space-5) var(--fo-space-8);
     padding-left: max(var(--fo-space-5), env(safe-area-inset-left, 0px));
     padding-right: max(var(--fo-space-5), env(safe-area-inset-right, 0px));
-    background: linear-gradient(160deg, #0f172a 0%, #1e293b 48%, #0f172a 100%);
+    background:
+        radial-gradient(130% 90% at 100% 0%, rgba(74, 222, 128, 0.28), transparent 58%),
+        radial-gradient(120% 80% at 0% 100%, rgba(16, 185, 129, 0.22), transparent 55%),
+        linear-gradient(155deg, #14532d 0%, #166534 45%, #15803d 100%);
     color: #fafafa;
-    border-radius: 0 0 var(--fo-radius) var(--fo-radius);
+    border-radius: 0 0 22px 22px;
     border: none;
-    box-shadow: var(--fo-shadow-md);
+    box-shadow: 0 10px 28px rgba(20, 83, 45, 0.28);
+    overflow: hidden;
+}
+
+/* Soft decorative glow in the hero corner. */
+body.app-mobile .app-home-hero.order-header::after {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -30px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 70%);
+    pointer-events: none;
+}
+
+body.app-mobile .app-home-hero .order-header-inner {
+    position: relative;
+    z-index: 1;
 }
 
 body.app-mobile .app-hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
     font-size: 0.6875rem;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.85);
     margin: 0 0 var(--fo-space-3);
+}
+
+body.app-mobile .app-hero-eyebrow::before {
+    content: '';
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.7);
 }
 
 body.app-mobile .app-home-hero .order-header-title {
     font-family: var(--font-body);
-    font-size: clamp(1.5rem, 5.5vw, 1.875rem);
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1.25;
-    margin: 0 0 var(--fo-space-4);
+    font-size: clamp(1.75rem, 7vw, 2.25rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.15;
+    margin: 0 0 var(--fo-space-5);
     color: #fff;
+    text-shadow: 0 1px 12px rgba(0, 0, 0, 0.12);
 }
 
 body.app-mobile .app-home-hero .order-header-lead {
@@ -6383,10 +6630,85 @@ body.app-mobile .app-home-hero .order-header-badges {
 body.app-mobile .app-home-hero .order-badge {
     font-size: 0.6875rem;
     font-weight: 600;
-    padding: 0.35rem 0.65rem;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.92);
+    padding: 0.4rem 0.75rem;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: #fff;
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+/* —— Hero quick-category chips (tap to jump into the menu) —— */
+body.app-mobile .hero-quick {
+    display: flex;
+    gap: var(--fo-space-2);
+    margin: 0 0 var(--fo-space-5);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    /* Bleed to screen edges so chips can scroll naturally. */
+    margin-left: calc(-1 * max(var(--fo-space-5), env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(var(--fo-space-5), env(safe-area-inset-right, 0px)));
+    padding-left: max(var(--fo-space-5), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--fo-space-5), env(safe-area-inset-right, 0px));
+}
+
+body.app-mobile .hero-quick::-webkit-scrollbar {
+    display: none;
+}
+
+body.app-mobile .hero-quick-chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    transition: background 0.15s ease, transform 0.12s ease;
+}
+
+body.app-mobile .hero-quick-chip:active {
+    transform: scale(0.96);
+    background: rgba(255, 255, 255, 0.24);
+}
+
+body.app-mobile .hero-quick-emoji {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+body.app-mobile .app-hero-primary .hero-cta-arrow {
+    transition: transform 0.15s ease;
+}
+
+body.app-mobile .app-hero-primary:active .hero-cta-arrow {
+    transform: translateX(3px);
+}
+
+body.app-mobile .hero-secondary-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: var(--fo-space-3);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    text-underline-offset: 3px;
+}
+
+body.app-mobile .hero-secondary-link:hover {
+    text-decoration: underline;
 }
 
 body.app-mobile .app-hero-primary,
@@ -6546,10 +6868,10 @@ body.app-mobile .category-tab:hover:not(.active) {
 }
 
 body.app-mobile .category-tab.active {
-    background: var(--fo-text);
+    background: linear-gradient(180deg, var(--fo-accent), var(--fo-accent-dark));
     color: #fff;
-    border-color: var(--fo-text);
-    box-shadow: none;
+    border-color: var(--fo-accent-dark);
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.28);
 }
 
 body.app-mobile .category-tab.active::before {
@@ -6583,6 +6905,17 @@ body.app-mobile .menu-category-title {
     font-size: 1.0625rem;
     font-weight: 700;
     color: var(--fo-text);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+body.app-mobile .menu-category-title::before {
+    content: '';
+    width: 4px;
+    height: 1.05rem;
+    border-radius: 4px;
+    background: linear-gradient(180deg, var(--fo-accent), var(--fo-accent-dark));
 }
 
 body.app-mobile .menu-category-count {
@@ -6613,11 +6946,18 @@ body.app-mobile .menu-item {
     flex-direction: row;
     align-items: stretch;
     min-height: 112px;
-    border-radius: var(--fo-radius);
+    border-radius: 14px;
     border: 1px solid var(--fo-border);
     background: var(--fo-surface);
     box-shadow: var(--fo-shadow);
     overflow: hidden;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+body.app-mobile .menu-item:hover {
+    border-color: rgba(22, 163, 74, 0.4);
+    box-shadow: 0 6px 18px rgba(22, 163, 74, 0.12);
+    transform: translateY(-1px);
 }
 
 body.app-mobile .menu-item::after {
@@ -6680,6 +7020,8 @@ body.app-mobile .menu-item-content .price .price-main {
     -webkit-text-fill-color: var(--fo-text);
     background: none;
     background-clip: unset;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
 }
 
 body.app-mobile .menu-item-content .price small {
@@ -6745,6 +7087,7 @@ body.app-mobile .order-btn-price {
     font-size: 0.875rem;
     font-weight: 700;
     opacity: 1;
+    font-variant-numeric: tabular-nums;
 }
 
 body.app-mobile .menu-cart-qty-bar {
@@ -6842,10 +7185,12 @@ body.app-mobile .order-help-card h3 {
 }
 
 body.app-mobile .order-help-step {
-    background: var(--fo-text);
-    font-size: 0.75rem;
-    width: 1.75rem;
-    height: 1.75rem;
+    background: linear-gradient(140deg, var(--fo-accent), var(--fo-accent-dark));
+    font-size: 0.8125rem;
+    font-weight: 700;
+    width: 1.85rem;
+    height: 1.85rem;
+    box-shadow: 0 3px 8px rgba(22, 163, 74, 0.25);
 }
 
 body.app-mobile .order-help-notes {
@@ -6889,8 +7234,9 @@ body.app-mobile .contact-item {
 
 body.app-mobile .contact-icon {
     margin: 0;
-    background: var(--fo-text);
+    background: linear-gradient(140deg, var(--fo-accent), var(--fo-accent-dark));
     font-size: 1.25rem;
+    box-shadow: 0 3px 8px rgba(22, 163, 74, 0.22);
 }
 
 body.app-mobile .contact-details h3 {
@@ -7073,11 +7419,72 @@ body.app-mobile .cart-items {
 
 body.app-mobile .cart-item {
     border: 1px solid var(--fo-border);
-    border-radius: var(--fo-radius-sm);
+    border-radius: 14px;
     box-shadow: none;
     padding: var(--fo-space-4);
     margin-bottom: var(--fo-space-3);
     gap: var(--fo-space-3);
+    background: var(--fo-surface);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.app-mobile .cart-item:hover {
+    border-color: rgba(22, 163, 74, 0.35);
+    box-shadow: 0 2px 10px rgba(22, 163, 74, 0.08);
+}
+
+/* —— Cart number typography (crisp, aligned, on-brand) —— */
+body.app-mobile .cart-item-info h4 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--fo-text);
+}
+
+body.app-mobile .cart-item-price {
+    color: var(--fo-accent-dark);
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+body.app-mobile .qty-value {
+    min-width: 26px;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--fo-text);
+    font-variant-numeric: tabular-nums;
+}
+
+body.app-mobile .cart-summary-row {
+    color: var(--fo-text);
+    font-size: 0.9375rem;
+}
+
+body.app-mobile .cart-summary-row dt {
+    color: var(--fo-muted);
+}
+
+body.app-mobile .cart-summary-row dd {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+body.app-mobile .cart-summary-row--total {
+    border-top: 1px dashed var(--fo-border);
+    font-size: 1.0625rem;
+}
+
+body.app-mobile .cart-summary-row--total dt {
+    color: var(--fo-text);
+}
+
+body.app-mobile .cart-summary-row--total dd {
+    color: var(--fo-accent-dark);
+    font-weight: 800;
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
 }
 
 body.app-mobile .cart-footer {
@@ -7322,17 +7729,17 @@ body.session-gate-open {
     text-align: center;
     padding: 2.5rem 1.25rem 2rem;
     border-radius: 20px;
-    border: 1px dashed #cbd5e1;
-    background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+    border: 1px dashed rgba(22, 163, 74, 0.3);
+    background: linear-gradient(180deg, #f6fdf9 0%, #ffffff 100%);
 }
 
 .my-orders-empty-visual {
-    width: 4rem;
-    height: 4rem;
+    width: 4.25rem;
+    height: 4.25rem;
     margin: 0 auto 1rem;
     border-radius: 999px;
-    background: #f1f5f9;
-    color: #94a3b8;
+    background: var(--fo-accent-soft, rgba(22, 163, 74, 0.1));
+    color: var(--fo-accent-dark, #15803d);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -7375,6 +7782,32 @@ body.session-gate-open {
         0 1px 2px rgba(15, 23, 42, 0.04),
         0 8px 24px rgba(15, 23, 42, 0.06);
     overflow: hidden;
+    transition: box-shadow 0.18s ease, transform 0.18s ease;
+    animation: orderCardIn 0.45s cubic-bezier(0.34, 1.1, 0.64, 1) both;
+}
+
+.my-order-card:nth-child(1) { animation-delay: 0.02s; }
+.my-order-card:nth-child(2) { animation-delay: 0.07s; }
+.my-order-card:nth-child(3) { animation-delay: 0.12s; }
+.my-order-card:nth-child(4) { animation-delay: 0.17s; }
+.my-order-card:nth-child(n+5) { animation-delay: 0.2s; }
+
+.my-order-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 14px 30px rgba(15, 23, 42, 0.1);
+}
+
+@keyframes orderCardIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .my-order-card {
+        animation: none;
+    }
 }
 
 .my-order-card::before {
@@ -7430,14 +7863,26 @@ body.session-gate-open {
 }
 
 .my-order-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     font-size: 0.6875rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    padding: 0.35rem 0.6rem;
+    padding: 0.35rem 0.65rem;
     border-radius: 999px;
     line-height: 1.2;
     max-width: 100%;
+}
+
+.my-order-status::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
 }
 
 .my-order-status--pending {
@@ -8116,7 +8561,7 @@ body.app-four-tabs .app-tab-icon {
 }
 
 .profile-section {
-    padding: 0 0 calc(var(--fo-nav, 56px) + 2rem);
+    padding: 1.25rem 0 calc(var(--fo-nav, 56px) + 2rem);
 }
 
 .profile-shell {
@@ -8134,23 +8579,41 @@ body.app-four-tabs .app-tab-icon {
 }
 
 .profile-card {
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    border-radius: 24px;
-    padding: 1.6rem;
-    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
+    background: #ffffff;
+    border: 1px solid var(--fo-border, #e4e4e7);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
 }
 
 .profile-card--hero {
+    position: relative;
+    overflow: hidden;
     background:
-        radial-gradient(circle at top right, rgba(187, 247, 208, 0.9), transparent 32%),
-        linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-    border-color: rgba(255, 255, 255, 0.08);
+        radial-gradient(130% 90% at 100% 0%, rgba(74, 222, 128, 0.28), transparent 58%),
+        radial-gradient(120% 80% at 0% 100%, rgba(16, 185, 129, 0.2), transparent 55%),
+        linear-gradient(155deg, #14532d 0%, #166534 45%, #15803d 100%);
+    border-color: rgba(255, 255, 255, 0.1);
     color: #f8fafc;
     padding: 1.75rem;
+    box-shadow: 0 12px 30px rgba(20, 83, 45, 0.28);
+}
+
+.profile-card--hero::after {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -30px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 70%);
+    pointer-events: none;
 }
 
 .profile-card-head {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -8198,11 +8661,11 @@ body.app-four-tabs .app-tab-icon {
 
 .profile-eyebrow {
     margin: 0;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.72rem;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #64748b;
+    color: var(--fo-accent-dark, #15803d);
 }
 
 .profile-card--hero .profile-eyebrow,
@@ -8271,26 +8734,33 @@ body.app-four-tabs .app-tab-icon {
 }
 
 .profile-detail-card {
-    border-radius: 18px;
+    border-radius: 16px;
     border: 1px solid #e2e8f0;
-    background: rgba(255, 255, 255, 0.9);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     padding: 1.05rem 1.05rem 1.1rem;
-    min-height: 104px;
+    min-height: 96px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.profile-detail-card:hover {
+    border-color: rgba(22, 163, 74, 0.35);
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.08);
 }
 
 .profile-detail-label {
     display: block;
     margin-bottom: 0.4rem;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #64748b;
+    letter-spacing: 0.07em;
+    color: var(--fo-accent-dark, #15803d);
 }
 
 .profile-detail-value {
     color: #0f172a;
     font-size: 1.05rem;
+    font-weight: 600;
     line-height: 1.4;
 }
 
@@ -8300,9 +8770,10 @@ body.app-four-tabs .app-tab-icon {
 }
 
 .profile-address-card {
-    border-radius: 18px;
+    border-radius: 16px;
     border: 1px solid #e2e8f0;
-    background: rgba(255, 255, 255, 0.9);
+    border-left: 3px solid var(--fo-accent, #16a34a);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     padding: 1rem 1.05rem;
 }
 
@@ -8583,6 +9054,123 @@ html.route-menu-auth-pending .session-gate {
     .orders-skeleton-card {
         animation: none;
         background: #ece8df;
+    }
+}
+
+/* ============================================
+   Branded splash / initial loading screen
+   ============================================ */
+.app-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 4000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    background:
+        radial-gradient(130% 100% at 50% 0%, rgba(74, 222, 128, 0.35), transparent 55%),
+        linear-gradient(160deg, #14532d 0%, #166534 48%, #14532d 100%);
+    color: #fff;
+    opacity: 1;
+    transition: opacity 0.55s ease, visibility 0.55s ease;
+}
+
+.app-splash--hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.app-splash-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+    animation: appSplashRise 0.6s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+}
+
+.app-splash-badge {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 116px;
+    height: 116px;
+    margin-bottom: 0.35rem;
+}
+
+.app-splash-ring {
+    position: absolute;
+    inset: 6px;
+    border-radius: 28px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    animation: appSplashPulse 1.9s ease-out infinite;
+}
+
+.app-splash-logo {
+    width: 96px;
+    height: 96px;
+    border-radius: 24px;
+    background: #fff;
+    padding: 14px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+    object-fit: contain;
+}
+
+.app-splash-name {
+    font-family: var(--font-body, "Plus Jakarta Sans", sans-serif);
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+}
+
+.app-splash-tag {
+    margin-top: -0.4rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.app-splash-dots {
+    display: inline-flex;
+    gap: 0.42rem;
+    margin-top: 0.55rem;
+}
+
+.app-splash-dots i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    animation: appSplashDot 1s ease-in-out infinite;
+}
+
+.app-splash-dots i:nth-child(2) { animation-delay: 0.16s; }
+.app-splash-dots i:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes appSplashRise {
+    from { opacity: 0; transform: translateY(14px) scale(0.95); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes appSplashPulse {
+    0% { transform: scale(1); opacity: 0.65; }
+    70% { transform: scale(1.22); opacity: 0; }
+    100% { opacity: 0; }
+}
+
+@keyframes appSplashDot {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(-6px); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-splash-inner,
+    .app-splash-ring,
+    .app-splash-dots i {
+        animation: none;
     }
 }
 
@@ -8911,6 +9499,12 @@ body.store-closed-locked {
 
 .category-jump-fab:active {
     transform: translateX(-50%) translateY(1px) scale(0.98);
+}
+
+/* Lift the Categories pill above the sticky cart bar when it's showing */
+body.app-mobile.has-cart-bar .category-jump-fab {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 144px);
+    transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s ease, bottom 0.28s cubic-bezier(0.34, 1.16, 0.64, 1);
 }
 
 .category-jump-fab-icon {

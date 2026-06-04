@@ -1035,6 +1035,15 @@ function syncOrderingWindowUI() {
         checkoutNote.textContent = msg;
         checkoutNote.hidden = open;
     }
+    // Header pill reflects BOTH the online ordering window AND the admin store
+    // status (acceptingOrders). If either is off, the cafe is effectively closed.
+    const liveOpen = open && storeAcceptingOrders;
+    const topbarStatus = document.getElementById('topbarStatus');
+    const topbarStatusLabel = document.getElementById('topbarStatusLabel');
+    if (topbarStatus && topbarStatusLabel) {
+        topbarStatus.classList.toggle('app-topbar-status--closed', !liveOpen);
+        topbarStatusLabel.textContent = liveOpen ? 'Open now' : 'Closed';
+    }
     return open;
 }
 
@@ -1098,6 +1107,8 @@ function applyStoreClosedOverlay(status) {
 
     const accepting = !status || status.acceptingOrders !== false;
     storeAcceptingOrders = accepting;
+    // Keep the header "Open now / Closed" pill in sync with admin store status.
+    try { syncOrderingWindowUI(); } catch { /* no-op */ }
 
     if (accepting || !status || !status.notice) {
         overlay.hidden = true;
@@ -1797,6 +1808,10 @@ function updateCartUI() {
     const cartTotal = document.getElementById('cartTotal');
     const cartFloat = document.getElementById('cartFloat');
     const navCart = document.getElementById('navCart');
+    const cartBar = document.getElementById('cartBar');
+    const cartBarCount = document.getElementById('cartBarCount');
+    const cartBarItems = document.getElementById('cartBarItems');
+    const cartBarTotal = document.getElementById('cartBarTotal');
     
     // Update cart count
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -1818,6 +1833,17 @@ function updateCartUI() {
     
     if (navCart) {
         navCart.classList.toggle('nav-cart-empty', totalItems === 0);
+    }
+
+    // Update sticky "View cart" bar
+    if (cartBar) {
+        const isEmpty = totalItems === 0;
+        cartBar.classList.toggle('cart-bar--hidden', isEmpty);
+        cartBar.setAttribute('aria-hidden', isEmpty ? 'true' : 'false');
+        document.body.classList.toggle('has-cart-bar', !isEmpty);
+        if (cartBarCount) cartBarCount.textContent = totalItems;
+        if (cartBarItems) cartBarItems.textContent = totalItems === 1 ? '1 item' : `${totalItems} items`;
+        if (cartBarTotal) cartBarTotal.textContent = `₹${getCartTotal()}`;
     }
     
     // Update cart items display
@@ -1957,14 +1983,43 @@ function openCartModalGlobal() {
     document.body.style.overflow = 'hidden';
 }
 
-// Show cart notification (item added)
+// SR-only live region so screen readers still hear cart updates (replaces the
+// visual toast that used to confirm add-to-cart).
+let cartAnnouncer = null;
+function announceCart(message) {
+    if (!cartAnnouncer || !document.body.contains(cartAnnouncer)) {
+        cartAnnouncer = document.createElement('div');
+        cartAnnouncer.className = 'visually-hidden';
+        cartAnnouncer.setAttribute('role', 'status');
+        cartAnnouncer.setAttribute('aria-live', 'polite');
+        document.body.appendChild(cartAnnouncer);
+    }
+    // Toggle text so repeated adds of the same item are still announced.
+    cartAnnouncer.textContent = '';
+    requestAnimationFrame(() => { cartAnnouncer.textContent = message; });
+}
+
+// Visually pulse the sticky bottom cart bar so the user sees the cart updated
+// (used instead of a top toast when items are added).
+function pulseCartBar() {
+    const cartBar = document.getElementById('cartBar');
+    if (!cartBar) return;
+    cartBar.classList.remove('cart-bar--bump');
+    // Force reflow so the animation re-triggers on rapid adds.
+    void cartBar.offsetWidth;
+    cartBar.classList.add('cart-bar--bump');
+    const clear = () => {
+        cartBar.classList.remove('cart-bar--bump');
+        cartBar.removeEventListener('animationend', clear);
+    };
+    cartBar.addEventListener('animationend', clear);
+}
+
+// Show cart notification (item added) — animate the bottom cart instead of a toast.
 function showCartNotification(itemName) {
-    const message = itemName ? `Added ${itemName}` : 'Added to cart';
-    showToast(message, {
-        type: 'success',
-        key: 'cart-add',
-        action: { label: 'View cart', onClick: openCartModalGlobal }
-    });
+    pulseCartBar();
+    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+    announceCart(`${itemName ? `Added ${itemName}. ` : 'Added to cart. '}${count} ${count === 1 ? 'item' : 'items'} in cart.`);
 }
 
 // ============================================
@@ -3297,6 +3352,7 @@ function initMenuItemActions() {
 function initCartModal() {
     const cartFloat = document.getElementById('cartFloat');
     const navCart = document.getElementById('navCart');
+    const cartBar = document.getElementById('cartBar');
     const cartModal = document.getElementById('cartModal');
     const cartClose = document.getElementById('cartClose');
     const checkoutBtn = document.getElementById('checkoutBtn');
@@ -3309,6 +3365,11 @@ function initCartModal() {
     // Floating cart button
     if (cartFloat) {
         cartFloat.addEventListener('click', openCartModal);
+    }
+
+    // Sticky "View cart" bar
+    if (cartBar) {
+        cartBar.addEventListener('click', openCartModal);
     }
     
     // Nav cart button
