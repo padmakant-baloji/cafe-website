@@ -24,6 +24,11 @@
     { "source": "/profile/", "destination": "/profile.html" },
 
     { "source": "/privacy-policy", "destination": "/privacy-policy.html" },
-    { "source": "/privacy-policy/", "destination": "/privacy-policy.html" }
+    { "source": "/privacy-policy/", "destination": "/privacy-policy.html" },
+
+    { "source": "/download", "destination": "/download.html" },
+    { "source": "/download/", "destination": "/download.html" },
+    { "source": "/install", "destination": "/download.html" },
+    { "source": "/install/", "destination": "/download.html" }
   ]
 }

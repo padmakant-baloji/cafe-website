@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
-    <title>My Orders — Baloji's Cafe</title>
-    <meta name="description" content="Track your Baloji's Cafe orders in real time.">
+    <title>Get the App — Baloji's Cafe</title>
+    <meta name="description" content="Install the Baloji's Cafe app for faster ordering and live order updates. Works on Android, iPhone, and desktop.">
     <meta name="theme-color" content="#15803d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16,10 +16,24 @@
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
 
+    <!-- Capture the install prompt as early as possible (before it can fire). -->
+    <script>
+      window.__deferredInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__deferredInstallPrompt = e;
+        window.dispatchEvent(new Event('pwa-install-available'));
+      });
+      window.addEventListener('appinstalled', function () {
+        window.__deferredInstallPrompt = null;
+        window.dispatchEvent(new Event('pwa-installed'));
+      });
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Playfair+Display:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=17">
+    <link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body class="order-app app-mobile app-four-tabs">
     <div id="appSplash" class="app-splash" role="status" aria-label="Loading Baloji's Cafe">
@@ -48,7 +62,8 @@
         setTimeout(hideSplash, 4000);
       })();
     </script>
-    <a class="skip-link" href="#ordersList">Skip to orders list</a>
+    <a class="skip-link" href="#downloadMain">Skip to download</a>
+
     <div class="app-shell">
         <div class="app-topbar" id="navbar" role="banner">
             <div class="app-topbar-inner">
@@ -68,40 +83,45 @@
             </div>
         </div>
 
-        <section class="order-header app-home-hero" aria-label="My orders overview">
-            <div class="order-header-inner">
-                <div class="order-header-text">
-                    <p class="app-hero-eyebrow">Live status</p>
-                    <h1 class="order-header-title">My orders</h1>
-                    <p class="order-header-lead">Track your orders in real time.</p>
-                    <div class="order-header-actions">
-                        <button type="button" class="btn btn-primary order-header-cta app-hero-primary" id="refreshOrdersBtn">
-                            <svg class="refresh-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
-                            Refresh status
-                        </button>
-                        <a href="/menu" class="btn btn-secondary order-header-cta">Back to menu</a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="order-my-orders" aria-label="My orders">
+        <section class="download-section" id="downloadMain" aria-label="Install the app" tabindex="-1">
             <div class="container">
-                <h2 class="section-title">Recent orders</h2>
-                <div class="my-orders-list" id="ordersList" aria-live="polite" tabindex="-1"></div>
+                <div class="download-hero">
+                    <span class="download-badge" aria-hidden="true">
+                        <span class="download-badge-glow"></span>
+                        <img src="images/logo/pwa-192.png?v=2" alt="" class="download-badge-img" width="104" height="104" decoding="async">
+                    </span>
+                    <h1 class="download-title">Install Baloji's Cafe</h1>
+                    <p class="download-sub">Faster ordering and live order updates, right from your home screen.</p>
+
+                    <div class="download-actions" id="downloadActions">
+                        <button type="button" class="btn btn-primary download-cta" id="installBtn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                            <span id="installBtnLabel">Install app</span>
+                        </button>
+                        <a href="/menu" class="btn btn-primary download-cta" id="openBtn" hidden>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+                            Open app
+                        </a>
+                    </div>
+
+                    <div class="download-status" id="downloadStatus" role="status" aria-live="polite" hidden>
+                        <span class="download-status-spinner" id="downloadStatusSpinner" aria-hidden="true"></span>
+                        <span class="download-status-check" id="downloadStatusCheck" aria-hidden="true" hidden>✓</span>
+                        <span class="download-status-text" id="downloadStatusText"></span>
+                    </div>
+
+                    <ol class="download-steps" id="iosSteps" hidden>
+                        <li><span class="download-step-num">1</span><span>Tap the <strong>Share</strong> icon <svg class="download-share-glyph" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="m8 8 4-4 4 4"/><path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg> in Safari's toolbar.</span></li>
+                        <li><span class="download-step-num">2</span><span>Scroll and choose <strong>Add to Home Screen</strong>.</span></li>
+                        <li><span class="download-step-num">3</span><span>Tap <strong>Add</strong> — the app appears on your home screen.</span></li>
+                    </ol>
+
+                    <p class="download-note" id="downloadNote" role="status" hidden></p>
+                </div>
+
+                <a href="/menu" class="download-back">← Back to menu</a>
             </div>
         </section>
-    </div>
-
-    <div id="pwaInstallBanner" class="pwa-install" hidden>
-        <div class="pwa-install-inner">
-            <div class="pwa-install-title">Install Baloji's Cafe</div>
-            <div class="pwa-install-sub">Open the menu faster from your home screen.</div>
-            <div class="pwa-install-actions">
-                <button type="button" class="btn btn-primary" id="pwaInstallBtn">Install</button>
-                <button type="button" class="btn btn-secondary" id="pwaInstallDismissBtn">Not now</button>
-            </div>
-        </div>
     </div>
 
     <nav class="app-bottom-nav" aria-label="Primary">
@@ -113,7 +133,7 @@
             <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
             <span class="app-tab-label">Menu</span>
         </a>
-        <a href="/orders" class="app-tab active" data-app-tab="orders" aria-current="page">
+        <a href="/orders" class="app-tab" data-app-tab="orders">
             <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11V6a3 3 0 0 1 6 0v5"/><rect x="5" y="11" width="14" height="10" rx="2"/></svg>
             <span class="app-tab-label">Orders</span>
         </a>
@@ -124,8 +144,6 @@
     </nav>
 
     <script src="/header-status.js?v=1" defer></script>
-    <script src="orders.js?v=12" defer></script>
-    <script src="/review-prompt.js" defer></script>
-    <script src="/pwa-client.js" defer></script>
+    <script src="/download.js?v=3" defer></script>
 </body>
 </html>

@@ -461,6 +461,10 @@ app.get('/privacy-policy', (req, res) => {
     res.sendFile(path.join(ROOT, 'privacy-policy.html'));
 });
 
+app.get(['/download', '/install'], (req, res) => {
+    res.sendFile(path.join(ROOT, 'download.html'));
+});
+
 app.use(express.static(ROOT));
 
 app.listen(PORT, () => {
