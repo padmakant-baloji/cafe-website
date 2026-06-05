@@ -1594,9 +1594,8 @@ function getCartTotal() {
 }
 
 const MIN_NON_KUDACHI_ORDER_VALUE = 200;
-// Flat delivery charge applied to every order, irrespective of order value.
 const NON_KUDACHI_DELIVERY_FEE = 45;
-const KUDACHI_DELIVERY_FEE = 20;
+const KUDACHI_DELIVERY_FEE = 0;
 
 function getNormalizedCustomerCity() {
     return String(currentCustomer?.city || getCustomerProfile()?.city || '').trim().toLowerCase();
@@ -1610,7 +1609,7 @@ function getCheckoutSelectedCity() {
 
 function getDeliveryFee(subtotal, cityLower) {
     if (!cityLower || subtotal <= 0) return 0;
-    // Flat delivery charge regardless of order value: ₹20 in Kudachi, ₹45 elsewhere.
+    // Kudachi home delivery is free; other cities use the flat delivery charge.
     return cityLower === 'kudachi' ? KUDACHI_DELIVERY_FEE : NON_KUDACHI_DELIVERY_FEE;
 }
 
