@@ -6792,6 +6792,18 @@ body.app-mobile .order-menu-sub {
     margin-right: 0;
 }
 
+body.app-mobile .app-delivery-banner {
+    margin: 0 0 var(--fo-space-5);
+    padding: var(--fo-space-3) var(--fo-space-4);
+    border-radius: var(--fo-radius-sm);
+    border: 1px solid rgba(22, 163, 74, 0.22);
+    background: var(--fo-accent-soft);
+    color: var(--fo-accent-dark);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
 body.app-mobile .menu-search-container {
     margin-bottom: var(--fo-space-5);
 }

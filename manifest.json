@@ -2,7 +2,7 @@
   "id": "https://www.balojicafe.com/",
   "name": "Baloji's Cafe",
   "short_name": "Baloji's Cafe",
-  "description": "Order online and get live order status updates.",
+  "description": "Order online from Kudachi with flat ₹8 delivery and live order status updates.",
   "lang": "en",
   "dir": "ltr",
   "start_url": "/menu",
