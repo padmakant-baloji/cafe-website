@@ -88,7 +88,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Playfair+Display:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Styles -->
-    <link rel="stylesheet" href="/styles.css?v=19">
+    <link rel="stylesheet" href="/styles.css?v=20">
     
     <!-- Enhanced Schema.org Structured Data -->
     <script type="application/ld+json">
@@ -690,14 +690,10 @@
                 <div class="order-success-icon" aria-hidden="true">✓</div>
                 <p class="order-success-eyebrow" id="orderSuccessEyebrow">You’re all set</p>
                 <h2 id="orderSuccessTitle">Order placed</h2>
-                <div class="order-success-wait order-success-wait--arrival" id="orderSuccessWaitBlock" aria-label="Estimated delivery arrival">
-                    <p class="order-success-wait-label" id="orderSuccessArrivalLabel">Estimated arrival</p>
-                    <p class="order-success-wait-range" id="orderSuccessWaitRange">2:40 PM</p>
-                    <p class="order-success-wait-countdown-label">Your order arrives in</p>
-                    <p class="order-success-wait-countdown" id="orderSuccessArrivalCountdown" aria-live="polite">—</p>
-                    <p class="order-success-wait-hint" id="orderSuccessWaitHint"></p>
+                <div class="order-success-wait order-success-wait--arrival" id="orderSuccessWaitBlock" aria-label="Estimated delivery">
+                    <p class="order-success-wait-range" id="orderSuccessWaitMessage">Your order will arrive in 30 mins</p>
                 </div>
-                <p class="order-success-copy" id="orderSuccessCopy">We’ll notify you as your order moves along. The countdown above is a friendly estimate — open My orders anytime for live status.</p>
+                <p class="order-success-copy" id="orderSuccessCopy">We’ll notify you as your order moves along. Open My orders anytime for live status.</p>
                 <p class="order-success-contact" id="orderSuccessVenueContact" hidden></p>
             </div>
             <div class="order-success-actions order-success-actions--stack">
@@ -799,7 +795,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="/script.js?v=38" defer></script>
+    <script src="/script.js?v=39" defer></script>
     <script src="/review-prompt.js" defer></script>
     <script src="/pwa-client.js" defer></script>
 </body>

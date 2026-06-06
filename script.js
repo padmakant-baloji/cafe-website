@@ -4404,80 +4404,6 @@ function initCheckoutModal() {
 
 }
 
-/** Seconds from local midnight; used so “before 1 PM” is strictly before 13:00:00. */
-function getLocalSecondsFromMidnight(d) {
-    return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
-}
-
-/**
- * @param {number | Date} placedAt
- * @returns {{ deadlineMs: number, arrivalLabel: string, hint: string }}
- */
-function getOrderArrivalPlan(placedAt) {
-    const placed = placedAt instanceof Date ? placedAt : new Date(Number(placedAt) || Date.now());
-    const sec = getLocalSecondsFromMidnight(placed);
-    const openSec = 13 * 3600;
-    if (sec < openSec) {
-        const deadline = new Date(placed);
-        deadline.setHours(13, 20, 0, 0);
-        const arrivalLabel = deadline.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-        });
-        return {
-            deadlineMs: deadline.getTime(),
-            arrivalLabel,
-            hint: 'We open at 1 PM — your order is queued for one of the first deliveries after opening.'
-        };
-    }
-    const deadlineMs = placed.getTime() + 30 * 60 * 1000;
-    const arrivalLabel = new Date(deadlineMs).toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-    });
-    return {
-        deadlineMs,
-        arrivalLabel,
-        hint: 'Usually within about 30 minutes from when you placed this order.'
-    };
-}
-
-function formatTimeUntilArrival(deadlineMs) {
-    const ms = deadlineMs - Date.now();
-    if (ms <= 0) return 'Any moment now';
-    const sTotal = Math.floor(ms / 1000);
-    const h = Math.floor(sTotal / 3600);
-    const m = Math.floor((sTotal % 3600) / 60);
-    const s = sTotal % 60;
-    if (h > 0) return `${h}h ${m}m ${s}s`;
-    if (m > 0) return `${m}m ${s}s`;
-    return `${s}s`;
-}
-
-function getOrderSuccessMessage() {
-    return 'We’ll notify you as your order moves along. The countdown above is a friendly estimate — open My orders anytime for live status.';
-}
-
-/** Target time (ms) for the order-success arrival countdown. */
-let orderSuccessArrivalDeadlineMs = 0;
-let orderSuccessArrivalIntervalId = null;
-
-function clearOrderSuccessArrivalTimer() {
-    if (orderSuccessArrivalIntervalId != null) {
-        clearInterval(orderSuccessArrivalIntervalId);
-        orderSuccessArrivalIntervalId = null;
-    }
-    orderSuccessArrivalDeadlineMs = 0;
-}
-
-function tickOrderSuccessArrivalCountdown() {
-    const el = document.getElementById('orderSuccessArrivalCountdown');
-    if (!el || !orderSuccessArrivalDeadlineMs) return;
-    el.textContent = formatTimeUntilArrival(orderSuccessArrivalDeadlineMs);
-}
-
 function resetOrderSuccessModalChrome() {
     const title = document.getElementById('orderSuccessTitle');
     const eyebrow = document.getElementById('orderSuccessEyebrow');
@@ -4495,7 +4421,7 @@ function formatCustomerPhoneHref(mobile) {
     return `tel:${digits}`;
 }
 
-function showOrderSuccessModal(placedAtMs, venueInfo = {}) {
+function showOrderSuccessModal(_placedAtMs, venueInfo = {}) {
     const successModal = document.getElementById('orderSuccessModal');
     const successCopy = document.getElementById('orderSuccessCopy');
     const contactEl = document.getElementById('orderSuccessVenueContact');
@@ -4504,36 +4430,26 @@ function showOrderSuccessModal(placedAtMs, venueInfo = {}) {
         return;
     }
     resetOrderSuccessModalChrome();
-    clearOrderSuccessArrivalTimer();
-
-    const placedMs = Number.isFinite(Number(placedAtMs)) ? Number(placedAtMs) : Date.now();
-    const plan = getOrderArrivalPlan(placedMs);
-    orderSuccessArrivalDeadlineMs = plan.deadlineMs;
 
     const waitBlock = document.getElementById('orderSuccessWaitBlock');
-    const waitRange = document.getElementById('orderSuccessWaitRange');
-    const waitHint = document.getElementById('orderSuccessWaitHint');
-    const arrivalLabelEl = document.getElementById('orderSuccessArrivalLabel');
-    if (waitBlock && waitRange && waitHint) {
-        waitRange.textContent = plan.arrivalLabel;
-        waitHint.textContent = plan.hint;
+    const waitMessage = document.getElementById('orderSuccessWaitMessage');
+    if (waitBlock && waitMessage) {
+        waitMessage.textContent = 'Your order will arrive in 30 mins';
         waitBlock.hidden = false;
-        if (arrivalLabelEl) arrivalLabelEl.textContent = 'Estimated arrival';
     }
-    tickOrderSuccessArrivalCountdown();
-    orderSuccessArrivalIntervalId = setInterval(tickOrderSuccessArrivalCountdown, 1000);
     if (successCopy) {
-        successCopy.textContent = getOrderSuccessMessage();
+        successCopy.textContent =
+            'We’ll notify you as your order moves along. Open My orders anytime for live status.';
     }
 
     const venueName = String(venueInfo.venueName || venueInfo.name || '').trim();
     const contactMobile = String(venueInfo.venueContactMobile || venueInfo.contactMobile || '').trim();
-    const hoursText = String(venueInfo.venueHoursText || venueInfo.hoursText || '').trim();
     if (contactEl) {
         if (contactMobile) {
             const tel = formatCustomerPhoneHref(contactMobile);
-            const hoursNote = hoursText ? ` · ${escapeHtml(hoursText)}` : '';
-            contactEl.innerHTML = `Need help? Call <strong>${escapeHtml(venueName || 'the hotel')}</strong>: <a href="${tel}">${escapeHtml(contactMobile)}</a>${hoursNote}`;
+            contactEl.innerHTML = `<span class="order-success-contact-label">Hotel contact</span>
+                <span class="order-success-contact-hotel">${escapeHtml(venueName || 'Hotel')}</span>
+                <a href="${tel}" class="order-success-contact-phone">${escapeHtml(contactMobile)}</a>`;
             contactEl.hidden = false;
         } else {
             contactEl.hidden = true;
@@ -4547,7 +4463,6 @@ function showOrderSuccessModal(placedAtMs, venueInfo = {}) {
 }
 
 function closeOrderSuccessModal() {
-    clearOrderSuccessArrivalTimer();
     const successModal = document.getElementById('orderSuccessModal');
     if (!successModal) return;
     successModal.classList.remove('active');

@@ -8748,16 +8748,52 @@ body.session-gate-open {
 }
 
 .order-success-contact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
     margin: 0.85rem 0 0;
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    background: rgba(22, 163, 74, 0.08);
+    border: 1px solid rgba(22, 163, 74, 0.22);
+    text-align: center;
     font-size: 0.95rem;
     line-height: 1.55;
     color: #0f172a;
 }
 
-.order-success-contact a {
-    color: #047857;
+.order-success-contact-label {
+    font-size: 0.6875rem;
     font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #15803d;
+}
+
+.order-success-contact-hotel {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #14532d;
+}
+
+.order-success-contact-phone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.55rem 1.1rem;
+    border-radius: 999px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    background: #16a34a;
     text-decoration: none;
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.28);
+}
+
+.order-success-contact-phone:active {
+    transform: scale(0.98);
 }
 
 .app-delivery-banner--fallback {
