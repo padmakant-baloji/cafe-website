@@ -1,5 +1,7 @@
 {
-  "buildCommand": "node scripts/check-vercel-functions.js",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": ".",
+  "installCommand": "npm install && node scripts/check-vercel-functions.js",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index?__apiPath=$1" },
     { "source": "/api", "destination": "/api/index" },
