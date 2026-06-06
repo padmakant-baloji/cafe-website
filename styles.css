@@ -3609,6 +3609,13 @@ body.app-mobile .combo-grid {
     box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
 }
 
+.btn-checkout:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 /* ===============================
    PWA install CTA
    =============================== */

@@ -43,90 +43,8 @@ function formatOrderStatus(status) {
     return map[status] || status;
 }
 
-const ACTIVE_ORDER_STATUSES = new Set(['pending', 'accepted', 'preparing', 'out_for_delivery']);
-
 /** order id (string) → last seen normalized status (for detecting transitions to completed) */
 let lastOrderStatusById = new Map();
-
-/** Seconds from local midnight; same as menu page, used so “before 1 PM” is strictly before 13:00:00. */
-function getLocalSecondsFromMidnight(d) {
-    return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
-}
-
-/**
- * @param {number | Date} placedAt
- * @returns {{ deadlineMs: number, arrivalLabel: string, hint: string }}
- */
-function getOrderArrivalPlan(placedAt) {
-    const placed = placedAt instanceof Date ? placedAt : new Date(Number(placedAt) || Date.now());
-    const sec = getLocalSecondsFromMidnight(placed);
-    const openSec = 13 * 3600;
-    if (sec < openSec) {
-        const deadline = new Date(placed);
-        deadline.setHours(13, 20, 0, 0);
-        const arrivalLabel = deadline.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-        });
-        return {
-            deadlineMs: deadline.getTime(),
-            arrivalLabel,
-            hint: 'We open at 1 PM — first deliveries roll out then.'
-        };
-    }
-    const deadlineMs = placed.getTime() + 30 * 60 * 1000;
-    const arrivalLabel = new Date(deadlineMs).toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-    });
-    return {
-        deadlineMs,
-        arrivalLabel,
-        hint: 'Usually within about 30 minutes from when you placed this order.'
-    };
-}
-
-function formatTimeUntilArrival(deadlineMs) {
-    const ms = deadlineMs - Date.now();
-    if (ms <= 0) return 'Any moment now';
-    const sTotal = Math.floor(ms / 1000);
-    const h = Math.floor(sTotal / 3600);
-    const m = Math.floor((sTotal % 3600) / 60);
-    const s = sTotal % 60;
-    if (h > 0) return `${h}h ${m}m ${s}s`;
-    if (m > 0) return `${m}m ${s}s`;
-    return `${s}s`;
-}
-
-let ordersArrivalTickTimer = null;
-
-function tickOrdersArrivalCountdowns() {
-    const list = document.getElementById('ordersList');
-    if (!list) return;
-    const blocks = list.querySelectorAll('[data-arrival-deadline]');
-    if (!blocks.length) {
-        clearInterval(ordersArrivalTickTimer);
-        ordersArrivalTickTimer = null;
-        return;
-    }
-    blocks.forEach((block) => {
-        const end = parseInt(block.dataset.arrivalDeadline, 10);
-        if (!Number.isFinite(end)) return;
-        const countdownEl = block.querySelector('.my-order-arrival-countdown');
-        if (countdownEl) countdownEl.textContent = formatTimeUntilArrival(end);
-    });
-}
-
-function scheduleOrdersArrivalTick() {
-    clearInterval(ordersArrivalTickTimer);
-    ordersArrivalTickTimer = null;
-    const list = document.getElementById('ordersList');
-    if (!list || !list.querySelector('[data-arrival-deadline]')) return;
-    tickOrdersArrivalCountdowns();
-    ordersArrivalTickTimer = setInterval(tickOrdersArrivalCountdowns, 1000);
-}
 
 function maybePromptGoogleReviewAfterOrdersRender(orders) {
     if (!orders || !orders.length) return;
@@ -259,27 +177,6 @@ function renderMyOrders(orders) {
                     : '';
             const placedLabel = formatFriendlyPlacedAt(createdRaw);
             const status = order.status || '';
-            const stLower = String(status).trim().toLowerCase();
-
-            let arrivalBlock = '';
-            if (ACTIVE_ORDER_STATUSES.has(stLower) && createdRaw) {
-                const placedMs = new Date(createdRaw).getTime();
-                if (Number.isFinite(placedMs)) {
-                    const plan = getOrderArrivalPlan(placedMs);
-                    arrivalBlock = `
-                        <div class="my-order-arrival" data-arrival-deadline="${plan.deadlineMs}">
-                            <div class="my-order-arrival-head">
-                                <span class="my-order-arrival-label">Estimated arrival</span>
-                                <span class="my-order-arrival-time">${escapeHtml(plan.arrivalLabel)}</span>
-                            </div>
-                            <div class="my-order-arrival-count">
-                                <span class="my-order-arrival-count-label">Your order arrives in</span>
-                                <strong class="my-order-arrival-countdown" aria-live="polite">${escapeHtml(formatTimeUntilArrival(plan.deadlineMs))}</strong>
-                            </div>
-                            <p class="my-order-arrival-hint">${escapeHtml(plan.hint)}</p>
-                        </div>`;
-                }
-            }
 
             return `
                 <article class="my-order-card my-order-card--${escapeHtml(status)}">
@@ -288,7 +185,6 @@ function renderMyOrders(orders) {
                             <span class="my-order-status my-order-status--${escapeHtml(status)}">${escapeHtml(formatOrderStatus(status))}</span>
                             <time class="my-order-placed"${placedDtIso ? ` datetime="${escapeHtml(placedDtIso)}"` : ''}>${escapeHtml(placedLabel)}</time>
                         </header>
-                        ${arrivalBlock}
                         <div class="my-order-items-block">
                             <p class="my-order-items-heading">Items</p>
                             <ul class="my-order-items-list">${lines}</ul>
@@ -303,7 +199,6 @@ function renderMyOrders(orders) {
         })
         .join('');
 
-    scheduleOrdersArrivalTick();
     maybePromptGoogleReviewAfterOrdersRender(orders);
 }
 

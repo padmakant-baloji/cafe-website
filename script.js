@@ -1078,6 +1078,35 @@ function getVenueForItem(item) {
     );
 }
 
+function getCartVenue() {
+    if (!cart.length) return getSelectedMenuVenue();
+    const venueId = Number(cart[0].venueId ?? defaultVenueId);
+    return (
+        menuVenues.find((venue) => Number(venue.id) === venueId) || {
+            id: venueId,
+            name: cart[0].venueName || defaultVenueName,
+            hoursText: '',
+            acceptingOrders: true
+        }
+    );
+}
+
+function isCartOrderingOpen(date = new Date()) {
+    return isVenueOrderingOpen(getCartVenue(), date);
+}
+
+function getCartOrderingClosedMessage() {
+    return getVenueClosedMessage(getCartVenue());
+}
+
+function getCheckoutOrderingOpen(date = new Date()) {
+    return cart.length ? isCartOrderingOpen(date) : isSelectedVenueOrderingOpen(date);
+}
+
+function getCheckoutOrderingClosedMessage() {
+    return cart.length ? getCartOrderingClosedMessage() : getOrderingWindowClosedMessage();
+}
+
 function isVenueOrderingOpen(venue, date = new Date()) {
     if (!venue) return false;
     if (venue.acceptingOrders === false) return false;
@@ -1129,20 +1158,21 @@ function isOnlineOrderingWindowOpenIST(date = new Date()) {
 
 /** Updates cart/checkout notices; returns whether the online ordering window is open (IST). */
 function syncOrderingWindowUI() {
-    const open = isOnlineOrderingWindowOpenIST();
-    const msg = getOrderingWindowClosedMessage();
+    const menuOpen = isSelectedVenueOrderingOpen();
+    const checkoutOpen = getCheckoutOrderingOpen();
+    const msg = getCheckoutOrderingClosedMessage();
     const cartNote = document.getElementById('orderingClosedNoteCart');
     const checkoutNote = document.getElementById('orderingClosedNoteCheckout');
     if (cartNote) {
         cartNote.textContent = msg;
-        cartNote.hidden = open;
+        cartNote.hidden = checkoutOpen;
     }
     if (checkoutNote) {
         checkoutNote.textContent = msg;
-        checkoutNote.hidden = open;
+        checkoutNote.hidden = checkoutOpen;
     }
     // Header pill reflects the selected hotel's hours and admin store status.
-    const liveOpen = open && storeAcceptingOrders;
+    const liveOpen = menuOpen && storeAcceptingOrders;
     const topbarStatus = document.getElementById('topbarStatus');
     const topbarStatusLabel = document.getElementById('topbarStatusLabel');
     if (topbarStatus && topbarStatusLabel) {
@@ -1150,7 +1180,7 @@ function syncOrderingWindowUI() {
         topbarStatusLabel.textContent = liveOpen ? 'Open now' : 'Closed';
     }
     syncHeroLiveStatus();
-    return open;
+    return checkoutOpen;
 }
 
 function syncHeroLiveStatus() {
@@ -2351,14 +2381,10 @@ function updateCartUI() {
         renderCartDeliveryNote();
     }
 
-    const orderingOpen = syncOrderingWindowUI();
-    // Disable checkout when order minimum isn't met (non-Kudachi only; Kudachi has no cart minimum beyond a non-empty total).
+    syncOrderingWindowUI();
     const checkoutBtn = document.getElementById('checkoutBtn');
     if (checkoutBtn) {
-        const subtotal = getCartTotal();
-        const cityLower = getNormalizedCustomerCity();
-        const allow = isCheckoutAllowed(subtotal, cityLower);
-        checkoutBtn.disabled = !allow || !orderingOpen;
+        checkoutBtn.disabled = cart.length === 0;
     }
 
     // Keep checkout totals in sync if checkout is open.
@@ -4183,12 +4209,12 @@ function initCartModal() {
     
     if (checkoutBtn) {
         checkoutBtn.addEventListener('click', () => {
-            if (!isOnlineOrderingWindowOpenIST()) {
-                showToast(getOrderingWindowClosedMessage(), { type: 'info' });
-                return;
-            }
             if (cart.length === 0) {
                 showToast('Your cart is empty. Add a few items to continue.', { type: 'info' });
+                return;
+            }
+            if (!getCheckoutOrderingOpen()) {
+                showToast(getCheckoutOrderingClosedMessage(), { type: 'info' });
                 return;
             }
             const subtotal = getCartTotal();
@@ -4197,10 +4223,12 @@ function initCartModal() {
                 if (cityLower !== 'kudachi') {
                     const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
                     showToast(`Add ₹${remaining} more — minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}.`, { type: 'error' });
+                } else {
+                    showToast('Add more items to your cart to continue.', { type: 'error' });
                 }
                 return;
             }
-            cartModal.classList.remove('active');
+            cartModal?.classList.remove('active');
             void openCheckoutModal();
         });
     }
@@ -4211,6 +4239,10 @@ function initCartModal() {
 // ============================================
 async function openCheckoutModal() {
     const checkoutModal = document.getElementById('checkoutModal');
+    if (!checkoutModal) {
+        showToast('Checkout is unavailable. Please refresh the page.', { type: 'error' });
+        return;
+    }
 
     // Ensure profile data is fresh right before showing checkout.
     // This avoids rare cases where checkout fields render before session/profile refresh completes.
@@ -4240,19 +4272,19 @@ function initCheckoutModal() {
     const applyCouponBtn = document.getElementById('applyCouponBtn');
     const couponInput = document.getElementById('couponCode');
     
-    checkoutClose.addEventListener('click', () => {
-        checkoutModal.classList.remove('active');
+    checkoutClose?.addEventListener('click', () => {
+        checkoutModal?.classList.remove('active');
         document.body.style.overflow = '';
     });
     
-    checkoutModal.addEventListener('click', (e) => {
+    checkoutModal?.addEventListener('click', (e) => {
         if (e.target === checkoutModal) {
             checkoutModal.classList.remove('active');
             document.body.style.overflow = '';
         }
     });
     
-    checkoutForm.addEventListener('submit', (e) => {
+    checkoutForm?.addEventListener('submit', (e) => {
         e.preventDefault();
         placeOrder();
     });
@@ -4540,8 +4572,8 @@ async function placeOrder() {
         return;
     }
 
-    if (!isOnlineOrderingWindowOpenIST()) {
-        showToast(getOrderingWindowClosedMessage(), { type: 'info' });
+    if (!getCheckoutOrderingOpen()) {
+        showToast(getCheckoutOrderingClosedMessage(), { type: 'info' });
         return;
     }
 
