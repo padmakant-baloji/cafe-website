@@ -1341,7 +1341,7 @@ function updateOrderingAvailability() {
     const container = document.getElementById('menuItemsContainer');
     if (container) {
         container.querySelectorAll('.menu-item').forEach((row) => {
-            const item = findMenuItemById(row.dataset.itemId);
+            const item = findMenuItemById(row.dataset.itemId, row.dataset.venueId);
             const venue = getVenueForItem(item);
             const open = isVenueOrderingOpen(venue);
             const msg = getVenueClosedMessage(venue);
@@ -1367,7 +1367,8 @@ function updateOrderingAvailability() {
 
     document.querySelectorAll('.menu-item-note').forEach((hint) => {
         const itemId = hint.id ? hint.id.replace('size-hint-', '') : '';
-        const item = findMenuItemById(itemId);
+        const row = hint.closest('.menu-item');
+        const item = findMenuItemById(itemId, row?.dataset?.venueId);
         const venue = getVenueForItem(item);
         const open = item ? isVenueOrderingOpen(venue) : isSelectedVenueOrderingOpen();
         const parsed = parseVenueHoursText(venue?.hoursText);
@@ -1825,7 +1826,7 @@ function syncMenuItemSteppers() {
 
     container.querySelectorAll('.menu-item').forEach((row) => {
         const itemId = row.dataset.itemId;
-        const item = findMenuItemById(itemId);
+        const item = findMenuItemById(itemId, row.dataset.venueId);
         if (!item) return;
 
         const hasSizes = item.sizes && item.sizes.length > 0;
@@ -2017,7 +2018,7 @@ function syncMenuItemSteppers() {
 function applyOnlineOrderingGateToSteppers(container) {
     if (!container) return;
     container.querySelectorAll('.menu-item').forEach((row) => {
-        const item = findMenuItemById(row.dataset.itemId);
+        const item = findMenuItemById(row.dataset.itemId, row.dataset.venueId);
         const venue = getVenueForItem(item);
         const open = isVenueOrderingOpen(venue);
         const msg = getVenueClosedMessage(venue);
@@ -3305,7 +3306,7 @@ async function loadMenu() {
                 return;
             }
         }
-        const jsonRes = await fetch('menu.json', { priority: 'high', cache: 'no-store' });
+        const jsonRes = await fetch('/menu.json', { priority: 'high', cache: 'no-store' });
         if (jsonRes.ok) {
             const data = await jsonRes.json();
             if (data && Array.isArray(data.categories) && data.categories.length) {
@@ -3405,11 +3406,19 @@ function isMainVenueItem(item) {
     return Number(item?.venueId ?? defaultVenueId) === Number(defaultVenueId);
 }
 
+function resolveAssetUrl(url) {
+    const value = String(url || '').trim();
+    if (!value || /^https?:\/\//i.test(value) || value.startsWith('data:') || value.startsWith('/')) {
+        return value;
+    }
+    return `/${value.replace(/^\.\//, '')}`;
+}
+
 function buildMenuItemImageHtml(item, categoryId) {
     if (isMainVenueItem(item) && item.image) {
         const alt = escapeHtml(item.alt || item.name || 'Menu item');
         return `<div class="menu-item-image">
-            <img src="${item.image}" alt="${alt}" loading="lazy" decoding="async" width="400" height="300">
+            <img src="${resolveAssetUrl(item.image)}" alt="${alt}" loading="lazy" decoding="async" width="400" height="300">
         </div>`;
     }
     return buildGenericMenuItemImageHtml(item, categoryId);
@@ -3925,6 +3934,7 @@ function createMenuItem(item, categoryId) {
     const menuItem = document.createElement('div');
     menuItem.className = 'menu-item';
     menuItem.dataset.itemId = item.id;
+    menuItem.dataset.venueId = String(item.venueId ?? defaultVenueId);
 
     let priceHTML = '';
     const hasSizes = item.sizes && item.sizes.length > 0;
@@ -4042,16 +4052,27 @@ function handleAddToCart(item, selectedSize = null) {
 // ============================================
 let menuItemActionsInitialized = false;
 
-function findMenuItemById(itemId) {
+function findMenuItemById(itemId, venueId = null) {
     if (!menuData || !itemId) return null;
+    const expectedVenueId =
+        venueId != null && venueId !== '' ? Number(venueId) : null;
     for (const category of menuData.categories) {
+        const categoryVenueId = Number(category.venueId ?? defaultVenueId);
         if (Array.isArray(category.subsections) && category.subsections.length > 0) {
             for (const sub of category.subsections) {
-                const found = sub.items.find((i) => i.id === itemId);
+                const found = sub.items.find((i) => {
+                    if (i.id !== itemId) return false;
+                    if (expectedVenueId == null) return true;
+                    return Number(i.venueId ?? categoryVenueId) === expectedVenueId;
+                });
                 if (found) return found;
             }
         } else if (Array.isArray(category.items)) {
-            const found = category.items.find((i) => i.id === itemId);
+            const found = category.items.find((i) => {
+                if (i.id !== itemId) return false;
+                if (expectedVenueId == null) return true;
+                return Number(i.venueId ?? categoryVenueId) === expectedVenueId;
+            });
             if (found) return found;
         }
     }
@@ -4069,7 +4090,7 @@ function initMenuItemActions() {
         const row = e.target.closest('.menu-item');
         if (!row) return;
         const itemId = row.dataset.itemId;
-        const item = findMenuItemById(itemId);
+        const item = findMenuItemById(itemId, row.dataset.venueId);
         if (!item) return;
 
         if (chip) {

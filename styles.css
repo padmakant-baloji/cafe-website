@@ -6696,7 +6696,7 @@ body.app-mobile .order-header-text {
 body.app-mobile .app-home-hero.order-header {
     position: relative;
     margin: 0;
-    padding: calc(var(--fo-space-6, 1.5rem) + env(safe-area-inset-top, 0px)) var(--fo-space-5) var(--fo-space-8);
+    padding: var(--fo-space-6, 1.5rem) var(--fo-space-5) var(--fo-space-8);
     padding-left: max(var(--fo-space-5), env(safe-area-inset-left, 0px));
     padding-right: max(var(--fo-space-5), env(safe-area-inset-right, 0px));
     background:
@@ -6708,7 +6708,8 @@ body.app-mobile .app-home-hero.order-header {
     border-radius: 0 0 28px 28px;
     border: none;
     box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
-    overflow: hidden;
+    overflow-x: clip;
+    overflow-y: visible;
 }
 
 /* —— Delivery-app hero —— */
