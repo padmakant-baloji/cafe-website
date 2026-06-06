@@ -14,7 +14,9 @@
     "android:update": "cd android-twa && bubblewrap update",
     "android:build": "cd android-twa && bubblewrap build",
     "android:install": "cd android-twa && bubblewrap install",
-    "android:check": "bash scripts/android-play-readiness.sh"
+    "android:check": "bash scripts/android-play-readiness.sh",
+    "vercel:check": "node scripts/check-vercel-functions.js",
+    "menu:seed-milan": "node scripts/seed-milan-udapi-menu.js"
   },
   "engines": {
     "node": ">=18"

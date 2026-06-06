@@ -26,33 +26,27 @@ const {
 } = require('./lib/order-service');
 const { placeOrderForCustomer } = require('./lib/place-order');
 const { validateCoupon } = require('./lib/coupon-service');
-const { getStoreStatus, setStoreStatus } = require('./lib/store-status');
+const { getStoreStatus, setStoreStatus, getPublicStorefrontStatus } = require('./lib/store-status');
+const { resolveAdminVenue, getFloorConfig, setFloorConfig, resolvePublicVenue, venuePublicPayload, listVenuesForAdmin, createVenueByMain, updateVenueAccessByMain } = require('./lib/venue-service');
+const { getAggregatedCustomerMenu, getAdminMenuForVenue, saveAdminMenuForVenue } = require('./lib/menu-service');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const ROOT = __dirname;
 
-const ADMIN_USER = process.env.ADMIN_USER || 'balojicafe';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'admin';
-
 app.use(express.json({ limit: '256kb' }));
 
-function requireAdmin(req, res, next) {
-    const auth = req.headers.authorization;
-    if (!auth || !auth.startsWith('Basic ')) {
-        return res.status(401).send('Authentication required');
-    }
-    let decoded;
+async function requireAdmin(req, res, next) {
     try {
-        decoded = Buffer.from(auth.slice(6), 'base64').toString('utf8');
-    } catch {
-        return res.status(401).send('Invalid credentials');
+        await ensureSchema();
+        const venue = await resolveAdminVenue(req);
+        if (!venue) return res.status(401).send('Authentication required');
+        req.adminVenue = venue;
+        return next();
+    } catch (err) {
+        console.error('admin auth:', err.message);
+        return res.status(500).send('Authentication failed');
     }
-    const colon = decoded.indexOf(':');
-    const u = colon >= 0 ? decoded.slice(0, colon) : decoded;
-    const p = colon >= 0 ? decoded.slice(colon + 1) : '';
-    if (u === ADMIN_USER && p === ADMIN_PASS) return next();
-    return res.status(401).send('Invalid credentials');
 }
 
 function customerAuth(req) {
@@ -313,10 +307,58 @@ app.post('/api/coupons/validate', requireCustomer, async (req, res) => {
     }
 });
 
+app.get('/api/menu', async (req, res) => {
+    try {
+        await ensureSchema();
+        const menu = await getAggregatedCustomerMenu();
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        return res.json(menu);
+    } catch (err) {
+        console.error('menu:', err.message);
+        return res.status(500).json({ error: 'Could not load menu.' });
+    }
+});
+
+app.get('/api/admin/menu', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const targetVenueId = req.query && req.query.venueId ? parseInt(String(req.query.venueId), 10) : null;
+        const menu = await getAdminMenuForVenue(
+            req.adminVenue,
+            Number.isFinite(targetVenueId) ? targetVenueId : null
+        );
+        res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        return res.json({ ok: true, ...menu });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) console.error('admin menu get:', err.message);
+        return res.status(code).json({ error: err.message || 'Could not load menu.' });
+    }
+});
+
+app.put('/api/admin/menu', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const targetVenueId = req.query && req.query.venueId ? parseInt(String(req.query.venueId), 10) : null;
+        const menu = await saveAdminMenuForVenue(
+            req.adminVenue,
+            Number.isFinite(targetVenueId) ? targetVenueId : null,
+            req.body || {}
+        );
+        return res.json({ ok: true, ...menu });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) console.error('admin menu put:', err.message);
+        return res.status(code).json({ error: err.message || 'Could not save menu.' });
+    }
+});
+
 app.get('/api/store-status', async (req, res) => {
     try {
         await ensureSchema();
-        const status = await getStoreStatus();
+        const status = await getPublicStorefrontStatus();
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         return res.json(status);
     } catch (err) {
@@ -325,11 +367,25 @@ app.get('/api/store-status', async (req, res) => {
     }
 });
 
+app.put('/api/admin/venue-profile', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const { updateVenueProfile } = require('./lib/venue-service');
+        const venue = await updateVenueProfile(req.adminVenue, req.body || {});
+        return res.json({ ok: true, venue });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) console.error('admin venue-profile:', err.message);
+        return res.status(code).json({ error: err.message || 'Could not update hotel details.' });
+    }
+});
+
 app.post('/api/admin/store-status', requireAdmin, async (req, res) => {
     try {
         await ensureSchema();
         const body = req.body || {};
-        const status = await setStoreStatus({
+        const status = await setStoreStatus(req.adminVenue.id, {
             acceptingOrders: Boolean(body.acceptingOrders),
             reason: typeof body.reason === 'string' ? body.reason : ''
         });
@@ -343,7 +399,7 @@ app.post('/api/admin/store-status', requireAdmin, async (req, res) => {
 app.get('/api/admin/store-status', requireAdmin, async (req, res) => {
     try {
         await ensureSchema();
-        const status = await getStoreStatus();
+        const status = await getStoreStatus(req.adminVenue.id);
         res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
         return res.json(status);
     } catch (err) {
@@ -352,12 +408,86 @@ app.get('/api/admin/store-status', requireAdmin, async (req, res) => {
     }
 });
 
+app.get('/api/admin/floor-config', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const config = await getFloorConfig(req.adminVenue.id);
+        res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        return res.json({ ok: true, ...config, venue: venuePublicPayload(req.adminVenue) });
+    } catch (err) {
+        console.error('admin floor-config get:', err.message);
+        return res.status(500).json({ error: 'Could not load floor configuration.' });
+    }
+});
+
+app.put('/api/admin/floor-config', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const body = req.body || {};
+        const config = await setFloorConfig(req.adminVenue.id, {
+            tableCount: body.tableCount ?? body.table_count,
+            parcelCount: body.parcelCount ?? body.parcel_count
+        });
+        return res.json({ ok: true, ...config, venue: venuePublicPayload(req.adminVenue) });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) console.error('admin floor-config put:', err.message);
+        return res.status(code).json({ error: err.message || 'Could not save floor configuration.' });
+    }
+});
+
+app.get('/api/admin/venues', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const venues = await listVenuesForAdmin(req.adminVenue);
+        res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        return res.json({ ok: true, venues, isMain: Boolean(req.adminVenue.isDefault) });
+    } catch (err) {
+        console.error('admin venues get:', err.message);
+        return res.status(500).json({ error: 'Could not load hotels.' });
+    }
+});
+
+app.post('/api/admin/venues', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const venue = await createVenueByMain(req.adminVenue, req.body || {});
+        return res.status(201).json({ ok: true, venue });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) console.error('admin venues post:', err.message);
+        return res.status(code).json({ error: err.message || 'Could not create hotel.' });
+    }
+});
+
+app.patch('/api/admin/venues/:id', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const venueId = parseId(req.params.id);
+        if (Number.isNaN(venueId)) {
+            return res.status(400).json({ error: 'Invalid hotel id.' });
+        }
+        const venue = await updateVenueAccessByMain(req.adminVenue, venueId, req.body || {});
+        return res.json({ ok: true, venue });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) console.error('admin venues patch:', err.message);
+        return res.status(code).json({ error: err.message || 'Could not update hotel.' });
+    }
+});
+
 app.get('/api/admin/orders', requireAdmin, async (req, res) => {
     try {
         await ensureSchema();
         const scope = (req.query && String(req.query.scope || '').trim().toLowerCase()) || '';
+        const venueId = req.adminVenue.id;
         const rows =
-            scope === 'floor' ? await listFloorSessionsForAdmin() : await listAllOrdersForAdmin(150);
+            scope === 'floor'
+                ? await listFloorSessionsForAdmin(venueId)
+                : await listAllOrdersForAdmin(venueId, 150);
         res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
         return res.json({ orders: rows });
     } catch (err) {
@@ -371,12 +501,13 @@ app.post('/api/admin/orders', requireAdmin, async (req, res) => {
         await ensureSchema();
         const body = req.body || {};
         const act = typeof body.action === 'string' ? body.action.trim().toLowerCase() : '';
+        const venueId = req.adminVenue.id;
         if (act === 'floor_open') {
-            const order = await createFloorSession(body.channel, body.slot, body.guest_label);
+            const order = await createFloorSession(venueId, body.channel, body.slot, body.guest_label);
             return res.status(201).json({ ok: true, order });
         }
         if (act === 'floor_commit') {
-            const order = await commitFloorOrderToDb(body);
+            const order = await commitFloorOrderToDb(venueId, body);
             return res.status(201).json({ ok: true, order });
         }
         return res.status(400).json({
@@ -405,11 +536,12 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
         if (!action) {
             return res.status(400).json({ error: 'Missing action.' });
         }
+        const venueId = req.adminVenue.id;
         if (action.startsWith('floor_')) {
-            const updated = await applyFloorOrderAdminPatch(orderId, body);
+            const updated = await applyFloorOrderAdminPatch(orderId, body, venueId);
             return res.json({ ok: true, order: updated });
         }
-        const updated = await applyAdminOrderAction(orderId, action, body);
+        const updated = await applyAdminOrderAction(orderId, action, body, venueId);
         return res.json({ ok: true, order: updated });
     } catch (err) {
         const code =
@@ -422,7 +554,14 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
 });
 
 app.get('/api/admin/session', requireAdmin, (req, res) => {
-    return res.json({ ok: true });
+    return res.json({
+        ok: true,
+        venue: venuePublicPayload(req.adminVenue),
+        floorConfig: {
+            tableCount: req.adminVenue.tableCount,
+            parcelCount: req.adminVenue.parcelCount
+        }
+    });
 });
 
 app.get('/admin/tables', (req, res) => {

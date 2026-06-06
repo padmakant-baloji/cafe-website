@@ -1,7 +1,7 @@
 'use strict';
 
 const ADMIN_STORAGE_KEY = 'balojiAdminCredentials';
-const LS_FLOOR_KEY = 'balojiFloorSessions';
+const LS_FLOOR_KEY_PREFIX = 'balojiFloorSessions';
 /** Floor KOT lines use this many rupees less per unit than the online menu list price when picking from suggestions. */
 const KOT_VS_ONLINE_UNIT_DISCOUNT_RS = 5;
 /** Max rows in the inline KOT name dropdown (full menu is ~80 items; do not cap at 28). */
@@ -31,10 +31,12 @@ function kotFloorUnitPriceFromMenuListPrice(menuListPrice) {
 }
 
 let creds = null;
-let pollTimer = null;
+let currentVenue = null;
+/** @type {{ tableCount: number, parcelCount: number }} */
+let floorConfig = { tableCount: 7, parcelCount: 5 };
 let floorOrders = [];
 /** @type {Array<object>} Active floor sessions kept only in this browser until settled (ids start with `local-`). */
-let localFloorSessions = loadLocalFloorSessions();
+let localFloorSessions = [];
 /** @type {Array<object>} Last in-progress floor rows from the server (legacy / other tabs). */
 let lastApiFloorRows = [];
 let selectedOrderId = null;
@@ -156,13 +158,28 @@ function floorMeta(order) {
     return { ...m, kots };
 }
 
+function isMainKotVenue(venue) {
+    if (!venue) return true;
+    return Boolean(venue.isMain || venue.isDefault || venue.slug === 'balojicafe');
+}
+
+function resetKotMenuCache() {
+    menuLoadPromise = null;
+}
+
 function loadMenuForKots() {
     if (menuLoadPromise) return menuLoadPromise;
-    menuLoadPromise = fetch('/menu.json', { cache: 'no-store' })
-        .then((r) => {
-            if (!r.ok) throw new Error('menu');
-            return r.json();
-        })
+    const useMenuJson = isMainKotVenue(currentVenue);
+    const menuInit = useMenuJson
+        ? fetch('/menu.json', { cache: 'no-store' }).then((r) => {
+              if (!r.ok) throw new Error('menu');
+              return r.json();
+          })
+        : fetch('/api/admin/menu', { headers: adminHeaders(), cache: 'no-store' }).then((r) => {
+              if (!r.ok) throw new Error('menu');
+              return r.json().then((payload) => ({ categories: payload.categories || [] }));
+          });
+    menuLoadPromise = menuInit
         .then((data) => {
             menuFlat = buildMenuFlat(data);
             document.querySelectorAll('.kot-menu-browser').forEach((el) => {
@@ -406,9 +423,14 @@ function isLocalFloorId(id) {
     return String(id || '').startsWith('local-');
 }
 
+function floorSessionsStorageKey() {
+    const slug = currentVenue && currentVenue.slug ? currentVenue.slug : 'default';
+    return `${LS_FLOOR_KEY_PREFIX}:${slug}`;
+}
+
 function loadLocalFloorSessions() {
     try {
-        const raw = localStorage.getItem(LS_FLOOR_KEY);
+        const raw = localStorage.getItem(floorSessionsStorageKey());
         if (!raw) return [];
         const arr = JSON.parse(raw);
         if (!Array.isArray(arr)) return [];
@@ -438,13 +460,13 @@ function saveLocalFloorSessions() {
         throw e;
     }
     try {
-        localStorage.setItem(LS_FLOOR_KEY, json);
+        localStorage.setItem(floorSessionsStorageKey(), json);
     } catch (e) {
         showToast('Could not write to browser storage. Check free space or site permissions.');
         throw e;
     }
     try {
-        const chk = JSON.parse(localStorage.getItem(LS_FLOOR_KEY) || 'null');
+        const chk = JSON.parse(localStorage.getItem(floorSessionsStorageKey()) || 'null');
         if (!Array.isArray(chk)) {
             showToast('KOT save could not be verified.');
             throw new Error('floor_storage_verify');
@@ -755,11 +777,13 @@ function createLocalFloorSession(channel, slot, guest_label = '') {
     const ch = String(channel || '').trim().toLowerCase();
     const n = parseInt(String(slot), 10);
     if (ch !== 'dine_in' && ch !== 'parcel') throw new Error('Invalid channel.');
-    if (ch === 'dine_in' && (!Number.isFinite(n) || n < 1 || n > 7)) {
-        throw new Error('Table must be between 1 and 7.');
+    const maxTables = floorConfig.tableCount || 7;
+    const maxParcels = floorConfig.parcelCount || 5;
+    if (ch === 'dine_in' && (!Number.isFinite(n) || n < 1 || n > maxTables)) {
+        throw new Error(`Table must be between 1 and ${maxTables}.`);
     }
-    if (ch === 'parcel' && (!Number.isFinite(n) || n < 1 || n > 5)) {
-        throw new Error('Parcel slot must be between 1 and 5.');
+    if (ch === 'parcel' && (!Number.isFinite(n) || n < 1 || n > maxParcels)) {
+        throw new Error(`Parcel slot must be between 1 and ${maxParcels}.`);
     }
     const slotKey = ch === 'dine_in' ? `table:${n}` : `parcel:${n}`;
     const merged = mergeFloorOrdersApiAndLocal(lastApiFloorRows, localFloorSessions);
@@ -826,7 +850,22 @@ async function verifyAdmin(user, pass) {
             headers: { Authorization: `Basic ${token}`, Accept: 'application/json' },
             signal: ctrl.signal
         });
-        return res.ok;
+        if (!res.ok) return null;
+        const data = await res.json().catch(() => ({}));
+        if (data.venue) {
+            const prevId = currentVenue && currentVenue.id;
+            currentVenue = data.venue;
+            if (String(prevId) !== String(currentVenue.id)) {
+                resetKotMenuCache();
+            }
+        }
+        if (data.floorConfig) {
+            floorConfig = {
+                tableCount: Number(data.floorConfig.tableCount) || 7,
+                parcelCount: Number(data.floorConfig.parcelCount) || 5
+            };
+        }
+        return data;
     } catch (e) {
         if (e && e.name === 'AbortError') {
             throw new Error(
@@ -836,6 +875,55 @@ async function verifyAdmin(user, pass) {
         throw new Error('Could not reach the admin API. Check your network or VPN.');
     } finally {
         clearTimeout(tid);
+    }
+}
+
+async function loadFloorConfig() {
+    const res = await fetch('/api/admin/floor-config', {
+        headers: adminHeaders(),
+        cache: 'no-store'
+    });
+    if (res.status === 401) throw Object.assign(new Error('Session expired. Sign in again.'), { code: 401 });
+    if (!res.ok) throw new Error('Could not load floor configuration.');
+    const data = await res.json();
+    floorConfig = {
+        tableCount: Number(data.tableCount) || 7,
+        parcelCount: Number(data.parcelCount) || 5
+    };
+    if (data.venue) {
+        const prevId = currentVenue && currentVenue.id;
+        currentVenue = data.venue;
+        if (String(prevId) !== String(currentVenue.id)) {
+            resetKotMenuCache();
+        }
+    }
+    updateFloorConfigLabels();
+    applyFloorSlotGridColumns();
+    return floorConfig;
+}
+
+function updateFloorConfigLabels() {
+    const tableLabel = document.getElementById('tableCountLabel');
+    const parcelLabel = document.getElementById('parcelCountLabel');
+    const nTables = floorConfig.tableCount || 7;
+    const nParcels = floorConfig.parcelCount || 5;
+    if (tableLabel) tableLabel.textContent = `${nTables} seat${nTables === 1 ? '' : 's'}`;
+    if (parcelLabel) parcelLabel.textContent = `${nParcels} counter${nParcels === 1 ? '' : 's'}`;
+    if (currentVenue && currentVenue.name) {
+        document.title = `${currentVenue.name} — Floor & KOT Admin`;
+    }
+}
+
+function applyFloorSlotGridColumns() {
+    const tableWrap = document.getElementById('tableSlots');
+    const parcelWrap = document.getElementById('parcelSlots');
+    const nTables = Math.max(1, floorConfig.tableCount || 7);
+    const nParcels = Math.max(1, floorConfig.parcelCount || 5);
+    if (tableWrap) {
+        tableWrap.style.setProperty('--floor-slot-cols', String(nTables));
+    }
+    if (parcelWrap) {
+        parcelWrap.style.setProperty('--floor-slot-cols', String(nParcels));
     }
 }
 
@@ -975,6 +1063,214 @@ async function patchOrder(orderId, body) {
 function formatRupee(n) {
     const v = Number(n) || 0;
     return `₹${v}`;
+}
+
+function computeFloorOrderTotal(meta) {
+    let total = 0;
+    for (const kot of meta.kots || []) {
+        for (const ln of kot.lines || []) {
+            const q = parseInt(String(ln.quantity), 10) || 0;
+            const p = parseInt(String(ln.price), 10) || 0;
+            total += q * p;
+        }
+    }
+    return total;
+}
+
+function isAllKotsServed(meta) {
+    return (
+        (meta.kots || []).length > 0 &&
+        meta.kots.every((k) => k && Array.isArray(k.lines) && k.lines.length && k.done)
+    );
+}
+
+function focusSettleFooter() {
+    const footer = document.getElementById('drawerFooter');
+    if (!footer) return;
+    footer.classList.add('drawer-footer--settle-ready');
+    footer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (isKotMobile()) setMobileSheetOpen(true);
+}
+
+async function completeFloorSettlement(order, paymentPayload) {
+    const wasLocal = isLocalFloorId(order.id);
+    if (wasLocal) {
+        const fm = floorMeta(order);
+        const parts = String(fm.slot || '').split(':');
+        const slotNum = parseInt(parts[1], 10);
+        if (!Number.isFinite(slotNum)) throw new Error('Invalid slot.');
+        await postFloorCommit({
+            ...paymentPayload,
+            channel: order.channel,
+            slot: slotNum,
+            guest_label: fm.guest_label,
+            kots: fm.kots
+        });
+        localFloorSessions = localFloorSessions.filter((o) => String(o.id) !== String(order.id));
+        saveLocalFloorSessions();
+    } else {
+        await patchOrder(order.id, { action: 'floor_complete', ...paymentPayload });
+    }
+    closeDrawer();
+    if (!wasLocal) removeApiFloorOrderFromCache(order.id);
+    floorOrders = mergeFloorOrdersApiAndLocal(lastApiFloorRows, localFloorSessions);
+    renderSlots();
+}
+
+function bindSettleFooter(footer, order, meta) {
+    const total = computeFloorOrderTotal(meta);
+    footer.innerHTML = `<div class="settle-prompt">All items served — choose payment to close this KOT</div>
+        <div class="settle-row settle-row--ready">
+            <button type="button" class="pay-btn pay-btn--cash" data-pay="CASH">Cash</button>
+            <button type="button" class="pay-btn pay-btn--upi" data-pay="UPI">UPI</button>
+            <button type="button" class="pay-btn pay-btn--split" data-pay="SPLIT">Part pay</button>
+        </div>
+        <div class="settle-split-form" id="settleSplitForm" hidden>
+            <div class="settle-split-head">Split payment · Total ${formatRupee(total)}</div>
+            <label>Cash<input type="number" id="settleSplitCash" min="0" step="1" inputmode="numeric" placeholder="0"></label>
+            <label>UPI<input type="number" id="settleSplitUpi" min="0" step="1" inputmode="numeric" placeholder="0"></label>
+            <button type="button" class="floor-btn floor-btn--primary" id="settleSplitConfirm">Confirm split</button>
+        </div>`;
+
+    footer.querySelector('[data-pay="SPLIT"]')?.addEventListener('click', () => {
+        const form = footer.querySelector('#settleSplitForm');
+        if (form) form.hidden = false;
+    });
+
+    footer.querySelectorAll('[data-pay="CASH"], [data-pay="UPI"]').forEach((b) => {
+        b.addEventListener('click', async () => {
+            const pm = b.getAttribute('data-pay');
+            setBtnLoading(b, true);
+            try {
+                await completeFloorSettlement(order, { payment_method: pm });
+                showToast(`Completed · ${pm}`);
+            } catch (e) {
+                showToast(e.message || 'Failed.');
+                setBtnLoading(b, false);
+            }
+        });
+    });
+
+    footer.querySelector('#settleSplitConfirm')?.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        const cash = parseInt(String(footer.querySelector('#settleSplitCash')?.value || ''), 10);
+        const upi = parseInt(String(footer.querySelector('#settleSplitUpi')?.value || ''), 10);
+        if (!Number.isFinite(cash) || cash < 0 || !Number.isFinite(upi) || upi < 0) {
+            showToast('Enter valid cash and UPI amounts.');
+            return;
+        }
+        if (cash + upi !== total) {
+            showToast(`Cash + UPI must equal ${formatRupee(total)}.`);
+            return;
+        }
+        setBtnLoading(btn, true);
+        try {
+            await completeFloorSettlement(order, {
+                payment_method: 'SPLIT',
+                payment_cash: cash,
+                payment_upi: upi
+            });
+            showToast(`Completed · Cash ${formatRupee(cash)} + UPI ${formatRupee(upi)}`);
+        } catch (err) {
+            showToast(err.message || 'Failed.');
+            setBtnLoading(btn, false);
+        }
+    });
+}
+
+function getKotPrintAddress(venue) {
+    const fallback = "Opp. Railway Station, Near Bus Stop\nKudachi – 591311, Karnataka";
+    if (!venue) return fallback;
+    const line = String(venue.addressLine || venue.address_line || '').trim();
+    const city = String(venue.city || '').trim();
+    if (line && city && !line.toLowerCase().includes(city.toLowerCase())) {
+        return `${line}\n${city}`;
+    }
+    if (line) return line;
+    if (city) return city;
+    return fallback;
+}
+
+function printKotReceipt(order, kot) {
+    const meta = floorMeta(order);
+    const slotLabel =
+        meta.slot && meta.slot.startsWith('table:')
+            ? `Table ${meta.slot.split(':')[1]}`
+            : meta.slot && meta.slot.startsWith('parcel:')
+              ? `Parcel ${meta.slot.split(':')[1]}`
+              : meta.slot || '—';
+    const venueName = (currentVenue && currentVenue.name) || "Baloji's Cafe";
+    const venueAddress = getKotPrintAddress(currentVenue);
+    const kotTit = kot.label && String(kot.label).trim() ? kot.label : `KOT #${kot.seq || ''}`;
+    const printedAt = new Date().toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+
+    let lineTotal = 0;
+    const lines = (kot.lines || [])
+        .map((ln) => {
+            const q = Number(ln.quantity) || 0;
+            const p = Number(ln.price) || 0;
+            const amt = q * p;
+            lineTotal += amt;
+            return `<tr>
+                <td class="kot-print-item">${escapeHtml(String(ln.name || ''))}</td>
+                <td class="kot-print-qty">${q}</td>
+                <td class="kot-print-amt">${formatRupee(amt)}</td>
+            </tr>`;
+        })
+        .join('');
+
+    const addressHtml = venueAddress
+        .split('\n')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part) => `<div class="kot-print-address">${escapeHtml(part)}</div>`)
+        .join('');
+
+    let area = document.getElementById('kotPrintArea');
+    if (!area) {
+        area = document.createElement('div');
+        area.id = 'kotPrintArea';
+        document.body.appendChild(area);
+    }
+
+    area.innerHTML = `<div class="kot-print-sheet">
+        <header class="kot-print-header">
+            <div class="kot-print-title">${escapeHtml(venueName)}</div>
+            ${addressHtml}
+        </header>
+        <div class="kot-print-rule"></div>
+        <div class="kot-print-order-meta">
+            <div class="kot-print-meta-line"><strong>${escapeHtml(slotLabel)}</strong></div>
+            <div class="kot-print-meta-line">${escapeHtml(kotTit)}</div>
+            <div class="kot-print-meta-line kot-print-meta-line--muted">${escapeHtml(printedAt)}</div>
+        </div>
+        <div class="kot-print-rule"></div>
+        <table class="kot-print-table">
+            <thead>
+                <tr>
+                    <th class="kot-print-item">Item</th>
+                    <th class="kot-print-qty">Qty</th>
+                    <th class="kot-print-amt">Amt</th>
+                </tr>
+            </thead>
+            <tbody>${lines || '<tr><td colspan="3" class="kot-print-empty">No items</td></tr>'}</tbody>
+        </table>
+        <div class="kot-print-rule"></div>
+        <div class="kot-print-total-row">
+            <span>Total</span>
+            <span>${formatRupee(lineTotal)}</span>
+        </div>
+        <footer class="kot-print-footer">Thank you! Visit again</footer>
+    </div>`;
+
+    window.print();
 }
 
 function renderSlotButton({ kind, num, order }) {
@@ -1622,7 +1918,10 @@ function renderDrawer() {
             leftCol.push(`<div class="kot-card" data-kot-id="${escapeHtml(String(kot.id))}">
                 <div class="kot-card-head"><strong>${kotTit}</strong>${pill}</div>
                 <div class="kot-lines kot-lines--stack">${linesHtml || '<div style="color:var(--muted)">No lines</div>'}</div>
-                ${modifyKotCardBtn ? `<div class="kot-card-actions">${modifyKotCardBtn}</div>` : ''}
+                <div class="kot-card-actions">
+                    <button type="button" class="floor-btn kot-card-print" data-print-kot="${escapeHtml(String(kot.id))}">Print 3″</button>
+                    ${modifyKotCardBtn || ''}
+                </div>
             </div>`);
         }
     }
@@ -1846,58 +2145,32 @@ function renderDrawer() {
         }
     });
 
-    const allDone =
-        meta.kots.length > 0 && meta.kots.every((k) => k && Array.isArray(k.lines) && k.lines.length && k.done);
+    bindKotPrintButtons(order);
+
+    const allDone = isAllKotsServed(meta);
     if (allDone) {
-        footer.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);text-align:center;margin-bottom:0.25rem;">Choose payment to complete</div>
-            <div class="settle-row">
-                <button type="button" class="pay-btn pay-btn--cash" data-pay="CASH">Cash</button>
-                <button type="button" class="pay-btn pay-btn--upi" data-pay="UPI">UPI</button>
-            </div>`;
-        footer.querySelectorAll('[data-pay]').forEach((b) => {
-            b.addEventListener('click', async () => {
-                const pm = b.getAttribute('data-pay');
-                const wasLocal = isLocalFloorId(order.id);
-                const otherBtn = footer.querySelector(`[data-pay]:not([data-pay="${pm}"])`);
-                setBtnLoading(b, true);
-                if (otherBtn) otherBtn.disabled = true;
-                try {
-                    if (wasLocal) {
-                        const fm = floorMeta(order);
-                        const parts = String(fm.slot || '').split(':');
-                        const slotNum = parseInt(parts[1], 10);
-                        if (!Number.isFinite(slotNum)) throw new Error('Invalid slot.');
-                        await postFloorCommit({
-                            payment_method: pm,
-                            channel: order.channel,
-                            slot: slotNum,
-                            guest_label: fm.guest_label,
-                            kots: fm.kots
-                        });
-                        localFloorSessions = localFloorSessions.filter((o) => String(o.id) !== String(order.id));
-                        saveLocalFloorSessions();
-                    } else {
-                        await patchOrder(order.id, { action: 'floor_complete', payment_method: pm });
-                    }
-                    showToast(`Completed · ${pm}`);
-                    closeDrawer();
-                    if (!wasLocal) {
-                        removeApiFloorOrderFromCache(order.id);
-                    }
-                    floorOrders = mergeFloorOrdersApiAndLocal(lastApiFloorRows, localFloorSessions);
-                    renderSlots();
-                } catch (e) {
-                    showToast(e.message || 'Failed.');
-                    setBtnLoading(b, false);
-                    if (otherBtn) otherBtn.disabled = false;
-                }
-            });
-        });
+        bindSettleFooter(footer, order, meta);
+        focusSettleFooter();
     } else {
-        footer.innerHTML = `<div style="font-size:0.8rem;color:var(--muted);text-align:center;line-height:1.45;">Settle appears when <strong>every line</strong> on every KOT is <strong>marked served</strong>. Then choose cash or UPI.</div>`;
+        footer.innerHTML = `<div style="font-size:0.8rem;color:var(--muted);text-align:center;line-height:1.45;">Payment opens as soon as <strong>every line</strong> on every KOT is marked served.</div>`;
     }
 
     setupMobileKotUx(meta);
+}
+
+function bindKotPrintButtons(order) {
+    document.querySelectorAll('[data-print-kot]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const kotId = btn.getAttribute('data-print-kot');
+            const meta = floorMeta(order);
+            const kot = (meta.kots || []).find((k) => k && String(k.id) === String(kotId));
+            if (!kot) {
+                showToast('KOT not found.');
+                return;
+            }
+            printKotReceipt(order, kot);
+        });
+    });
 }
 
 function ensureTrailingKotPlaceholderRow(lineBox) {
@@ -2197,6 +2470,10 @@ function initFloorDrawerDelegates() {
                 renderSlots();
                 renderDrawer();
             }
+            const current = getOrderById(oid);
+            if (current && isAllKotsServed(floorMeta(current))) {
+                focusSettleFooter();
+            }
         } catch (err) {
             showToast(err.message || 'Failed');
         }
@@ -2253,10 +2530,14 @@ function renderSlots() {
     const map = slotMapFromOrders(floorOrders);
     tableWrap.innerHTML = '';
     parcelWrap.innerHTML = '';
-    for (let n = 1; n <= 7; n += 1) {
+    const nTables = Math.max(1, floorConfig.tableCount || 7);
+    const nParcels = Math.max(1, floorConfig.parcelCount || 5);
+    applyFloorSlotGridColumns();
+    updateFloorConfigLabels();
+    for (let n = 1; n <= nTables; n += 1) {
         tableWrap.appendChild(renderSlotButton({ kind: 'table', num: n, order: map.get(`table:${n}`) }));
     }
-    for (let n = 1; n <= 5; n += 1) {
+    for (let n = 1; n <= nParcels; n += 1) {
         parcelWrap.appendChild(renderSlotButton({ kind: 'parcel', num: n, order: map.get(`parcel:${n}`) }));
     }
 }
@@ -2266,6 +2547,9 @@ async function refreshAll(options = {}) {
         localFloorSessions = loadLocalFloorSessions();
     }
     if (!options.skipFloorFetch) {
+        await loadFloorConfig().catch((err) => {
+            if (err && err.code === 401) throw err;
+        });
         lastApiFloorRows = await fetchFloorOrders();
     }
     floorOrders = mergeFloorOrdersApiAndLocal(lastApiFloorRows, localFloorSessions);
@@ -2277,16 +2561,12 @@ async function refreshAll(options = {}) {
     }
 }
 
-function startPoll() {
-    clearInterval(pollTimer);
-    pollTimer = null;
-}
-
 function showApp() {
     const boot = document.getElementById('floorBoot');
     if (boot) boot.hidden = true;
     document.getElementById('floorAuth').hidden = true;
     document.getElementById('floorApp').hidden = false;
+    resetKotMenuCache();
     void loadMenuForKots();
 }
 
@@ -2321,22 +2601,23 @@ document.getElementById('floorAuthForm')?.addEventListener('submit', async (e) =
     const p = document.getElementById('floorPass')?.value || '';
     const submitBtn = e.currentTarget.querySelector('button[type="submit"], button:not([type])');
     setBtnLoading(submitBtn, true);
-    let ok;
+    let session;
     try {
-        ok = await verifyAdmin(u, p);
+        session = await verifyAdmin(u, p);
     } catch (err) {
         setBtnLoading(submitBtn, false);
         showGate(err.message || 'Could not verify.');
         return;
     }
-    if (!ok) {
+    if (!session) {
         setBtnLoading(submitBtn, false);
         showGate('Invalid username or password.');
         return;
     }
     saveCreds(u, p);
+    localFloorSessions = loadLocalFloorSessions();
     try {
-        await refreshAll();
+        await refreshAll({ reloadLocalFromDisk: true });
         showApp();
     } catch (err) {
         if (err && err.code === 401) showGate('Session invalid.');
@@ -2361,7 +2642,6 @@ document.getElementById('floorRefreshBtn')?.addEventListener('click', async (e) 
 });
 
 document.getElementById('floorLogoutBtn')?.addEventListener('click', () => {
-    clearInterval(pollTimer);
     clearCreds();
     closeDrawer();
     showGate('');
@@ -2383,19 +2663,20 @@ initFloorDrawerDelegates();
             showGate('');
             return;
         }
-        let ok;
+        let session;
         try {
-            ok = await verifyAdmin(creds.user, creds.pass);
+            session = await verifyAdmin(creds.user, creds.pass);
         } catch (e) {
             showGate(e.message || 'Could not verify saved login.');
             return;
         }
-        if (!ok) {
+        if (!session) {
             showGate('Saved login is no longer valid. Please sign in again.');
             return;
         }
         try {
-            await refreshAll();
+            localFloorSessions = loadLocalFloorSessions();
+            await refreshAll({ reloadLocalFromDisk: true });
             showApp();
         } catch (err) {
             const msg =

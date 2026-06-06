@@ -987,11 +987,16 @@ function initTestimonials() {
 // ============================================
 let cart = [];
 let appliedCoupon = null; // { code: string, discount: number, subtotal: number }
+let defaultVenueId = 1;
+let defaultVenueName = "Baloji's Cafe";
+let partnerDeliveryFee = 20;
+let menuVenues = [];
+let selectedMenuVenueId = 1;
 
-/** Keep in sync with `lib/order-window.js` (Asia/Kolkata, 9:00–22:00). */
+/** Keep in sync with `lib/venue-hours.js` (Asia/Kolkata). */
 const ORDER_ONLINE_IST_TZ = 'Asia/Kolkata';
-const ORDER_ONLINE_START_SEC = 9 * 3600;
-const ORDER_ONLINE_END_SEC = 22 * 3600;
+const ORDER_ONLINE_DEFAULT_START_SEC = 9 * 3600;
+const ORDER_ONLINE_DEFAULT_END_SEC = 22 * 3600;
 
 function getSecondsSinceMidnightInTimeZone(date, timeZone) {
     const dtf = new Intl.DateTimeFormat('en-US', {
@@ -1012,13 +1017,114 @@ function getSecondsSinceMidnightInTimeZone(date, timeZone) {
     return h * 3600 + m * 60 + s;
 }
 
-function isOnlineOrderingWindowOpenIST(date = new Date()) {
+function parseVenueClockToken(raw) {
+    const text = String(raw || '').trim();
+    const match = text.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+    if (!match) return null;
+    let hour = parseInt(match[1], 10);
+    const minute = parseInt(match[2] || '0', 10);
+    const meridiem = match[3].toUpperCase();
+    if (!Number.isFinite(hour) || !Number.isFinite(minute) || minute > 59) return null;
+    if (hour < 1 || hour > 12) return null;
+    if (meridiem === 'AM') {
+        if (hour === 12) hour = 0;
+    } else if (hour !== 12) {
+        hour += 12;
+    }
+    return hour * 3600 + minute * 60;
+}
+
+function parseVenueHoursText(hoursText) {
+    const text = String(hoursText || '').trim();
+    if (!text) return null;
+    const parts = text.split(/\s*(?:–|—|-|\bto\b)\s*/i).map((part) => part.trim()).filter(Boolean);
+    if (parts.length !== 2) return null;
+    const startSec = parseVenueClockToken(parts[0]);
+    const endSec = parseVenueClockToken(parts[1]);
+    if (startSec == null || endSec == null) return null;
+    return { startSec, endSec, label: text };
+}
+
+function isWithinSecondsWindow(sec, startSec, endSec) {
+    if (startSec === endSec) return false;
+    if (startSec < endSec) return sec >= startSec && sec < endSec;
+    return sec >= startSec || sec < endSec;
+}
+
+function isWithinVenueHours(hoursText, date = new Date()) {
+    const parsed = parseVenueHoursText(hoursText);
     const sec = getSecondsSinceMidnightInTimeZone(date, ORDER_ONLINE_IST_TZ);
-    return sec >= ORDER_ONLINE_START_SEC && sec < ORDER_ONLINE_END_SEC;
+    if (!parsed) {
+        return isWithinSecondsWindow(sec, ORDER_ONLINE_DEFAULT_START_SEC, ORDER_ONLINE_DEFAULT_END_SEC);
+    }
+    return isWithinSecondsWindow(sec, parsed.startSec, parsed.endSec);
+}
+
+function getSelectedMenuVenue() {
+    const id = Number(selectedMenuVenueId);
+    return menuVenues.find((venue) => Number(venue.id) === id) || menuVenues.find((venue) => venue.isMain) || menuVenues[0] || null;
+}
+
+function getVenueForItem(item) {
+    if (!item) return getSelectedMenuVenue();
+    const venueId = Number(item.venueId ?? defaultVenueId);
+    return (
+        menuVenues.find((venue) => Number(venue.id) === venueId) || {
+            id: venueId,
+            name: item.venueName || defaultVenueName,
+            hoursText: '',
+            acceptingOrders: true
+        }
+    );
+}
+
+function isVenueOrderingOpen(venue, date = new Date()) {
+    if (!venue) return false;
+    if (venue.acceptingOrders === false) return false;
+    return isWithinVenueHours(venue.hoursText, date);
+}
+
+function isItemOrderingOpen(item, date = new Date()) {
+    return isVenueOrderingOpen(getVenueForItem(item), date);
+}
+
+function getVenueClosedMessage(venue) {
+    const target = venue || getSelectedMenuVenue();
+    const parsed = parseVenueHoursText(target?.hoursText);
+    const label = parsed ? parsed.label : '9 AM–10 PM';
+    const name = target?.name || 'This hotel';
+    return `${name} is closed for orders right now. Online ordering: ${label} (India time).`;
+}
+
+function isSelectedVenueOrderingOpen(date = new Date()) {
+    return isVenueOrderingOpen(getSelectedMenuVenue(), date);
 }
 
 function getOrderingWindowClosedMessage() {
-    return 'Online ordering is open 9 AM–10 PM (India time). Try again after 9 AM tomorrow.';
+    return getVenueClosedMessage(getSelectedMenuVenue());
+}
+
+function syncMenuVenueClosedNotice() {
+    const notice = document.getElementById('menuVenueClosedNotice');
+    if (!notice) return;
+    const searchQuery = getMenuSearchQuery();
+    if (isCrossHotelSearch(searchQuery)) {
+        notice.hidden = true;
+        notice.textContent = '';
+        return;
+    }
+    const venue = getSelectedMenuVenue();
+    if (venue && !isVenueOrderingOpen(venue)) {
+        notice.textContent = getVenueClosedMessage(venue);
+        notice.hidden = false;
+        return;
+    }
+    notice.hidden = true;
+    notice.textContent = '';
+}
+
+function isOnlineOrderingWindowOpenIST(date = new Date()) {
+    return isSelectedVenueOrderingOpen(date);
 }
 
 /** Updates cart/checkout notices; returns whether the online ordering window is open (IST). */
@@ -1035,8 +1141,7 @@ function syncOrderingWindowUI() {
         checkoutNote.textContent = msg;
         checkoutNote.hidden = open;
     }
-    // Header pill reflects BOTH the online ordering window AND the admin store
-    // status (acceptingOrders). If either is off, the cafe is effectively closed.
+    // Header pill reflects the selected hotel's hours and admin store status.
     const liveOpen = open && storeAcceptingOrders;
     const topbarStatus = document.getElementById('topbarStatus');
     const topbarStatusLabel = document.getElementById('topbarStatusLabel');
@@ -1044,71 +1149,301 @@ function syncOrderingWindowUI() {
         topbarStatus.classList.toggle('app-topbar-status--closed', !liveOpen);
         topbarStatusLabel.textContent = liveOpen ? 'Open now' : 'Closed';
     }
+    syncHeroLiveStatus();
     return open;
 }
 
-function updateOrderingAvailability() {
-    const open = isOnlineOrderingWindowOpenIST();
-    const orderButtons = document.querySelectorAll('.order-btn');
-    const sizeButtons = document.querySelectorAll('.size-chip');
-    const sizeHints = document.querySelectorAll('.menu-item-note');
+function syncHeroLiveStatus() {
+    const heroLive = document.getElementById('heroLiveStatus');
+    const topbarLabel = document.getElementById('topbarStatusLabel');
+    if (!heroLive) return;
+    const open = topbarLabel ? topbarLabel.textContent === 'Open now' : storeAcceptingOrders;
+    heroLive.textContent = open ? 'Open now' : 'Closed';
+    heroLive.classList.toggle('delivery-hero-live--closed', !open);
+}
 
-    orderButtons.forEach((button) => {
-        button.disabled = !open;
-        button.setAttribute('aria-disabled', open ? 'false' : 'true');
-        button.title = open ? '' : getOrderingWindowClosedMessage();
+let pendingHeroCategory = null;
 
-        const label = button.querySelector('.order-btn-label');
-        if (label) {
-            label.textContent = open ? 'Add' : 'Closed';
+const HERO_CATEGORY_MAP = {
+    pizza: ['pizza'],
+    burger: ['sandwich-burger'],
+    chinese: ['starters', 'soups', 'rice-noodles'],
+    momo: ['momo'],
+    breakfast: ['coffee-tea', 'bun-special', 'breakfast', 'brerakfast'],
+    rice: ['rice-noodles']
+};
+
+const MILAN_UDAPI_VENUE_SLUG = 'new-milan-hotel-udapi';
+
+function findMilanUdapiVenue() {
+    return (
+        menuVenues.find((venue) => String(venue.slug || '') === MILAN_UDAPI_VENUE_SLUG) ||
+        menuVenues.find((venue) => {
+            const name = String(venue.name || '').toLowerCase();
+            return name.includes('milan') || name.includes('udapi');
+        }) ||
+        menuVenues.find((venue) => Number(venue.id) === 2) ||
+        null
+    );
+}
+
+function findBreakfastCategoryForVenue(venueId) {
+    const categories = (menuData?.categories || []).filter(
+        (cat) => getCategoryVenueId(cat) === Number(venueId)
+    );
+    for (const cat of categories) {
+        if (getCategoryListedCount(cat) <= 0) continue;
+        const id = String(cat.id || '').toLowerCase();
+        const name = String(cat.name || '').toLowerCase();
+        if (
+            id.includes('breakfast') ||
+            id.includes('brerakfast') ||
+            name.includes('breakfast') ||
+            name.includes('brerakfast')
+        ) {
+            return cat.id;
         }
-    });
+    }
+    return findVenueCategoryId(venueId, HERO_CATEGORY_MAP.breakfast);
+}
 
-    sizeButtons.forEach((button) => {
-        button.disabled = !open;
-        button.setAttribute('aria-disabled', open ? 'false' : 'true');
-        button.title = open ? '' : getOrderingWindowClosedMessage();
-    });
+function findVenueCategoryId(venueId, categoryKeys) {
+    const keys = Array.isArray(categoryKeys) ? categoryKeys : [categoryKeys];
+    const categories = (menuData?.categories || []).filter(
+        (cat) => getCategoryVenueId(cat) === Number(venueId)
+    );
+    for (const categoryKey of keys) {
+        const needle = String(categoryKey).toLowerCase();
+        for (const cat of categories) {
+            if (getCategoryListedCount(cat) <= 0) continue;
+            const id = String(cat.id || '').toLowerCase();
+            const name = String(cat.name || '').toLowerCase();
+            if (resolveMenuCategoryKey(cat.id) === categoryKey) return cat.id;
+            if (cat.sourceCategoryId && resolveMenuCategoryKey(cat.sourceCategoryId) === categoryKey) {
+                return cat.id;
+            }
+            if (id.includes(needle) || name.includes(needle.replace(/-/g, ' '))) return cat.id;
+        }
+    }
+    return null;
+}
 
-    sizeHints.forEach((hint) => {
+function resolveHeroCategoryTarget(categoryKeys, heroCategory = '') {
+    if (heroCategory === 'breakfast') {
+        const milan = findMilanUdapiVenue();
+        if (milan) {
+            const categoryId = findBreakfastCategoryForVenue(milan.id);
+            if (categoryId) {
+                return { venueId: milan.id, categoryId };
+            }
+        }
+    }
+
+    const mainVenueId = Number(defaultVenueId);
+    const mainVenue = menuVenues.find((venue) => Number(venue.id) === mainVenueId) || { id: mainVenueId };
+    const mainCategoryId = findVenueCategoryId(mainVenueId, categoryKeys);
+
+    if (mainCategoryId && isVenueOrderingOpen(mainVenue)) {
+        return { venueId: mainVenueId, categoryId: mainCategoryId };
+    }
+
+    const partners = menuVenues.filter((venue) => Number(venue.id) !== mainVenueId);
+    for (const partner of partners) {
+        const categoryId = findVenueCategoryId(partner.id, categoryKeys);
+        if (categoryId && isVenueOrderingOpen(partner)) {
+            return { venueId: partner.id, categoryId };
+        }
+    }
+    for (const partner of partners) {
+        const categoryId = findVenueCategoryId(partner.id, categoryKeys);
+        if (categoryId) {
+            return { venueId: partner.id, categoryId };
+        }
+    }
+
+    if (mainCategoryId) {
+        return { venueId: mainVenueId, categoryId: mainCategoryId };
+    }
+
+    return null;
+}
+
+function navigateToHeroCategory(heroCategory) {
+    const categoryKeys = HERO_CATEGORY_MAP[heroCategory];
+    const menuSection = document.getElementById('menu');
+
+    if (!categoryKeys) {
+        menuSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+    }
+
+    if (!menuData) {
+        pendingHeroCategory = heroCategory;
+        menuSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+    }
+
+    const target = resolveHeroCategoryTarget(categoryKeys, heroCategory);
+    if (!target) {
+        menuSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+    }
+
+    const searchInput = document.getElementById('menuSearchInput');
+    const searchClearBtn = document.getElementById('searchClearBtn');
+    if (searchInput?.value.trim()) {
+        searchInput.value = '';
+        if (searchClearBtn) searchClearBtn.style.display = 'none';
+    }
+
+    setSelectedMenuVenue(target.venueId);
+    renderMenu('');
+    buildCategoryTabs();
+    initMenuCategories();
+
+    menuSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    requestAnimationFrame(() => {
+        scrollMenuToCategory(target.categoryId);
+    });
+}
+
+function initHeroSection() {
+    const searchBtn = document.getElementById('heroSearchBtn');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', () => {
+            const menuSection = document.getElementById('menu');
+            const searchInput = document.getElementById('menuSearchInput');
+            if (menuSection) {
+                menuSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            window.setTimeout(() => {
+                if (searchInput) {
+                    searchInput.focus({ preventScroll: true });
+                }
+            }, 320);
+        });
+    }
+
+    const heroCategories = document.querySelector('.delivery-hero-categories');
+    if (heroCategories) {
+        heroCategories.addEventListener('click', (event) => {
+            const link = event.target.closest('[data-hero-category]');
+            if (!link) return;
+            event.preventDefault();
+            navigateToHeroCategory(link.getAttribute('data-hero-category'));
+        });
+    }
+
+    syncHeroLiveStatus();
+}
+
+function updateOrderingAvailability() {
+    const container = document.getElementById('menuItemsContainer');
+    if (container) {
+        container.querySelectorAll('.menu-item').forEach((row) => {
+            const item = findMenuItemById(row.dataset.itemId);
+            const venue = getVenueForItem(item);
+            const open = isVenueOrderingOpen(venue);
+            const msg = getVenueClosedMessage(venue);
+
+            row.querySelectorAll('.order-btn').forEach((button) => {
+                button.disabled = !open;
+                button.setAttribute('aria-disabled', open ? 'false' : 'true');
+                button.title = open ? '' : msg;
+
+                const label = button.querySelector('.order-btn-label');
+                if (label) {
+                    label.textContent = open ? 'Add' : 'Closed';
+                }
+            });
+
+            row.querySelectorAll('.size-chip').forEach((button) => {
+                button.disabled = !open;
+                button.setAttribute('aria-disabled', open ? 'false' : 'true');
+                button.title = open ? '' : msg;
+            });
+        });
+    }
+
+    document.querySelectorAll('.menu-item-note').forEach((hint) => {
+        const itemId = hint.id ? hint.id.replace('size-hint-', '') : '';
+        const item = findMenuItemById(itemId);
+        const venue = getVenueForItem(item);
+        const open = item ? isVenueOrderingOpen(venue) : isSelectedVenueOrderingOpen();
+        const parsed = parseVenueHoursText(venue?.hoursText);
+        const label = parsed ? parsed.label : '9 AM–10 PM';
         hint.textContent = open
             ? 'Tap a size to add to cart'
-            : 'Ordering on this site: 9 AM–10 PM (India time).';
+            : `${venue?.name || 'This hotel'} ordering: ${label} (India time).`;
     });
+
+    syncMenuVenueClosedNotice();
 }
 
 function initOrderingAvailability() {
     updateOrderingAvailability();
-    setInterval(() => {
-        updateOrderingAvailability();
-        updateCartUI();
-    }, 60000);
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            updateOrderingAvailability();
-            updateCartUI();
-        }
-    });
 }
 
 // ============================================
 // "Not accepting orders" overlay (admin controlled)
 // ============================================
 let storeAcceptingOrders = true;
+let storefrontStatus = null;
 
 function setText(id, text) {
     const el = document.getElementById(id);
     if (el) el.textContent = text || '';
 }
 
-function applyStoreClosedOverlay(status) {
+function getMenuSearchQuery() {
+    const searchInput = document.getElementById('menuSearchInput');
+    return searchInput ? String(searchInput.value || '').trim() : '';
+}
+
+function applyStorefrontStatus(status) {
     const overlay = document.getElementById('storeClosedOverlay');
-    if (!overlay) return;
+    storefrontStatus = status || null;
 
     const accepting = !status || status.acceptingOrders !== false;
     storeAcceptingOrders = accepting;
-    // Keep the header "Open now / Closed" pill in sync with admin store status.
-    try { syncOrderingWindowUI(); } catch { /* no-op */ }
+
+    const banner = document.getElementById('storefrontFallbackBanner');
+    if (banner) {
+        if (status && status.isFallbackVenue && status.fallbackMessage) {
+            banner.textContent = status.fallbackMessage;
+            banner.hidden = false;
+        } else {
+            banner.hidden = true;
+            banner.textContent = '';
+        }
+    }
+
+    if (status && Array.isArray(status.venues) && status.venues.length) {
+        menuVenues = status.venues.map((venue) => ({
+            id: venue.id,
+            slug: venue.slug || '',
+            name: venue.name,
+            isMain: Boolean(venue.isMain),
+            acceptingOrders: venue.acceptingOrders !== false,
+            contactMobile: venue.contactMobile || '',
+            hoursText: venue.hoursText || ''
+        }));
+        buildHotelFilterTabs();
+    }
+
+    if (status && status.isFallbackVenue && status.activeVenueId) {
+        selectedMenuVenueId = Number(status.activeVenueId) || defaultVenueId;
+        buildHotelFilterTabs();
+        if (menuData) renderMenu(getMenuSearchQuery());
+    }
+
+    try {
+        updateOrderingAvailability();
+        syncOrderingWindowUI();
+        syncMenuVenueClosedNotice();
+    } catch { /* no-op */ }
+
+    if (!overlay) return;
 
     if (accepting || !status || !status.notice) {
         overlay.hidden = true;
@@ -1129,31 +1464,35 @@ function applyStoreClosedOverlay(status) {
     document.body.classList.add('store-closed-locked');
 }
 
+function applyStoreClosedOverlay(status) {
+    applyStorefrontStatus(status);
+}
+
 async function fetchStoreStatus() {
     try {
         const res = await fetch('/api/store-status', { cache: 'no-store' });
         if (!res.ok) return;
         const status = await res.json();
-        applyStoreClosedOverlay(status);
+        applyStorefrontStatus(status);
     } catch {
         // Network/API issue: never block ordering on a failed status check.
-        applyStoreClosedOverlay({ acceptingOrders: true });
+        applyStorefrontStatus({ acceptingOrders: true });
     }
 }
 
 function initStoreStatus() {
-    // Fetch once on load. Refresh when the tab regains focus (event-driven, not polling).
     fetchStoreStatus();
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') fetchStoreStatus();
-    });
 }
 
 // Load cart from localStorage
 function loadCart() {
     const savedCart = localStorage.getItem('balojiCart');
     if (savedCart) {
-        cart = JSON.parse(savedCart);
+        cart = JSON.parse(savedCart).map((row) => ({
+            ...row,
+            venueId: row.venueId != null ? row.venueId : defaultVenueId,
+            venueName: row.venueName || defaultVenueName
+        }));
         updateCartUI();
     }
 }
@@ -1171,21 +1510,137 @@ function getOrderApiUrl() {
     return '/api/order';
 }
 
+function isPartnerCart() {
+    return cart.length > 0 && Number(cart[0].venueId) !== Number(defaultVenueId);
+}
+
+function getItemVenueMeta(item) {
+    return {
+        venueId: item.venueId || defaultVenueId,
+        venueName: item.venueName || defaultVenueName,
+        itemId: item.id || null
+    };
+}
+
+function clearCart(options = {}) {
+    cart = [];
+    saveCart();
+    updateCartUI();
+    if (options.notify) {
+        showToast('Cart cleared', { type: 'info', duration: 2200 });
+    }
+}
+
+function ensureCartHotelConflictModal() {
+    if (document.getElementById('cartHotelConflictModal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'cartHotelConflictModal';
+    modal.className = 'cart-modal cart-hotel-conflict-modal';
+    modal.innerHTML = `
+        <div class="cart-modal-content" role="dialog" aria-modal="true" aria-labelledby="cartHotelConflictTitle">
+            <div class="cart-modal-header">
+                <h2 id="cartHotelConflictTitle">Switch hotel?</h2>
+                <button type="button" class="cart-close" id="cartHotelConflictClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="cart-hotel-conflict-body">
+                <p id="cartHotelConflictMessage" class="cart-hotel-conflict-copy"></p>
+            </div>
+            <div class="cart-footer cart-hotel-conflict-footer">
+                <button type="button" class="btn" id="cartHotelConflictKeep">Keep current cart</button>
+                <button type="button" class="btn btn-primary" id="cartHotelConflictClear">Clear cart &amp; add item</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const close = () => {
+        modal.classList.remove('active');
+        if (!document.querySelector('.cart-modal.active')) {
+            document.body.style.overflow = '';
+        }
+    };
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) close();
+    });
+    modal.querySelector('#cartHotelConflictClose')?.addEventListener('click', close);
+    modal.querySelector('#cartHotelConflictKeep')?.addEventListener('click', close);
+}
+
+function openCartHotelConflictModal({ currentVenueName, currentItemCount, nextVenueName, nextItemName, onConfirm }) {
+    ensureCartHotelConflictModal();
+    const modal = document.getElementById('cartHotelConflictModal');
+    const messageEl = document.getElementById('cartHotelConflictMessage');
+    const clearBtn = document.getElementById('cartHotelConflictClear');
+    if (!modal || !messageEl || !clearBtn) return;
+
+    const itemLabel = currentItemCount === 1 ? '1 item' : `${currentItemCount} items`;
+    const nextItem = nextItemName ? ` <strong>${escapeHtml(nextItemName)}</strong>` : ' this item';
+    messageEl.innerHTML =
+        `Your cart has ${itemLabel} from <strong>${escapeHtml(currentVenueName)}</strong>. ` +
+        `To add${nextItem} from <strong>${escapeHtml(nextVenueName)}</strong>, clear your cart first.`;
+
+    const close = () => {
+        modal.classList.remove('active');
+        if (!document.querySelector('.cart-modal.active')) {
+            document.body.style.overflow = '';
+        }
+    };
+    clearBtn.onclick = () => {
+        close();
+        try {
+            onConfirm && onConfirm();
+        } catch {
+            /* no-op */
+        }
+    };
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    clearBtn.focus();
+}
+
 // Add item to cart
 function addToCart(itemName, price, options = {}) {
-    // Price can be a number or string - handle both
     const itemPrice = typeof price === 'number' ? price : (parseInt(price) || 0);
-    
-    // Check if item already exists in cart
-    const existingItem = cart.find(item => item.name === itemName);
-    
+    const venueId = options.venueId != null ? Number(options.venueId) : defaultVenueId;
+    const venueName = options.venueName || defaultVenueName;
+    const itemId = options.itemId || null;
+
+    if (!options.skipConflictCheck && cart.length && Number(cart[0].venueId) !== venueId) {
+        const currentItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+        openCartHotelConflictModal({
+            currentVenueName: cart[0].venueName || 'another hotel',
+            currentItemCount,
+            nextVenueName: venueName,
+            nextItemName: itemName,
+            onConfirm: () => {
+                clearCart();
+                addToCart(itemName, itemPrice, {
+                    venueId,
+                    venueName,
+                    itemId,
+                    skipToast: options.skipToast,
+                    skipConflictCheck: true
+                });
+            }
+        });
+        return;
+    }
+
+    const existingItem = cart.find(
+        (item) => item.name === itemName && Number(item.venueId) === venueId
+    );
+
     if (existingItem) {
         existingItem.quantity += 1;
     } else {
         cart.push({
             name: itemName,
             price: itemPrice,
-            quantity: 1
+            quantity: 1,
+            venueId,
+            venueName,
+            itemId
         });
     }
     
@@ -1264,7 +1719,7 @@ function ensureAddonsModal() {
     modal.querySelector('#addonsModalCancel')?.addEventListener('click', close);
 }
 
-function openAddonsModal({ title, subtitle, addons, onConfirm }) {
+function openAddonsModal({ title, subtitle, addons, item, onConfirm }) {
     ensureAddonsModal();
     const modal = document.getElementById('addonsModal');
     const titleEl = document.getElementById('addonsModalTitle');
@@ -1326,8 +1781,8 @@ function openAddonsModal({ title, subtitle, addons, onConfirm }) {
 
     const close = () => modal.classList.remove('active');
     const handleConfirm = () => {
-        if (!isOnlineOrderingWindowOpenIST()) {
-            showToast(getOrderingWindowClosedMessage(), { type: 'info' });
+        if (item && !isItemOrderingOpen(item)) {
+            showToast(getVenueClosedMessage(getVenueForItem(item)), { type: 'info' });
             return;
         }
         const selected = [];
@@ -1561,12 +2016,16 @@ function syncMenuItemSteppers() {
 
 function applyOnlineOrderingGateToSteppers(container) {
     if (!container) return;
-    const open = isOnlineOrderingWindowOpenIST();
-    const msg = getOrderingWindowClosedMessage();
-    container.querySelectorAll('.menu-qty-minus, .menu-qty-plus').forEach((btn) => {
-        btn.disabled = !open;
-        if (!open) btn.setAttribute('title', msg);
-        else btn.removeAttribute('title');
+    container.querySelectorAll('.menu-item').forEach((row) => {
+        const item = findMenuItemById(row.dataset.itemId);
+        const venue = getVenueForItem(item);
+        const open = isVenueOrderingOpen(venue);
+        const msg = getVenueClosedMessage(venue);
+        row.querySelectorAll('.menu-qty-minus, .menu-qty-plus').forEach((btn) => {
+            btn.disabled = !open;
+            if (!open) btn.setAttribute('title', msg);
+            else btn.removeAttribute('title');
+        });
     });
 }
 
@@ -1613,13 +2072,15 @@ function getEffectiveDeliveryCity(cityLower) {
 }
 
 function getDeliveryFee(subtotal, cityLower) {
-    if (!cityLower || subtotal <= 0) return 0;
-    // Flat delivery charge regardless of order value: ₹8 in Kudachi, ₹45 elsewhere.
-    return cityLower === 'kudachi' ? KUDACHI_DELIVERY_FEE : NON_KUDACHI_DELIVERY_FEE;
+    if (!subtotal) return 0;
+    if (isPartnerCart()) return partnerDeliveryFee;
+    const city = getEffectiveDeliveryCity(cityLower);
+    return city === 'kudachi' ? KUDACHI_DELIVERY_FEE : NON_KUDACHI_DELIVERY_FEE;
 }
 
 function isCheckoutAllowed(subtotal, cityLower) {
-    if (!cityLower) return true; // city might be selected in checkout
+    if (isPartnerCart()) return subtotal > 0;
+    if (!cityLower) return true;
     if (cityLower === 'kudachi') return subtotal > 0;
     return subtotal >= MIN_NON_KUDACHI_ORDER_VALUE;
 }
@@ -1742,13 +2203,7 @@ function renderCartDeliveryNote() {
     if (subtotal && cityLower && cityLower !== 'kudachi' && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
         const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
         el.classList.add('delivery-note--error');
-        el.innerHTML = `Minimum order for delivery outside <strong>Kudachi</strong> is <strong>₹${MIN_NON_KUDACHI_ORDER_VALUE}</strong>. Add <strong>₹${remaining}</strong> more to checkout.`;
-        el.hidden = false;
-        return;
-    }
-
-    if (subtotal > 0 && (!cityLower || cityLower === 'kudachi')) {
-        el.textContent = `Flat ₹${KUDACHI_DELIVERY_FEE} delivery in Kudachi.`;
+        el.innerHTML = `Minimum order outside <strong>Kudachi</strong> is <strong>₹${MIN_NON_KUDACHI_ORDER_VALUE}</strong>. Add <strong>₹${remaining}</strong> more to checkout.`;
         el.hidden = false;
         return;
     }
@@ -1799,12 +2254,12 @@ function renderCheckoutTotals() {
     renderCheckoutDeliveryCard();
 
     if (noteEl) {
-        if (cityLower && cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
-            const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
-            noteEl.textContent = `Minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Add ₹${remaining} more to place your order.`;
+        if (isPartnerCart()) {
+            noteEl.textContent = `Ordering from ${cart[0]?.venueName || 'partner hotel'}. Online prices include partner markup.`;
             noteEl.hidden = false;
-        } else if (subtotal > 0 && (!cityLower || cityLower === 'kudachi')) {
-            noteEl.textContent = `Flat ₹${KUDACHI_DELIVERY_FEE} delivery in Kudachi.`;
+        } else if (cityLower && cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
+            const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
+            noteEl.textContent = `Minimum order outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Add ₹${remaining} more to place your order.`;
             noteEl.hidden = false;
         } else {
             noteEl.textContent = '';
@@ -2807,28 +3262,86 @@ function setMenuLoading(loading) {
         </div>`;
 }
 
+function applyStorefrontMenuFallback() {
+    if (!storefrontStatus || !storefrontStatus.isFallbackVenue || !storefrontStatus.activeVenueId || !menuData) {
+        return;
+    }
+    selectedMenuVenueId = Number(storefrontStatus.activeVenueId) || defaultVenueId;
+    buildHotelFilterTabs();
+    renderMenu(getMenuSearchQuery());
+    updateOrderingAvailability();
+    syncOrderingWindowUI();
+}
+
 async function loadMenu() {
     setMenuLoading(true);
     try {
         let res = menuBootstrapFetch ? await menuBootstrapFetch : null;
         menuBootstrapFetch = null;
         if (!res || !res.ok) {
-            res = await fetch('menu.json', { priority: 'high', cache: 'no-store' });
+            res = await fetch('/api/menu', { priority: 'high', cache: 'no-store' });
         }
         if (res.ok) {
-            menuData = await res.json();
-            if (menuData && Array.isArray(menuData.categories) && menuData.categories.length) {
+            const payload = await res.json();
+            if (payload && Array.isArray(payload.categories) && payload.categories.length) {
+                defaultVenueId = Number(payload.defaultVenueId) || 1;
+                defaultVenueName = payload.defaultVenueName || defaultVenueName;
+                partnerDeliveryFee = Number(payload.partnerDeliveryFee) || 20;
+                selectedMenuVenueId = defaultVenueId;
+                menuVenues = Array.isArray(payload.venues) && payload.venues.length
+                    ? payload.venues.map((venue) => ({
+                          id: venue.id,
+                          slug: venue.slug || '',
+                          name: venue.name,
+                          isMain: Boolean(venue.isMain),
+                          acceptingOrders: venue.acceptingOrders !== false,
+                          contactMobile: venue.contactMobile || '',
+                          hoursText: venue.hoursText || ''
+                      }))
+                    : deriveMenuVenues(payload.categories || []);
+                menuData = { categories: payload.categories };
+                buildHotelFilterTabs();
                 renderMenu();
                 return;
             }
         }
-        throw new Error('menu.json empty or unavailable');
+        const jsonRes = await fetch('menu.json', { priority: 'high', cache: 'no-store' });
+        if (jsonRes.ok) {
+            const data = await jsonRes.json();
+            if (data && Array.isArray(data.categories) && data.categories.length) {
+                defaultVenueId = 1;
+                defaultVenueName = "Baloji's Cafe";
+                selectedMenuVenueId = defaultVenueId;
+                menuVenues = deriveMenuVenues(data.categories);
+                menuData = data;
+                buildHotelFilterTabs();
+                renderMenu();
+                return;
+            }
+        }
+        throw new Error('menu API empty or unavailable');
     } catch (error) {
-        console.warn('Could not load menu.json, using embedded data:', error);
+        console.warn('Could not load menu, using embedded data:', error);
+        defaultVenueId = 1;
+        defaultVenueName = "Baloji's Cafe";
+        selectedMenuVenueId = defaultVenueId;
+        menuVenues = deriveMenuVenues(fallbackMenuData.categories || []);
         menuData = fallbackMenuData;
+        buildHotelFilterTabs();
         renderMenu();
+        if (storefrontStatus && storefrontStatus.isFallbackVenue && storefrontStatus.activeVenueId) {
+            selectedMenuVenueId = Number(storefrontStatus.activeVenueId) || defaultVenueId;
+            buildHotelFilterTabs();
+            renderMenu(getMenuSearchQuery());
+        }
     } finally {
+        applyStorefrontMenuFallback();
         setMenuLoading(false);
+        if (pendingHeroCategory) {
+            const heroCategory = pendingHeroCategory;
+            pendingHeroCategory = null;
+            navigateToHeroCategory(heroCategory);
+        }
     }
 }
 
@@ -2845,11 +3358,202 @@ const CATEGORY_TAB_ICONS = {
     'cafe-special': '\u2B50'
 };
 
+const GENERIC_MENU_CATEGORY_STYLES = {
+    'coffee-tea': { emoji: '\u2615', bg: 'linear-gradient(145deg, #fef3c7 0%, #fde68a 100%)' },
+    pizza: { emoji: '\u{1F355}', bg: 'linear-gradient(145deg, #fee2e2 0%, #fecaca 100%)' },
+    starters: { emoji: '\u{1F331}', bg: 'linear-gradient(145deg, #dcfce7 0%, #bbf7d0 100%)' },
+    soups: { emoji: '\u{1F372}', bg: 'linear-gradient(145deg, #ffedd5 0%, #fed7aa 100%)' },
+    'rice-noodles': { emoji: '\u{1F35A}', bg: 'linear-gradient(145deg, #fef9c3 0%, #fde047 100%)' },
+    'sandwich-burger': { emoji: '\u{1F96A}', bg: 'linear-gradient(145deg, #fce7f3 0%, #fbcfe8 100%)' },
+    momo: { emoji: '\u{1F95F}', bg: 'linear-gradient(145deg, #e0e7ff 0%, #c7d2fe 100%)' },
+    'bun-special': { emoji: '\u{1F956}', bg: 'linear-gradient(145deg, #fef3c7 0%, #fcd34d 100%)' },
+    'cold-special': { emoji: '\u{1F9CA}', bg: 'linear-gradient(145deg, #e0f2fe 0%, #bae6fd 100%)' },
+    'cafe-special': { emoji: '\u2B50', bg: 'linear-gradient(145deg, #f3e8ff 0%, #e9d5ff 100%)' },
+    default: { emoji: '\u{1F372}', bg: 'linear-gradient(145deg, #ecfdf5 0%, #d1fae5 100%)' }
+};
+
+function resolveMenuCategoryKey(categoryId) {
+    const id = String(categoryId || '').toLowerCase();
+    for (const key of Object.keys(CATEGORY_TAB_ICONS)) {
+        if (id === key || id.endsWith(`-${key}`) || id.includes(`-${key}-`) || id.includes(key)) {
+            return key;
+        }
+    }
+    if (id.includes('pizza')) return 'pizza';
+    if (id.includes('burger') || id.includes('sandwich')) return 'sandwich-burger';
+    if (id.includes('momo')) return 'momo';
+    if (id.includes('coffee') || id.includes('tea') || id.includes('drink')) return 'coffee-tea';
+    if (id.includes('rice') || id.includes('noodle')) return 'rice-noodles';
+    if (id.includes('soup')) return 'soups';
+    if (id.includes('starter')) return 'starters';
+    if (id.includes('cold')) return 'cold-special';
+    if (id.includes('bun')) return 'bun-special';
+    return 'default';
+}
+
+function buildGenericMenuItemImageHtml(item, categoryId) {
+    const key = resolveMenuCategoryKey(categoryId);
+    const style = GENERIC_MENU_CATEGORY_STYLES[key] || GENERIC_MENU_CATEGORY_STYLES.default;
+    const label = escapeHtml(item.name || 'Menu item');
+    return `<div class="menu-item-image menu-item-image--generic menu-item-image--${key}" style="background:${style.bg}" role="img" aria-label="${label}">
+        <span class="menu-item-generic-icon" aria-hidden="true">${style.emoji}</span>
+    </div>`;
+}
+
+function isMainVenueItem(item) {
+    if (item && typeof item.isMainVenue === 'boolean') return item.isMainVenue;
+    return Number(item?.venueId ?? defaultVenueId) === Number(defaultVenueId);
+}
+
+function buildMenuItemImageHtml(item, categoryId) {
+    if (isMainVenueItem(item) && item.image) {
+        const alt = escapeHtml(item.alt || item.name || 'Menu item');
+        return `<div class="menu-item-image">
+            <img src="${item.image}" alt="${alt}" loading="lazy" decoding="async" width="400" height="300">
+        </div>`;
+    }
+    return buildGenericMenuItemImageHtml(item, categoryId);
+}
+
+function deriveMenuVenues(categories) {
+    const byId = new Map();
+    for (const cat of categories || []) {
+        const id = Number(cat.venueId ?? defaultVenueId);
+        if (!Number.isFinite(id)) continue;
+        if (!byId.has(id)) {
+            byId.set(id, {
+                id,
+                name: cat.venueName || (id === defaultVenueId ? defaultVenueName : 'Hotel'),
+                isMain: Boolean(cat.isMainVenue ?? id === defaultVenueId),
+                acceptingOrders: true,
+                contactMobile: '',
+                hoursText: ''
+            });
+        }
+    }
+    if (!byId.has(defaultVenueId)) {
+        byId.set(defaultVenueId, {
+            id: defaultVenueId,
+            name: defaultVenueName,
+            isMain: true
+        });
+    }
+    return Array.from(byId.values()).sort((a, b) => {
+        if (a.isMain !== b.isMain) return a.isMain ? -1 : 1;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+}
+
+function isCrossHotelSearch(searchQuery) {
+    return Boolean(String(searchQuery || '').trim());
+}
+
+function getCategoryVenueId(category) {
+    return Number(category?.venueId ?? defaultVenueId);
+}
+
+function getCategoriesForDisplay(searchQuery = '') {
+    if (!menuData || !Array.isArray(menuData.categories)) return [];
+    if (isCrossHotelSearch(searchQuery)) return menuData.categories;
+    return menuData.categories.filter(
+        (category) => getCategoryVenueId(category) === Number(selectedMenuVenueId)
+    );
+}
+
+function shouldShowVenueTag(category, searchQuery = '') {
+    if (!category?.venueName) return false;
+    if (isCrossHotelSearch(searchQuery)) return true;
+    return !category.isMainVenue && getCategoryVenueId(category) !== Number(defaultVenueId);
+}
+
+function appendVenueTag(titleEl, category, searchQuery = '') {
+    if (!shouldShowVenueTag(category, searchQuery)) return;
+    const venueTag = document.createElement('span');
+    venueTag.className = 'menu-venue-tag' + (category.isMainVenue ? ' menu-venue-tag--main' : '');
+    venueTag.textContent = category.venueName;
+    titleEl.appendChild(venueTag);
+}
+
+function buildHotelFilterTabs() {
+    const container = document.getElementById('menuHotelFilter');
+    const list = document.getElementById('menuHotelFilterList');
+    if (!container || !list) return;
+
+    if (!menuVenues.length || menuVenues.length <= 1) {
+        container.hidden = true;
+        list.innerHTML = '';
+        return;
+    }
+
+    container.hidden = false;
+    list.innerHTML = menuVenues
+        .map((venue) => {
+            const active = Number(selectedMenuVenueId) === Number(venue.id);
+            const closed = !isVenueOrderingOpen(venue);
+            const label = `${venue.name}${closed ? ' (Closed)' : ''}`;
+            const closedClass = closed ? ' menu-hotel-filter-tab--closed' : '';
+            return `<button type="button" class="menu-hotel-filter-tab${active ? ' active' : ''}${closedClass}" data-venue-id="${venue.id}" role="tab" aria-selected="${active ? 'true' : 'false'}">${escapeHtml(label)}</button>`;
+        })
+        .join('');
+}
+
+function setSelectedMenuVenue(venueId) {
+    const nextId = Number(venueId);
+    if (!Number.isFinite(nextId)) return;
+    if (!menuVenues.some((venue) => Number(venue.id) === nextId)) return;
+    selectedMenuVenueId = nextId;
+    buildHotelFilterTabs();
+    updateOrderingAvailability();
+    syncOrderingWindowUI();
+    syncMenuVenueClosedNotice();
+}
+
+let hotelFilterInitialized = false;
+
+function initHotelFilter() {
+    const container = document.getElementById('menuHotelFilter');
+    const list = document.getElementById('menuHotelFilterList');
+    if (!container || !list || hotelFilterInitialized) return;
+    hotelFilterInitialized = true;
+
+    list.addEventListener('click', (event) => {
+        const tab = event.target.closest('[data-venue-id]');
+        if (!tab) return;
+        const venueId = tab.getAttribute('data-venue-id');
+        if (!venueId || Number(venueId) === Number(selectedMenuVenueId)) return;
+
+        setSelectedMenuVenue(venueId);
+
+        const searchInput = document.getElementById('menuSearchInput');
+        const searchClearBtn = document.getElementById('searchClearBtn');
+        if (searchInput && searchInput.value.trim()) {
+            searchInput.value = '';
+            if (searchClearBtn) searchClearBtn.style.display = 'none';
+        }
+
+        renderMenu('');
+        const firstCat = document.querySelector('#menuItemsContainer .menu-category');
+        if (firstCat) scrollMenuToCategory(firstCat.id);
+    });
+}
+
+function updateHotelFilterSearchState(searchQuery = '') {
+    const container = document.getElementById('menuHotelFilter');
+    const hint = document.getElementById('menuHotelSearchHint');
+    const searching = isCrossHotelSearch(searchQuery);
+    if (container) container.classList.toggle('menu-hotel-filter--searching', searching);
+    if (hint) hint.hidden = !searching || menuVenues.length <= 1;
+}
+
 
 function buildCategoryTabs() {
     const list = document.getElementById('categoryTabsList');
-    if (!list || !menuData) return;
-    list.innerHTML = menuData.categories.map((cat, i) => {
+    const categories = getCategoriesForDisplay('');
+    if (!list || !categories.length) {
+        if (list) list.innerHTML = '';
+        return;
+    }
+    list.innerHTML = categories.map((cat, i) => {
         const icon = CATEGORY_TAB_ICONS[cat.id] || '🍽';
         return `<button type="button" class="category-tab${i === 0 ? ' active' : ''}" data-category="${cat.id}"${i === 0 ? ' aria-current="true"' : ''}>
             <span class="category-icon" aria-hidden="true">${icon}</span>
@@ -2879,8 +3583,12 @@ function getCategoryListedCount(category) {
 
 function buildCategorySheet() {
     const list = document.getElementById('categorySheetList');
-    if (!list || !menuData) return;
-    list.innerHTML = menuData.categories
+    const categories = getCategoriesForDisplay('');
+    if (!list || !categories.length) {
+        if (list) list.innerHTML = '';
+        return;
+    }
+    list.innerHTML = categories
         .map((cat) => {
             const icon = CATEGORY_TAB_ICONS[cat.id] || '🍽';
             const count = getCategoryListedCount(cat);
@@ -2997,11 +3705,13 @@ function renderMenu(searchQuery = '') {
     
     const container = document.getElementById('menuItemsContainer');
     container.innerHTML = '';
+    updateHotelFilterSearchState(searchQuery);
     
     let totalResults = 0;
     let hasResults = false;
+    const categoriesToRender = getCategoriesForDisplay(searchQuery);
     
-    menuData.categories.forEach((category) => {
+    categoriesToRender.forEach((category) => {
         const query = searchQuery.trim();
         const hasSubsections =
             Array.isArray(category.subsections) && category.subsections.length > 0;
@@ -3012,7 +3722,10 @@ function renderMenu(searchQuery = '') {
             const nameMatch = item.name.toLowerCase().includes(q);
             const categoryMatch = category.name.toLowerCase().includes(q);
             const altMatch = item.alt && item.alt.toLowerCase().includes(q);
-            return nameMatch || categoryMatch || altMatch;
+            const venueMatch =
+                (category.venueName && category.venueName.toLowerCase().includes(q)) ||
+                (item.venueName && item.venueName.toLowerCase().includes(q));
+            return nameMatch || categoryMatch || altMatch || venueMatch;
         };
 
         if (hasSubsections) {
@@ -3047,6 +3760,7 @@ function renderMenu(searchQuery = '') {
             const titleEl = document.createElement('h3');
             titleEl.className = 'menu-category-title';
             titleEl.textContent = category.name;
+            appendVenueTag(titleEl, category, searchQuery);
 
             const countEl = document.createElement('span');
             countEl.className = 'menu-category-count';
@@ -3122,6 +3836,7 @@ function renderMenu(searchQuery = '') {
         const titleEl = document.createElement('h3');
         titleEl.className = 'menu-category-title';
         titleEl.textContent = category.name;
+        appendVenueTag(titleEl, category, searchQuery);
 
         const countEl = document.createElement('span');
         countEl.className = 'menu-category-count';
@@ -3141,16 +3856,42 @@ function renderMenu(searchQuery = '') {
         categoryDiv.appendChild(menuGrid);
         container.appendChild(categoryDiv);
     });
+
+    if (!hasResults) {
+        const searchResultsInfo = document.getElementById('searchResultsInfo');
+        if (searchQuery.trim()) {
+            if (searchResultsInfo) {
+                const hotelsNote = menuVenues.length > 1 ? ' across all hotels' : '';
+                searchResultsInfo.style.display = 'block';
+                searchResultsInfo.innerHTML = `No items found for "<strong>${escapeHtml(searchQuery)}</strong>"${hotelsNote}. Try a different search term.`;
+            }
+        } else {
+            const venue =
+                menuVenues.find((entry) => Number(entry.id) === Number(selectedMenuVenueId)) ||
+                { name: defaultVenueName };
+            container.innerHTML = `<p class="search-results-info" style="display:block;margin:0;">No menu items for <strong>${escapeHtml(venue.name)}</strong> yet.</p>`;
+            if (searchResultsInfo) searchResultsInfo.style.display = 'none';
+        }
+        if (!searchQuery.trim()) {
+            buildCategoryTabs();
+            buildCategorySheet();
+        }
+        updateOrderingAvailability();
+        syncMenuItemSteppers();
+        return;
+    }
     
     // Update search results info
     const searchResultsInfo = document.getElementById('searchResultsInfo');
     if (searchQuery.trim()) {
+        const hotelsNote =
+            menuVenues.length > 1 ? ' across all hotels' : '';
         if (totalResults > 0) {
             searchResultsInfo.style.display = 'block';
-            searchResultsInfo.innerHTML = `<strong>${totalResults}</strong> ${totalResults === 1 ? 'item' : 'items'} found for "<strong>${searchQuery}</strong>"`;
+            searchResultsInfo.innerHTML = `<strong>${totalResults}</strong> ${totalResults === 1 ? 'item' : 'items'} found for "<strong>${escapeHtml(searchQuery)}</strong>"${hotelsNote}`;
         } else {
             searchResultsInfo.style.display = 'block';
-            searchResultsInfo.innerHTML = `No items found for "<strong>${searchQuery}</strong>". Try a different search term.`;
+            searchResultsInfo.innerHTML = `No items found for "<strong>${escapeHtml(searchQuery)}</strong>"${hotelsNote}. Try a different search term.`;
         }
     } else {
         searchResultsInfo.style.display = 'none';
@@ -3177,6 +3918,7 @@ function renderMenu(searchQuery = '') {
 
     updateOrderingAvailability();
     syncMenuItemSteppers();
+    syncMenuVenueClosedNotice();
 }
 
 function createMenuItem(item, categoryId) {
@@ -3224,9 +3966,7 @@ function createMenuItem(item, categoryId) {
             </div>`;
 
     menuItem.innerHTML = `
-        <div class="menu-item-image">
-            <img src="${item.image}" alt="${item.alt}" loading="lazy" decoding="async" width="400" height="300" onerror="this.onerror=null; this.src='images/placeholder-icon.svg';">
-        </div>
+        ${buildMenuItemImageHtml(item, categoryId)}
         <div class="menu-item-content">
             <div class="menu-item-header">
                 <h3 class="menu-item-name">${item.name}</h3>
@@ -3266,8 +4006,9 @@ function createMenuItem(item, categoryId) {
 // Handle Add to Cart with size and addons
 // ============================================
 function handleAddToCart(item, selectedSize = null) {
-    if (!isOnlineOrderingWindowOpenIST()) {
-        showToast(getOrderingWindowClosedMessage(), { type: 'info' });
+    const venue = getVenueForItem(item);
+    if (!isVenueOrderingOpen(venue)) {
+        showToast(getVenueClosedMessage(venue), { type: 'info' });
         return;
     }
     const menuItem = document.querySelector(`[data-item-id="${item.id}"]`);
@@ -3281,10 +4022,11 @@ function handleAddToCart(item, selectedSize = null) {
             title,
             subtitle,
             addons,
+            item,
             onConfirm: (selectedAddons) => {
                 const itemName = buildCartLineName(item, selectedSize, selectedAddons);
                 const totalPrice = buildCartLinePrice(item, selectedSize, selectedAddons);
-                addToCart(itemName, totalPrice);
+                addToCart(itemName, totalPrice, getItemVenueMeta(item));
             }
         });
         return;
@@ -3292,7 +4034,7 @@ function handleAddToCart(item, selectedSize = null) {
 
     const itemName = buildCartLineName(item, selectedSize, []);
     const totalPrice = buildCartLinePrice(item, selectedSize, []);
-    addToCart(itemName, totalPrice);
+    addToCart(itemName, totalPrice, getItemVenueMeta(item));
 }
 
 // ============================================
@@ -3721,9 +4463,18 @@ function resetOrderSuccessModalChrome() {
     if (icon) icon.removeAttribute('hidden');
 }
 
-function showOrderSuccessModal(placedAtMs) {
+function formatCustomerPhoneHref(mobile) {
+    const digits = String(mobile || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.length === 10) return `tel:+91${digits}`;
+    if (digits.startsWith('91') && digits.length === 12) return `tel:+${digits}`;
+    return `tel:${digits}`;
+}
+
+function showOrderSuccessModal(placedAtMs, venueInfo = {}) {
     const successModal = document.getElementById('orderSuccessModal');
     const successCopy = document.getElementById('orderSuccessCopy');
+    const contactEl = document.getElementById('orderSuccessVenueContact');
     if (!successModal) {
         window.location.assign('/orders');
         return;
@@ -3749,6 +4500,21 @@ function showOrderSuccessModal(placedAtMs) {
     orderSuccessArrivalIntervalId = setInterval(tickOrderSuccessArrivalCountdown, 1000);
     if (successCopy) {
         successCopy.textContent = getOrderSuccessMessage();
+    }
+
+    const venueName = String(venueInfo.venueName || venueInfo.name || '').trim();
+    const contactMobile = String(venueInfo.venueContactMobile || venueInfo.contactMobile || '').trim();
+    const hoursText = String(venueInfo.venueHoursText || venueInfo.hoursText || '').trim();
+    if (contactEl) {
+        if (contactMobile) {
+            const tel = formatCustomerPhoneHref(contactMobile);
+            const hoursNote = hoursText ? ` · ${escapeHtml(hoursText)}` : '';
+            contactEl.innerHTML = `Need help? Call <strong>${escapeHtml(venueName || 'the hotel')}</strong>: <a href="${tel}">${escapeHtml(contactMobile)}</a>${hoursNote}`;
+            contactEl.hidden = false;
+        } else {
+            contactEl.hidden = true;
+            contactEl.textContent = '';
+        }
     }
 
     successModal.classList.add('active');
@@ -3868,10 +4634,13 @@ async function placeOrder() {
     }
 
     const payload = {
+        orderVenueId: cart[0].venueId || defaultVenueId,
         items: cart.map((item) => ({
             name: item.name,
             price: item.price,
-            quantity: item.quantity
+            quantity: item.quantity,
+            venueId: item.venueId || defaultVenueId,
+            itemId: item.itemId || undefined
         })),
         total,
         couponCode: appliedCoupon?.code || ''
@@ -3941,7 +4710,11 @@ async function placeOrder() {
         if (!Number.isFinite(createdMs)) {
             createdMs = Date.now();
         }
-        showOrderSuccessModal(createdMs);
+        showOrderSuccessModal(createdMs, {
+            venueName: data.venueName,
+            venueContactMobile: data.venueContactMobile,
+            venueHoursText: data.venueHoursText
+        });
     } catch (err) {
         const hint =
             window.location.protocol === 'file:'
@@ -3986,7 +4759,7 @@ function initLazyLoading() {
 // Initialize Everything
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
-    menuBootstrapFetch = fetch('menu.json', { priority: 'high', cache: 'no-store' }).catch(() => null);
+    menuBootstrapFetch = fetch('/api/menu', { priority: 'high', cache: 'no-store' }).catch(() => null);
 
     currentCustomer = getCustomerProfile();
     updateCheckoutProfileUI();
@@ -4003,10 +4776,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     initMobileMenu();
     initSmoothScroll();
     initActiveNavLink();
+    initHeroSection();
     loadMenu(); // Load menu from JSON first
     initMenuCategories();
     initStickyCategoryTabs();
     initMenuSearch();
+    initHotelFilter();
     initMenuItemActions();
     initOrderingAvailability();
     initStoreStatus();

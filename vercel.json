@@ -1,6 +1,8 @@
 {
+  "buildCommand": "node scripts/check-vercel-functions.js",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index?__apiPath=:path*" },
+    { "source": "/api/(.*)", "destination": "/api/index?__apiPath=$1" },
+    { "source": "/api", "destination": "/api/index" },
 
     { "source": "/", "destination": "/login.html" },
     { "source": "/login", "destination": "/login.html" },

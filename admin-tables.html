@@ -231,14 +231,9 @@
             display: grid;
             gap: 0.65rem;
         }
-        .floor-slots--tables {
-            grid-template-columns: repeat(7, minmax(0, 1fr));
-        }
+        .floor-slots--tables,
         .floor-slots--parcels {
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-        }
-        @media (max-width: 1100px) {
-            .floor-slots--tables { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            grid-template-columns: repeat(var(--floor-slot-cols, 4), minmax(0, 1fr));
         }
         @media (max-width: 720px) {
             .floor-slots--tables,
@@ -1412,6 +1407,128 @@
                 40% { transform: scale(1.035); border-color: rgba(5, 150, 105, 0.6); }
                 100% { transform: scale(1); }
             }
+            .settle-prompt {
+                font-size: 0.8125rem;
+                font-weight: 700;
+                text-align: center;
+                color: #047857;
+                margin-bottom: 0.45rem;
+            }
+            .settle-row--ready { animation: settlePulse 0.45s ease; }
+            @keyframes settlePulse {
+                from { transform: scale(0.98); opacity: 0.6; }
+                to { transform: scale(1); opacity: 1; }
+            }
+            .pay-btn--split { background: linear-gradient(135deg, #ca8a04, #7c3aed); color: #fff; }
+            .settle-split-form {
+                margin-top: 0.65rem;
+                display: grid;
+                gap: 0.45rem;
+            }
+            .settle-split-form label {
+                display: grid;
+                gap: 0.25rem;
+                font-size: 0.75rem;
+                font-weight: 600;
+            }
+            .settle-split-form input {
+                font: inherit;
+                padding: 0.45rem 0.55rem;
+                border-radius: 8px;
+                border: 1px solid var(--border);
+            }
+            .drawer-footer--settle-ready {
+                box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.35);
+                border-radius: 12px;
+                padding: 0.65rem;
+            }
+            #kotPrintArea { display: none; }
+            .kot-print-sheet {
+                width: 80mm;
+                max-width: 80mm;
+                margin: 0 auto;
+                padding: 2mm 3mm 4mm;
+                box-sizing: border-box;
+                font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                color: #000;
+            }
+            .kot-print-header { text-align: center; margin-bottom: 2mm; }
+            .kot-print-title {
+                font-size: 14px;
+                font-weight: 700;
+                line-height: 1.25;
+                margin-bottom: 1mm;
+            }
+            .kot-print-address {
+                font-size: 10px;
+                line-height: 1.35;
+                white-space: pre-wrap;
+            }
+            .kot-print-rule {
+                border-top: 1px dashed #000;
+                margin: 2mm 0;
+            }
+            .kot-print-order-meta { text-align: center; }
+            .kot-print-meta-line {
+                font-size: 11px;
+                line-height: 1.35;
+                margin-bottom: 0.5mm;
+            }
+            .kot-print-meta-line--muted { font-size: 10px; }
+            .kot-print-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .kot-print-table th {
+                font-size: 10px;
+                font-weight: 700;
+                text-align: left;
+                padding: 1mm 0;
+                border-bottom: 1px solid #000;
+            }
+            .kot-print-table td {
+                font-size: 10px;
+                padding: 1.2mm 0;
+                vertical-align: top;
+            }
+            .kot-print-item { width: auto; text-align: left; word-break: break-word; }
+            .kot-print-qty { width: 10mm; text-align: center; white-space: nowrap; }
+            .kot-print-amt { width: 16mm; text-align: right; white-space: nowrap; }
+            .kot-print-empty { text-align: center; color: #444; }
+            .kot-print-total-row {
+                display: flex;
+                justify-content: space-between;
+                font-size: 12px;
+                font-weight: 700;
+                margin-bottom: 3mm;
+            }
+            .kot-print-footer {
+                text-align: center;
+                font-size: 11px;
+                font-weight: 700;
+                margin-top: 2mm;
+                padding-top: 1mm;
+            }
+            @media print {
+                @page {
+                    size: 80mm auto;
+                    margin: 0;
+                }
+                body * { visibility: hidden !important; }
+                #kotPrintArea, #kotPrintArea * { visibility: visible !important; }
+                #kotPrintArea {
+                    display: block !important;
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 80mm;
+                }
+                .kot-print-sheet {
+                    width: 80mm;
+                    max-width: 80mm;
+                    padding: 2mm 3mm 4mm;
+                }
+            }
         }
     </style>
 </head>
@@ -1444,14 +1561,14 @@
             <section>
                 <div class="floor-section-head">
                     <h2>Dining tables</h2>
-                    <span>7 seats</span>
+                    <span id="tableCountLabel">—</span>
                 </div>
                 <div class="floor-slots floor-slots--tables" id="tableSlots" aria-label="Dining tables"></div>
             </section>
             <section>
                 <div class="floor-section-head">
                     <h2>Parcel / takeaway</h2>
-                    <span>5 counters</span>
+                    <span id="parcelCountLabel">—</span>
                 </div>
                 <div class="floor-slots floor-slots--parcels" id="parcelSlots" aria-label="Parcel counters"></div>
             </section>
@@ -1508,6 +1625,6 @@
         </div>
     </div>
 
-    <script src="/admin-tables.js?v=38"></script>
+    <script src="/admin-tables.js?v=42"></script>
 </body>
 </html>

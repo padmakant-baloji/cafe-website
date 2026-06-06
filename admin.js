@@ -5,8 +5,10 @@ const DEFAULT_ADMIN_PASS = 'admin';
 const ADMIN_STORAGE_KEY = 'balojiAdminCredentials';
 const SESSION_STORAGE_SEEN = 'balojiAdminSeenPendingIds';
 const SESSION_STORAGE_LAST_ORDER = 'balojiAdminLastOrderId';
-let refreshTimer = null;
 let currentAdminCredentials = null;
+let currentVenue = null;
+let floorConfig = { tableCount: 7, parcelCount: 5 };
+let managedHotels = [];
 
 const ORDER_STATUS_TABS = [
     { key: 'active', label: 'Active', emptyText: 'active orders' },
@@ -326,8 +328,188 @@ async function verifyAdminCredentials(user, pass) {
     const res = await fetch('/api/admin/session', {
         headers: adminHeaders({ user: String(user || '').trim(), pass: String(pass || '').trim() })
     });
-    if (res.status === 401) return false;
-    return res.ok;
+    if (res.status === 401) return null;
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => ({}));
+    if (data.venue) {
+        currentVenue = data.venue;
+        updateVenueHeader();
+    }
+    if (data.floorConfig) {
+        floorConfig = {
+            tableCount: Number(data.floorConfig.tableCount) || 7,
+            parcelCount: Number(data.floorConfig.parcelCount) || 5
+        };
+    }
+    return data;
+}
+
+function updateVenueHeader() {
+    const title = document.getElementById('adminVenueTitle');
+    if (title && currentVenue && currentVenue.name) {
+        title.textContent = `${currentVenue.name} — Orders`;
+    }
+    applyMainVenueUi();
+}
+
+function isMainAdminVenue() {
+    return Boolean(currentVenue && currentVenue.isMain);
+}
+
+function applyMainVenueUi() {
+    const isMain = isMainAdminVenue();
+    const btn = document.getElementById('adminHotelsBtn');
+    if (btn) btn.hidden = !isMain;
+    const menuBtn = document.getElementById('adminPartnerMenuBtn');
+    if (menuBtn) menuBtn.hidden = isMain;
+    const hotelsCreateSection = document.getElementById('adminHotelsCreateSection');
+    if (hotelsCreateSection) hotelsCreateSection.hidden = !isMain;
+    const hotelsModalSub = document.getElementById('adminHotelsModalSub');
+    if (hotelsModalSub) {
+        hotelsModalSub.textContent = isMain
+            ? 'Baloji Cafe is the main hotel. Create other hotels here and give each its own admin login.'
+            : 'Hotel details for your property.';
+    }
+}
+
+function escapeHtml(text) {
+    return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+async function fetchManagedHotels() {
+    const res = await fetch('/api/admin/venues', {
+        headers: adminHeaders(),
+        cache: 'no-store'
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    managedHotels = Array.isArray(data.venues) ? data.venues : [];
+    return managedHotels;
+}
+
+async function createManagedHotel(payload) {
+    const res = await fetch('/api/admin/venues', {
+        method: 'POST',
+        headers: {
+            ...adminHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    return data.venue;
+}
+
+async function updateManagedHotelAccess(venueId, payload) {
+    const res = await fetch(`/api/admin/venues/${venueId}`, {
+        method: 'PATCH',
+        headers: {
+            ...adminHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    return data.venue;
+}
+
+function renderManagedHotelsList() {
+    const listEl = document.getElementById('adminHotelsList');
+    if (!listEl) return;
+    if (!managedHotels.length) {
+        listEl.innerHTML = '<p class="admin-modal-sub" style="margin:0;">No hotels yet.</p>';
+        return;
+    }
+    listEl.innerHTML = managedHotels
+        .map((hotel) => {
+            const badge = hotel.isMain ? '<span class="admin-hotel-badge">Main</span>' : '';
+            const accessFields = hotel.isMain
+                ? ''
+                : `<label class="admin-search">
+                           <span>Admin username</span>
+                           <input type="text" data-hotel-user="${hotel.id}" value="${escapeHtml(hotel.adminUser || '')}">
+                       </label>
+                       <label class="admin-search">
+                           <span>New password (optional)</span>
+                           <input type="password" data-hotel-pass="${hotel.id}" autocomplete="new-password" placeholder="Leave blank to keep current">
+                       </label>`;
+            const editBtn = `<button type="button" class="admin-hotel-edit-btn" data-hotel-menu="${hotel.id}"${hotel.isMain ? ' hidden' : ''}>Menu</button>
+                   <button type="button" class="admin-hotel-edit-btn" data-hotel-edit="${hotel.id}">Hotel details</button>
+                   <div class="admin-hotel-edit-form" id="adminHotelEditForm-${hotel.id}" hidden>
+                       ${accessFields}
+                       <label class="admin-search">
+                           <span>Hotel number</span>
+                           <input type="tel" data-hotel-contact="${hotel.id}" value="${escapeHtml(hotel.contactMobile || '')}">
+                       </label>
+                       <label class="admin-search">
+                           <span>Hotel timing</span>
+                           <input type="text" data-hotel-hours="${hotel.id}" value="${escapeHtml(hotel.hoursText || '')}">
+                       </label>
+                       <button type="button" class="admin-hotel-edit-btn" data-hotel-save="${hotel.id}">Save details</button>
+                   </div>`;
+            const contactMeta = hotel.contactMobile
+                ? `${escapeHtml(hotel.contactMobile)}${hotel.hoursText ? ` · ${escapeHtml(hotel.hoursText)}` : ''}`
+                : '—';
+            return `<div class="admin-hotel-row">
+                <div class="admin-hotel-row-head">
+                    <div>
+                        <div class="admin-hotel-row-title">${escapeHtml(hotel.name)}</div>
+                        <div class="admin-hotel-row-meta">${escapeHtml(hotel.city || '—')} · ${hotel.isMain ? 'main credentials (env)' : `login: ${escapeHtml(hotel.adminUser || '—')}`}</div>
+                        <div class="admin-hotel-row-meta">Customer: ${contactMeta}</div>
+                    </div>
+                    ${badge}
+                </div>
+                ${editBtn}
+            </div>`;
+        })
+        .join('');
+}
+
+async function fetchFloorConfig() {
+    const res = await fetch('/api/admin/floor-config', {
+        headers: adminHeaders(),
+        cache: 'no-store'
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    floorConfig = {
+        tableCount: Number(data.tableCount) || 7,
+        parcelCount: Number(data.parcelCount) || 5
+    };
+    if (data.venue) {
+        currentVenue = data.venue;
+        updateVenueHeader();
+    }
+    return floorConfig;
+}
+
+async function saveFloorConfig(tableCount, parcelCount) {
+    const res = await fetch('/api/admin/floor-config', {
+        method: 'PUT',
+        headers: {
+            ...adminHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ tableCount, parcelCount })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    floorConfig = {
+        tableCount: Number(data.tableCount) || tableCount,
+        parcelCount: Number(data.parcelCount) || parcelCount
+    };
+    return data;
 }
 
 function formatItems(items) {
@@ -556,6 +738,13 @@ function renderAdminAnalytics(orders) {
     if (!root) return;
 
     const data = computeAdminAnalytics(orders || []);
+
+    const headerTotalEl = document.getElementById('adminHeaderTotalSale');
+    if (headerTotalEl) headerTotalEl.textContent = formatMoney(data.settledSalesToday);
+    const headerCashEl = document.getElementById('adminHeaderCashSale');
+    if (headerCashEl) headerCashEl.textContent = formatMoney(data.cashSettledToday);
+    const headerUpiEl = document.getElementById('adminHeaderUpiSale');
+    if (headerUpiEl) headerUpiEl.textContent = formatMoney(data.upiSettledToday);
 
     const updatedEl = document.getElementById('adminAnalyticsUpdatedAt');
     if (updatedEl) updatedEl.textContent = `Updated ${data.updatedAt.toLocaleTimeString()}`;
@@ -1065,10 +1254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const data = await saveStoreStatus(storeAccepting, reason);
             applyStoreStatus(data);
-            setStoreStatusMessage(
-                storeAccepting ? 'Orders are now open.' : 'Orders paused — customers will see the overlay.',
-                'success'
-            );
+            setStoreStatusMessage(storeAccepting ? 'Orders are now ON.' : 'Orders are now OFF.', 'success');
         } catch (err) {
             if (err && err.code === 401) {
                 clearAdminCredentials();
@@ -1112,6 +1298,871 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && storeStatusModal && !storeStatusModal.hidden) {
             closeStoreStatusModal();
+        }
+        if (e.key === 'Escape' && floorConfigModal && !floorConfigModal.hidden) {
+            closeFloorConfigModal();
+        }
+        if (e.key === 'Escape' && hotelsModal && !hotelsModal.hidden) {
+            closeHotelsModal();
+        }
+    });
+
+    const floorConfigBtn = document.getElementById('adminFloorConfigBtn');
+    const floorConfigModal = document.getElementById('adminFloorConfigModal');
+    const floorConfigCloseBtn = document.getElementById('adminFloorConfigCloseBtn');
+    const floorTableCountInput = document.getElementById('adminFloorTableCount');
+    const floorParcelCountInput = document.getElementById('adminFloorParcelCount');
+    const floorConfigSaveBtn = document.getElementById('adminFloorConfigSaveBtn');
+    const floorConfigMsg = document.getElementById('adminFloorConfigMsg');
+
+    function setFloorConfigMessage(text, state) {
+        if (!floorConfigMsg) return;
+        floorConfigMsg.textContent = text || '';
+        if (state) floorConfigMsg.setAttribute('data-state', state);
+        else floorConfigMsg.removeAttribute('data-state');
+    }
+
+    function renderFloorConfigForm() {
+        if (floorTableCountInput) floorTableCountInput.value = String(floorConfig.tableCount || 7);
+        if (floorParcelCountInput) floorParcelCountInput.value = String(floorConfig.parcelCount || 5);
+    }
+
+    async function openFloorConfigModal() {
+        if (!floorConfigModal) return;
+        floorConfigModal.hidden = false;
+        setFloorConfigMessage('', null);
+        try {
+            await fetchFloorConfig();
+            renderFloorConfigForm();
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired. Enter admin credentials again.');
+            } else {
+                setFloorConfigMessage(err.message || 'Could not load floor configuration.', 'error');
+            }
+        }
+    }
+
+    function closeFloorConfigModal() {
+        if (floorConfigModal) floorConfigModal.hidden = true;
+    }
+
+    async function persistFloorConfig() {
+        if (!floorConfigSaveBtn) return;
+        const tableCount = parseInt(String(floorTableCountInput && floorTableCountInput.value), 10);
+        const parcelCount = parseInt(String(floorParcelCountInput && floorParcelCountInput.value), 10);
+        if (!Number.isFinite(tableCount) || tableCount < 1 || tableCount > 30) {
+            setFloorConfigMessage('Tables must be between 1 and 30.', 'error');
+            return;
+        }
+        if (!Number.isFinite(parcelCount) || parcelCount < 1 || parcelCount > 20) {
+            setFloorConfigMessage('Parcel counters must be between 1 and 20.', 'error');
+            return;
+        }
+        setBtnLoading(floorConfigSaveBtn, true);
+        setFloorConfigMessage('Saving…', null);
+        try {
+            await saveFloorConfig(tableCount, parcelCount);
+            renderFloorConfigForm();
+            setFloorConfigMessage('Floor layout saved. Open the tables screen to see changes.', 'success');
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired. Enter admin credentials again.');
+            } else {
+                setFloorConfigMessage(err.message || 'Could not save floor configuration.', 'error');
+            }
+        } finally {
+            setBtnLoading(floorConfigSaveBtn, false);
+        }
+    }
+
+    floorConfigBtn?.addEventListener('click', openFloorConfigModal);
+    floorConfigCloseBtn?.addEventListener('click', closeFloorConfigModal);
+    floorConfigSaveBtn?.addEventListener('click', persistFloorConfig);
+    floorConfigModal?.addEventListener('click', (e) => {
+        if (e.target === floorConfigModal) closeFloorConfigModal();
+    });
+
+    const hotelsBtn = document.getElementById('adminHotelsBtn');
+    const hotelsModal = document.getElementById('adminHotelsModal');
+    const hotelsCloseBtn = document.getElementById('adminHotelsCloseBtn');
+    const hotelsMsg = document.getElementById('adminHotelsMsg');
+    const hotelCreateBtn = document.getElementById('adminHotelCreateBtn');
+    const hotelNameInput = document.getElementById('adminHotelName');
+    const hotelCityInput = document.getElementById('adminHotelCity');
+    const hotelSlugInput = document.getElementById('adminHotelSlug');
+    const hotelAdminUserInput = document.getElementById('adminHotelAdminUser');
+    const hotelAdminPassInput = document.getElementById('adminHotelAdminPass');
+    const hotelTableCountInput = document.getElementById('adminHotelTableCount');
+    const hotelParcelCountInput = document.getElementById('adminHotelParcelCount');
+    const hotelContactMobileInput = document.getElementById('adminHotelContactMobile');
+    const hotelHoursTextInput = document.getElementById('adminHotelHoursText');
+
+    function setHotelsMessage(text, state) {
+        if (!hotelsMsg) return;
+        hotelsMsg.textContent = text || '';
+        if (state) hotelsMsg.setAttribute('data-state', state);
+        else hotelsMsg.removeAttribute('data-state');
+    }
+
+    function clearHotelCreateForm() {
+        if (hotelNameInput) hotelNameInput.value = '';
+        if (hotelCityInput) hotelCityInput.value = '';
+        if (hotelSlugInput) hotelSlugInput.value = '';
+        if (hotelAdminUserInput) hotelAdminUserInput.value = '';
+        if (hotelAdminPassInput) hotelAdminPassInput.value = '';
+        if (hotelTableCountInput) hotelTableCountInput.value = '7';
+        if (hotelParcelCountInput) hotelParcelCountInput.value = '5';
+        if (hotelContactMobileInput) hotelContactMobileInput.value = '';
+        if (hotelHoursTextInput) hotelHoursTextInput.value = '';
+    }
+
+    async function openHotelsModal() {
+        if (!hotelsModal) return;
+        hotelsModal.hidden = false;
+        setHotelsMessage('', null);
+        try {
+            await fetchManagedHotels();
+            renderManagedHotelsList();
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired. Enter admin credentials again.');
+            } else {
+                setHotelsMessage(err.message || 'Could not load hotels.', 'error');
+            }
+        }
+    }
+
+    function closeHotelsModal() {
+        if (hotelsModal) hotelsModal.hidden = true;
+    }
+
+    hotelsBtn?.addEventListener('click', openHotelsModal);
+    hotelsCloseBtn?.addEventListener('click', closeHotelsModal);
+    hotelsModal?.addEventListener('click', (e) => {
+        if (e.target === hotelsModal) closeHotelsModal();
+    });
+
+    hotelCreateBtn?.addEventListener('click', async () => {
+        if (!isMainAdminVenue()) {
+            setHotelsMessage('Only Baloji Cafe can create hotels.', 'error');
+            return;
+        }
+        const name = String(hotelNameInput?.value || '').trim();
+        const city = String(hotelCityInput?.value || '').trim();
+        const slug = String(hotelSlugInput?.value || '').trim();
+        const adminUser = String(hotelAdminUserInput?.value || '').trim();
+        const adminPass = String(hotelAdminPassInput?.value || '').trim();
+        const tableCount = parseInt(String(hotelTableCountInput?.value || '7'), 10);
+        const parcelCount = parseInt(String(hotelParcelCountInput?.value || '5'), 10);
+        const contactMobile = String(hotelContactMobileInput?.value || '').trim();
+        const hoursText = String(hotelHoursTextInput?.value || '').trim();
+        if (!name || !adminUser || !adminPass) {
+            setHotelsMessage('Name, admin username, and password are required.', 'error');
+            return;
+        }
+        setBtnLoading(hotelCreateBtn, true);
+        setHotelsMessage('Creating…', null);
+        try {
+            await createManagedHotel({
+                name,
+                city,
+                slug: slug || undefined,
+                adminUser,
+                adminPass,
+                tableCount,
+                parcelCount,
+                contactMobile,
+                hoursText
+            });
+            clearHotelCreateForm();
+            await fetchManagedHotels();
+            renderManagedHotelsList();
+            setHotelsMessage('Hotel created. Share the login with that property.', 'success');
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired. Enter admin credentials again.');
+            } else {
+                setHotelsMessage(err.message || 'Could not create hotel.', 'error');
+            }
+        } finally {
+            setBtnLoading(hotelCreateBtn, false);
+        }
+    });
+
+    hotelsModal?.addEventListener('click', async (e) => {
+        const menuBtn = e.target.closest('[data-hotel-menu]');
+        if (menuBtn) {
+            const id = menuBtn.getAttribute('data-hotel-menu');
+            await openPartnerMenuEditor(id);
+            return;
+        }
+        const editBtn = e.target.closest('[data-hotel-edit]');
+        if (editBtn) {
+            const id = editBtn.getAttribute('data-hotel-edit');
+            const form = document.getElementById(`adminHotelEditForm-${id}`);
+            if (form) form.hidden = !form.hidden;
+            return;
+        }
+        const saveBtn = e.target.closest('[data-hotel-save]');
+        if (!saveBtn) return;
+        const id = saveBtn.getAttribute('data-hotel-save');
+        const userInput = hotelsModal.querySelector(`[data-hotel-user="${id}"]`);
+        const passInput = hotelsModal.querySelector(`[data-hotel-pass="${id}"]`);
+        const contactInput = hotelsModal.querySelector(`[data-hotel-contact="${id}"]`);
+        const hoursInput = hotelsModal.querySelector(`[data-hotel-hours="${id}"]`);
+        const adminUser = userInput ? String(userInput.value || '').trim() : '';
+        const adminPass = passInput ? String(passInput.value || '').trim() : '';
+        const contactMobile = contactInput ? String(contactInput.value || '').trim() : '';
+        const hoursText = hoursInput ? String(hoursInput.value || '').trim() : '';
+        const hotel = managedHotels.find((row) => String(row.id) === String(id));
+        if (!hotel?.isMain && !adminUser) {
+            setHotelsMessage('Admin username is required.', 'error');
+            return;
+        }
+        setBtnLoading(saveBtn, true);
+        setHotelsMessage('Saving…', null);
+        try {
+            if (hotel?.isMain) {
+                const profileRes = await fetch('/api/admin/venue-profile', {
+                    method: 'PUT',
+                    headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contactMobile, hoursText })
+                });
+                const profileData = await profileRes.json().catch(() => ({}));
+                if (!profileRes.ok) throw new Error(profileData.error || 'Could not save hotel details.');
+            } else {
+                const payload = { contactMobile, hoursText, adminUser };
+                if (adminPass) payload.adminPass = adminPass;
+                await updateManagedHotelAccess(id, payload);
+            }
+            await fetchManagedHotels();
+            renderManagedHotelsList();
+            setHotelsMessage('Hotel details updated.', 'success');
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired. Enter admin credentials again.');
+            } else {
+                setHotelsMessage(err.message || 'Could not update hotel.', 'error');
+            }
+        } finally {
+            setBtnLoading(saveBtn, false);
+        }
+    });
+
+    const partnerMenuBtn = document.getElementById('adminPartnerMenuBtn');
+    const partnerMenuModal = document.getElementById('adminPartnerMenuModal');
+    const partnerMenuCloseBtn = document.getElementById('adminPartnerMenuCloseBtn');
+    const partnerMenuAddForm = document.getElementById('adminPartnerMenuAddForm');
+    const partnerMenuItemName = document.getElementById('adminPartnerMenuItemName');
+    const partnerMenuItemPrice = document.getElementById('adminPartnerMenuItemPrice');
+    const partnerMenuHalfFullToggle = document.getElementById('adminPartnerMenuHalfFull');
+    const partnerMenuSinglePriceRow = document.getElementById('adminPartnerMenuSinglePriceRow');
+    const partnerMenuHalfFullRow = document.getElementById('adminPartnerMenuHalfFullRow');
+    const partnerMenuItemHalfPrice = document.getElementById('adminPartnerMenuItemHalfPrice');
+    const partnerMenuItemFullPrice = document.getElementById('adminPartnerMenuItemFullPrice');
+    const partnerMenuItemCategory = document.getElementById('adminPartnerMenuItemCategory');
+    const partnerMenuCategoryList = document.getElementById('adminPartnerMenuCategoryList');
+    const partnerMenuList = document.getElementById('adminPartnerMenuList');
+    const partnerMenuListCount = document.getElementById('adminPartnerMenuListCount');
+    const partnerMenuAddBtn = document.getElementById('adminPartnerMenuAddBtn');
+    const partnerMenuCancelBtn = document.getElementById('adminPartnerMenuCancelBtn');
+    const partnerMenuFormTitle = document.getElementById('adminPartnerMenuFormTitle');
+    const partnerMenuMsg = document.getElementById('adminPartnerMenuMsg');
+    const partnerMenuModalTitle = document.getElementById('adminPartnerMenuModalTitle');
+    const partnerMenuModalSub = document.getElementById('adminPartnerMenuModalSub');
+    let partnerMenuVenueId = null;
+    let partnerMenuCategories = [];
+    let partnerMenuVenueName = '';
+    let partnerMenuEditing = null;
+
+    function slugifyMenuId(text) {
+        return (
+            String(text || '')
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '') || 'item'
+        );
+    }
+
+    function collectPartnerMenuItemIds(categories) {
+        const ids = new Set();
+        for (const cat of categories || []) {
+            for (const item of cat.items || []) {
+                if (item && item.id) ids.add(String(item.id));
+            }
+            for (const sub of cat.subsections || []) {
+                for (const item of sub.items || []) {
+                    if (item && item.id) ids.add(String(item.id));
+                }
+            }
+        }
+        return ids;
+    }
+
+    function makeUniquePartnerItemId(categories, name) {
+        const base = slugifyMenuId(name);
+        const existing = collectPartnerMenuItemIds(categories);
+        let id = base;
+        let n = 2;
+        while (existing.has(id)) {
+            id = `${base}-${n++}`;
+        }
+        return id;
+    }
+
+    function findPartnerCategory(categories, categoryName) {
+        const normalized = String(categoryName || '').trim().toLowerCase();
+        if (!normalized) return null;
+        return (categories || []).find((cat) => String(cat.name || '').trim().toLowerCase() === normalized) || null;
+    }
+
+    function findOrCreatePartnerCategory(categories, categoryName) {
+        const name = String(categoryName || '').trim();
+        if (!name) return null;
+        let cat = findPartnerCategory(categories, name);
+        if (cat) return cat;
+        const baseId = slugifyMenuId(name);
+        let id = baseId;
+        let n = 2;
+        const usedIds = new Set((categories || []).map((c) => String(c.id || '')));
+        while (usedIds.has(id)) {
+            id = `${baseId}-${n++}`;
+        }
+        cat = { id, name, items: [] };
+        categories.push(cat);
+        return cat;
+    }
+
+    function normalizePartnerMenuCategories(rawCategories) {
+        const categories = JSON.parse(JSON.stringify(rawCategories || []));
+        for (const cat of categories) {
+            if (!cat.id) cat.id = slugifyMenuId(cat.name || 'category');
+            if (!Array.isArray(cat.items)) cat.items = [];
+            const existingIds = collectPartnerMenuItemIds(categories);
+            for (const item of cat.items) {
+                if (!item || item.enabled === false) continue;
+                if (!item.id) {
+                    item.id = makeUniquePartnerItemId(categories, item.name || 'item');
+                    existingIds.add(String(item.id));
+                }
+                if (!item.alt && item.name) item.alt = item.name;
+                if (!item.image) item.image = 'images/placeholder-icon.svg';
+            }
+            for (const sub of cat.subsections || []) {
+                for (const item of sub.items || []) {
+                    if (!item || item.enabled === false) continue;
+                    if (!item.id) {
+                        item.id = makeUniquePartnerItemId(categories, item.name || 'item');
+                        existingIds.add(String(item.id));
+                    }
+                    if (!item.alt && item.name) item.alt = item.name;
+                    if (!item.image) item.image = 'images/placeholder-icon.svg';
+                }
+            }
+        }
+        return categories;
+    }
+
+    function getPartnerMenuItemPrice(item) {
+        if (!item) return null;
+        const direct = parseInt(String(item.price), 10);
+        if (Number.isFinite(direct) && direct >= 0) return direct;
+        if (Array.isArray(item.sizes) && item.sizes.length) {
+            const prices = item.sizes
+                .map((size) => parseInt(String(size.price), 10))
+                .filter((value) => Number.isFinite(value) && value >= 0);
+            if (prices.length) return Math.min(...prices);
+        }
+        return null;
+    }
+
+    function getPartnerMenuSizePrice(item, label) {
+        if (!item || !Array.isArray(item.sizes)) return null;
+        const size = item.sizes.find((row) => String(row.label || '').trim().toLowerCase() === label);
+        if (!size) return null;
+        const price = parseInt(String(size.price), 10);
+        return Number.isFinite(price) && price >= 0 ? price : null;
+    }
+
+    function itemUsesHalfFullPricing(item) {
+        if (!item || !Array.isArray(item.sizes) || !item.sizes.length) return false;
+        const labels = item.sizes.map((size) => String(size.label || '').trim().toLowerCase());
+        return labels.includes('half') || labels.includes('full');
+    }
+
+    function formatPartnerMenuItemPrice(item) {
+        if (!item) return '—';
+        const half = getPartnerMenuSizePrice(item, 'half');
+        const full = getPartnerMenuSizePrice(item, 'full');
+        if (half != null && full != null) return `₹${half} / ₹${full}`;
+        if (full != null && half == null) return `₹${full}`;
+        if (half != null) return `₹${half}`;
+        const direct = parseInt(String(item.price), 10);
+        if (Number.isFinite(direct) && direct >= 0) return `₹${direct}`;
+        if (Array.isArray(item.sizes) && item.sizes.length) {
+            return item.sizes.map((size) => `₹${size.price}`).join(' / ');
+        }
+        return '—';
+    }
+
+    function syncPartnerMenuPricingFields() {
+        const useHalfFull = Boolean(partnerMenuHalfFullToggle?.checked);
+        if (partnerMenuSinglePriceRow) partnerMenuSinglePriceRow.hidden = useHalfFull;
+        if (partnerMenuHalfFullRow) partnerMenuHalfFullRow.hidden = !useHalfFull;
+        if (partnerMenuItemPrice) partnerMenuItemPrice.required = !useHalfFull;
+        if (partnerMenuItemFullPrice) partnerMenuItemFullPrice.required = useHalfFull;
+    }
+
+    function buildPartnerMenuItemPricing({ useHalfFull, price, halfPrice, fullPrice }) {
+        if (useHalfFull) {
+            const half = parseInt(String(halfPrice), 10);
+            const full = parseInt(String(fullPrice), 10);
+            const hasHalf = Number.isFinite(half) && half >= 1;
+            const hasFull = Number.isFinite(full) && full >= 1;
+            if (hasHalf && hasFull) {
+                return {
+                    sizes: [
+                        { label: 'Half', price: half },
+                        { label: 'Full', price: full }
+                    ]
+                };
+            }
+            if (hasFull) return { price: full };
+            if (hasHalf) return { price: half };
+            return {};
+        }
+        const single = parseInt(String(price), 10);
+        if (Number.isFinite(single) && single >= 1) return { price: single };
+        return {};
+    }
+
+    function collectPartnerMenuRows(categories) {
+        const rows = [];
+        for (const cat of categories || []) {
+            const categoryName = String(cat.name || 'Category').trim();
+            const catId = cat.id;
+            const pushRow = (item) => {
+                if (!item || item.enabled === false) return;
+                const name = String(item.name || '').trim();
+                const priceLabel = formatPartnerMenuItemPrice(item);
+                if (!name || priceLabel === '—') return;
+                rows.push({
+                    item,
+                    catId,
+                    categoryName,
+                    name,
+                    priceLabel
+                });
+            };
+            for (const item of cat.items || []) pushRow(item);
+            for (const sub of cat.subsections || []) {
+                for (const item of sub.items || []) pushRow(item);
+            }
+        }
+        rows.sort((a, b) => {
+            const catCmp = a.categoryName.localeCompare(b.categoryName, undefined, { sensitivity: 'base' });
+            if (catCmp !== 0) return catCmp;
+            return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        });
+        return rows;
+    }
+
+    function resetPartnerMenuFormMode() {
+        partnerMenuEditing = null;
+        if (partnerMenuFormTitle) partnerMenuFormTitle.textContent = 'Add menu item';
+        if (partnerMenuAddBtn) partnerMenuAddBtn.textContent = 'Add item';
+        if (partnerMenuCancelBtn) partnerMenuCancelBtn.hidden = true;
+        partnerMenuAddForm?.reset();
+        if (partnerMenuHalfFullToggle) partnerMenuHalfFullToggle.checked = false;
+        syncPartnerMenuPricingFields();
+    }
+
+    function findPartnerMenuItemRef(categoryId, itemId) {
+        const cat = (partnerMenuCategories || []).find((c) => String(c.id) === String(categoryId));
+        if (!cat) return null;
+        const direct = (cat.items || []).find((item) => String(item.id) === String(itemId));
+        if (direct) return { item: direct, cat };
+        for (const sub of cat.subsections || []) {
+            const nested = (sub.items || []).find((item) => String(item.id) === String(itemId));
+            if (nested) return { item: nested, cat, sub };
+        }
+        return null;
+    }
+
+    function extractPartnerMenuItem(categoryId, itemId) {
+        const cat = (partnerMenuCategories || []).find((c) => String(c.id) === String(categoryId));
+        if (!cat) return null;
+        const itemIndex = (cat.items || []).findIndex((item) => String(item.id) === String(itemId));
+        if (itemIndex >= 0) {
+            const [item] = cat.items.splice(itemIndex, 1);
+            return item;
+        }
+        for (const sub of cat.subsections || []) {
+            const subIndex = (sub.items || []).findIndex((item) => String(item.id) === String(itemId));
+            if (subIndex >= 0) {
+                const [item] = sub.items.splice(subIndex, 1);
+                return item;
+            }
+        }
+        return null;
+    }
+
+    function updatePartnerMenuItem(oldCatId, itemId, values) {
+        const existing = extractPartnerMenuItem(oldCatId, itemId);
+        if (!existing) return false;
+
+        const pricing = buildPartnerMenuItemPricing(values);
+        const updated = {
+            ...existing,
+            name: values.name,
+            alt: values.name,
+            enabled: existing.enabled !== false
+        };
+        delete updated.price;
+        delete updated.sizes;
+        delete updated.customerPrice;
+        delete updated.basePrice;
+        Object.assign(updated, pricing);
+
+        const targetCat = findOrCreatePartnerCategory(partnerMenuCategories, values.categoryName);
+        if (!targetCat.items) targetCat.items = [];
+        targetCat.items.push(updated);
+        pruneEmptyPartnerCategories();
+        return true;
+    }
+
+    function startPartnerMenuEdit(categoryId, itemId) {
+        const ref = findPartnerMenuItemRef(categoryId, itemId);
+        if (!ref) return;
+        if (formatPartnerMenuItemPrice(ref.item) === '—') return;
+
+        partnerMenuEditing = { catId: String(categoryId), itemId: String(itemId) };
+        if (partnerMenuFormTitle) partnerMenuFormTitle.textContent = 'Edit menu item';
+        if (partnerMenuAddBtn) partnerMenuAddBtn.textContent = 'Save changes';
+        if (partnerMenuCancelBtn) partnerMenuCancelBtn.hidden = false;
+        if (partnerMenuItemName) partnerMenuItemName.value = String(ref.item.name || '').trim();
+        if (partnerMenuItemCategory) partnerMenuItemCategory.value = String(ref.cat.name || '').trim();
+
+        const useHalfFull = itemUsesHalfFullPricing(ref.item);
+        if (partnerMenuHalfFullToggle) partnerMenuHalfFullToggle.checked = useHalfFull;
+        syncPartnerMenuPricingFields();
+
+        if (useHalfFull) {
+            if (partnerMenuItemHalfPrice) {
+                const half = getPartnerMenuSizePrice(ref.item, 'half');
+                partnerMenuItemHalfPrice.value = half != null ? String(half) : '';
+            }
+            if (partnerMenuItemFullPrice) {
+                const full = getPartnerMenuSizePrice(ref.item, 'full');
+                partnerMenuItemFullPrice.value = full != null ? String(full) : '';
+            }
+            if (partnerMenuItemPrice) partnerMenuItemPrice.value = '';
+        } else if (partnerMenuItemPrice) {
+            const price = getPartnerMenuItemPrice(ref.item);
+            partnerMenuItemPrice.value = price != null ? String(price) : '';
+            if (partnerMenuItemHalfPrice) partnerMenuItemHalfPrice.value = '';
+            if (partnerMenuItemFullPrice) partnerMenuItemFullPrice.value = '';
+        }
+
+        setPartnerMenuMessage('', null);
+        renderPartnerMenuList();
+        partnerMenuItemName?.focus();
+        partnerMenuAddForm?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function readPartnerMenuFormValues() {
+        const name = String(partnerMenuItemName?.value || '').trim();
+        const categoryName = String(partnerMenuItemCategory?.value || '').trim();
+        const useHalfFull = Boolean(partnerMenuHalfFullToggle?.checked);
+        const price = parseInt(String(partnerMenuItemPrice?.value || ''), 10);
+        const halfPrice = parseInt(String(partnerMenuItemHalfPrice?.value || ''), 10);
+        const fullPrice = parseInt(String(partnerMenuItemFullPrice?.value || ''), 10);
+        return { name, categoryName, useHalfFull, price, halfPrice, fullPrice };
+    }
+
+    function validatePartnerMenuFormValues(values) {
+        if (!values.name) {
+            setPartnerMenuMessage('Enter item name.', 'error');
+            partnerMenuItemName?.focus();
+            return false;
+        }
+        if (!values.categoryName) {
+            setPartnerMenuMessage('Enter category.', 'error');
+            partnerMenuItemCategory?.focus();
+            return false;
+        }
+        if (values.useHalfFull) {
+            const hasHalf = Number.isFinite(values.halfPrice) && values.halfPrice >= 1;
+            const hasFull = Number.isFinite(values.fullPrice) && values.fullPrice >= 1;
+            if (!hasHalf && !hasFull) {
+                setPartnerMenuMessage('Enter at least a Full price, or both Half and Full.', 'error');
+                partnerMenuItemFullPrice?.focus();
+                return false;
+            }
+            if (hasHalf && hasFull && values.halfPrice >= values.fullPrice) {
+                setPartnerMenuMessage('Half price must be less than Full price.', 'error');
+                partnerMenuItemHalfPrice?.focus();
+                return false;
+            }
+            return true;
+        }
+        if (!Number.isFinite(values.price) || values.price < 1) {
+            setPartnerMenuMessage('Enter a valid price.', 'error');
+            partnerMenuItemPrice?.focus();
+            return false;
+        }
+        return true;
+    }
+
+    function updatePartnerMenuCategoryDatalist() {
+        if (!partnerMenuCategoryList) return;
+        const names = (partnerMenuCategories || [])
+            .map((cat) => String(cat.name || '').trim())
+            .filter(Boolean);
+        partnerMenuCategoryList.innerHTML = names.map((name) => `<option value="${escapeHtml(name)}"></option>`).join('');
+    }
+
+    function renderPartnerMenuList() {
+        if (!partnerMenuList) return;
+        const rows = collectPartnerMenuRows(partnerMenuCategories);
+        if (partnerMenuListCount) {
+            partnerMenuListCount.textContent = `${rows.length} item${rows.length === 1 ? '' : 's'}`;
+        }
+        if (!rows.length) {
+            partnerMenuList.innerHTML =
+                '<div class="admin-partner-menu-table-wrap"><p class="admin-partner-menu-empty">No items yet. Add your first item above.</p></div>';
+            updatePartnerMenuCategoryDatalist();
+            return;
+        }
+        partnerMenuList.innerHTML = `
+            <div class="admin-partner-menu-table-wrap">
+                <table class="admin-partner-menu-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Item</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Price</th>
+                            <th scope="col">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows
+                            .map(({ item, catId, categoryName, name, priceLabel }) => {
+                                const isEditing =
+                                    partnerMenuEditing &&
+                                    String(partnerMenuEditing.catId) === String(catId) &&
+                                    String(partnerMenuEditing.itemId) === String(item.id);
+                                return `
+                        <tr${isEditing ? ' data-partner-menu-editing="true"' : ''}>
+                            <td><span class="admin-partner-menu-table-name">${escapeHtml(name)}</span></td>
+                            <td><span class="admin-partner-menu-table-cat">${escapeHtml(categoryName)}</span></td>
+                            <td><span class="admin-partner-menu-table-price">${escapeHtml(priceLabel)}</span></td>
+                            <td>
+                                <div class="admin-partner-menu-table-actions">
+                                    <button type="button" class="admin-partner-menu-item-edit" data-partner-menu-edit="${escapeHtml(String(item.id))}" data-partner-menu-cat="${escapeHtml(String(catId))}"${isEditing ? ' disabled' : ''}>Edit</button>
+                                    <button type="button" class="admin-partner-menu-item-remove" data-partner-menu-remove="${escapeHtml(String(item.id))}" data-partner-menu-cat="${escapeHtml(String(catId))}"${partnerMenuEditing ? ' disabled' : ''}>Remove</button>
+                                </div>
+                            </td>
+                        </tr>`;
+                            })
+                            .join('')}
+                    </tbody>
+                </table>
+            </div>`;
+        updatePartnerMenuCategoryDatalist();
+    }
+
+    function removePartnerMenuItem(categoryId, itemId) {
+        const cat = (partnerMenuCategories || []).find((c) => String(c.id) === String(categoryId));
+        if (!cat) return false;
+        const before = (cat.items || []).length;
+        cat.items = (cat.items || []).filter((item) => String(item.id) !== String(itemId));
+        if (cat.items.length !== before) return true;
+        for (const sub of cat.subsections || []) {
+            const subBefore = (sub.items || []).length;
+            sub.items = (sub.items || []).filter((item) => String(item.id) !== String(itemId));
+            if (sub.items.length !== subBefore) return true;
+        }
+        return false;
+    }
+
+    function pruneEmptyPartnerCategories() {
+        partnerMenuCategories = (partnerMenuCategories || []).filter((cat) => {
+            const direct = (cat.items || []).length;
+            const nested = (cat.subsections || []).some((sub) => (sub.items || []).length);
+            return direct || nested;
+        });
+    }
+
+    function setPartnerMenuMessage(text, state) {
+        if (!partnerMenuMsg) return;
+        partnerMenuMsg.textContent = text || '';
+        if (state) partnerMenuMsg.setAttribute('data-state', state);
+        else partnerMenuMsg.removeAttribute('data-state');
+    }
+
+    async function savePartnerMenuCategories() {
+        const url = partnerMenuVenueId
+            ? `/api/admin/menu?venueId=${encodeURIComponent(partnerMenuVenueId)}`
+            : '/api/admin/menu';
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ categories: partnerMenuCategories })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        partnerMenuCategories = normalizePartnerMenuCategories(data.categories || partnerMenuCategories);
+        renderPartnerMenuList();
+        return data;
+    }
+
+    async function openPartnerMenuEditor(venueId = null) {
+        if (!partnerMenuModal) return;
+        partnerMenuVenueId = venueId;
+        partnerMenuModal.hidden = false;
+        setPartnerMenuMessage('', null);
+        resetPartnerMenuFormMode();
+        try {
+            const url = venueId ? `/api/admin/menu?venueId=${encodeURIComponent(venueId)}` : '/api/admin/menu';
+            const res = await fetch(url, { headers: adminHeaders(), cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || res.statusText);
+            if (data.editable === false) {
+                setPartnerMenuMessage('This hotel menu is managed in menu.json.', 'error');
+                if (partnerMenuAddForm) partnerMenuAddForm.hidden = true;
+                partnerMenuList.innerHTML = '<p class="admin-partner-menu-empty">Baloji Cafe menu is edited in menu.json.</p>';
+                return;
+            }
+            if (partnerMenuAddForm) partnerMenuAddForm.hidden = false;
+            partnerMenuCategories = normalizePartnerMenuCategories(data.categories || []);
+            partnerMenuVenueName = (data.venue && data.venue.name) || '';
+            if (partnerMenuModalTitle) {
+                partnerMenuModalTitle.textContent = partnerMenuVenueName
+                    ? `${partnerMenuVenueName} — menu`
+                    : 'Hotel menu';
+            }
+            if (partnerMenuModalSub) {
+                partnerMenuModalSub.textContent =
+                    'Add items with name, price, and category. Customers see prices plus ₹8 online markup.';
+            }
+            renderPartnerMenuList();
+        } catch (err) {
+            setPartnerMenuMessage(err.message || 'Could not load menu.', 'error');
+        }
+    }
+
+    function closePartnerMenuModal() {
+        if (partnerMenuModal) partnerMenuModal.hidden = true;
+        partnerMenuVenueId = null;
+        partnerMenuCategories = [];
+        partnerMenuVenueName = '';
+        resetPartnerMenuFormMode();
+        if (partnerMenuList) partnerMenuList.innerHTML = '';
+        if (partnerMenuListCount) partnerMenuListCount.textContent = '0 items';
+        if (partnerMenuAddForm) partnerMenuAddForm.hidden = false;
+    }
+
+    partnerMenuBtn?.addEventListener('click', () => openPartnerMenuEditor(null));
+    partnerMenuCloseBtn?.addEventListener('click', closePartnerMenuModal);
+    partnerMenuCancelBtn?.addEventListener('click', () => {
+        resetPartnerMenuFormMode();
+        renderPartnerMenuList();
+        setPartnerMenuMessage('Edit cancelled.', null);
+    });
+    partnerMenuModal?.addEventListener('click', (e) => {
+        if (e.target === partnerMenuModal) closePartnerMenuModal();
+    });
+
+    partnerMenuHalfFullToggle?.addEventListener('change', syncPartnerMenuPricingFields);
+    syncPartnerMenuPricingFields();
+
+    partnerMenuAddForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const values = readPartnerMenuFormValues();
+        if (!validatePartnerMenuFormValues(values)) return;
+
+        const { name, categoryName } = values;
+        const pricing = buildPartnerMenuItemPricing(values);
+        const snapshot = normalizePartnerMenuCategories(partnerMenuCategories);
+        const isEditing = Boolean(partnerMenuEditing);
+
+        if (isEditing) {
+            if (!updatePartnerMenuItem(partnerMenuEditing.catId, partnerMenuEditing.itemId, values)) {
+                setPartnerMenuMessage('Could not find item to update.', 'error');
+                return;
+            }
+        } else {
+            const cat = findOrCreatePartnerCategory(partnerMenuCategories, categoryName);
+            if (!cat.items) cat.items = [];
+            cat.items.push({
+                id: makeUniquePartnerItemId(partnerMenuCategories, name),
+                name,
+                alt: name,
+                image: 'images/placeholder-icon.svg',
+                enabled: true,
+                ...pricing
+            });
+        }
+
+        setBtnLoading(partnerMenuAddBtn, true);
+        setPartnerMenuMessage('Saving…', null);
+        try {
+            await savePartnerMenuCategories();
+            resetPartnerMenuFormMode();
+            partnerMenuItemName?.focus();
+            setPartnerMenuMessage(isEditing ? 'Item updated.' : 'Item added.', 'success');
+        } catch (err) {
+            partnerMenuCategories = snapshot;
+            pruneEmptyPartnerCategories();
+            renderPartnerMenuList();
+            setPartnerMenuMessage(err.message || 'Could not save menu.', 'error');
+        } finally {
+            setBtnLoading(partnerMenuAddBtn, false);
+        }
+    });
+
+    partnerMenuList?.addEventListener('click', async (e) => {
+        const editBtn = e.target.closest('[data-partner-menu-edit]');
+        if (editBtn) {
+            if (partnerMenuEditing) return;
+            const itemId = editBtn.getAttribute('data-partner-menu-edit');
+            const catId = editBtn.getAttribute('data-partner-menu-cat');
+            if (!itemId || !catId) return;
+            startPartnerMenuEdit(catId, itemId);
+            return;
+        }
+
+        const btn = e.target.closest('[data-partner-menu-remove]');
+        if (!btn || partnerMenuEditing) return;
+        const itemId = btn.getAttribute('data-partner-menu-remove');
+        const catId = btn.getAttribute('data-partner-menu-cat');
+        if (!itemId || !catId) return;
+
+        const snapshot = normalizePartnerMenuCategories(partnerMenuCategories);
+        if (!removePartnerMenuItem(catId, itemId)) return;
+        pruneEmptyPartnerCategories();
+        renderPartnerMenuList();
+
+        setBtnLoading(btn, true);
+        setPartnerMenuMessage('Saving…', null);
+        try {
+            await savePartnerMenuCategories();
+            setPartnerMenuMessage('Item removed.', 'success');
+        } catch (err) {
+            partnerMenuCategories = snapshot;
+            renderPartnerMenuList();
+            setPartnerMenuMessage(err.message || 'Could not save menu.', 'error');
+        } finally {
+            setBtnLoading(btn, false);
         }
     });
 
@@ -1480,10 +2531,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (e) {
             if (e && e.code === 401) {
-                if (refreshTimer) {
-                    clearInterval(refreshTimer);
-                    refreshTimer = null;
-                }
                 clearAdminCredentials();
                 hideNewOrderPopup();
                 pendingPopupQueue = [];
@@ -1548,10 +2595,6 @@ document.addEventListener('DOMContentLoaded', () => {
         hideNewOrderPopup();
         pendingPopupQueue = [];
         pendingPopupQueueIds = new Set();
-        if (refreshTimer) {
-            clearInterval(refreshTimer);
-            refreshTimer = null;
-        }
         showAdminGate('Admin credentials removed from this browser.');
         listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
     });
@@ -1566,8 +2609,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         setBtnLoading(authSubmit, true);
         try {
-            const ok = await verifyAdminCredentials(user, pass).catch(() => false);
-            if (!ok) {
+            const session = await verifyAdminCredentials(user, pass).catch(() => null);
+            if (!session) {
                 clearAdminCredentials();
                 showAdminGate('Invalid admin credentials. Please try again.');
             } else {
@@ -1575,6 +2618,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideAdminGate();
                 await refresh();
                 loadStoreStatus();
+                fetchFloorConfig().catch(() => {});
             }
         } finally {
             setBtnLoading(authSubmit, false);
@@ -1593,8 +2637,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const ok = await verifyAdminCredentials(savedCreds.user, savedCreds.pass).catch(() => false);
-        if (!ok) {
+        const session = await verifyAdminCredentials(savedCreds.user, savedCreds.pass).catch(() => null);
+        if (!session) {
             clearAdminCredentials();
             showAdminGate('Invalid saved admin credentials. Please log in again.');
             hideNewOrderPopup();
@@ -1607,6 +2651,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hideAdminGate();
         refresh();
         loadStoreStatus();
+        fetchFloorConfig().catch(() => {});
     };
 
     initAdmin();
