@@ -4681,10 +4681,12 @@ async function placeOrder() {
         if (!Number.isFinite(createdMs)) {
             createdMs = Date.now();
         }
+        const orderVenueId = Number(payload.orderVenueId) || defaultVenueId;
+        const orderVenue = menuVenues.find((v) => Number(v.id) === orderVenueId);
         showOrderSuccessModal(createdMs, {
-            venueName: data.venueName,
-            venueContactMobile: data.venueContactMobile,
-            venueHoursText: data.venueHoursText
+            venueName: data.venueName || orderVenue?.name,
+            venueContactMobile: data.venueContactMobile || orderVenue?.contactMobile,
+            venueHoursText: data.venueHoursText || orderVenue?.hoursText
         });
     } catch (err) {
         const hint =

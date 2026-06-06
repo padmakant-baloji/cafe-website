@@ -43,6 +43,31 @@ function formatOrderStatus(status) {
     return map[status] || status;
 }
 
+const ACTIVE_ORDER_STATUSES = new Set(['pending', 'accepted', 'preparing', 'out_for_delivery']);
+
+function formatPhoneHref(mobile) {
+    const digits = String(mobile || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.length === 10) return `tel:+91${digits}`;
+    if (digits.startsWith('91') && digits.length === 12) return `tel:+${digits}`;
+    return `tel:${digits}`;
+}
+
+function buildOrderContactBlock(order, statusLower) {
+    if (!ACTIVE_ORDER_STATUSES.has(statusLower)) return '';
+    const venueName = String(order.venueName || order.venue_name || '').trim();
+    const contactMobile = String(order.venueContactMobile || order.venue_contact_mobile || '').trim();
+    if (!contactMobile) return '';
+    const tel = formatPhoneHref(contactMobile);
+    if (!tel) return '';
+    return `
+        <div class="my-order-contact">
+            <span class="my-order-contact-label">Hotel contact</span>
+            <span class="my-order-contact-hotel">${escapeHtml(venueName || 'Hotel')}</span>
+            <a href="${tel}" class="my-order-contact-phone" aria-label="Call ${escapeHtml(venueName || 'hotel')}">${escapeHtml(contactMobile)}</a>
+        </div>`;
+}
+
 /** order id (string) → last seen normalized status (for detecting transitions to completed) */
 let lastOrderStatusById = new Map();
 
@@ -119,7 +144,9 @@ function normalizeMyOrder(o) {
         .toLowerCase();
     const created_at = o.created_at ?? o.createdAt ?? null;
     const updated_at = o.updated_at ?? o.updatedAt ?? null;
-    return { ...o, status, created_at, updated_at };
+    const venueName = String(o.venueName ?? o.venue_name ?? '').trim();
+    const venueContactMobile = String(o.venueContactMobile ?? o.venue_contact_mobile ?? '').trim();
+    return { ...o, status, created_at, updated_at, venueName, venueContactMobile };
 }
 
 function normalizeMyOrders(orders) {
@@ -177,6 +204,8 @@ function renderMyOrders(orders) {
                     : '';
             const placedLabel = formatFriendlyPlacedAt(createdRaw);
             const status = order.status || '';
+            const stLower = String(status).trim().toLowerCase();
+            const contactBlock = buildOrderContactBlock(order, stLower);
 
             return `
                 <article class="my-order-card my-order-card--${escapeHtml(status)}">
@@ -185,6 +214,7 @@ function renderMyOrders(orders) {
                             <span class="my-order-status my-order-status--${escapeHtml(status)}">${escapeHtml(formatOrderStatus(status))}</span>
                             <time class="my-order-placed"${placedDtIso ? ` datetime="${escapeHtml(placedDtIso)}"` : ''}>${escapeHtml(placedLabel)}</time>
                         </header>
+                        ${contactBlock}
                         <div class="my-order-items-block">
                             <p class="my-order-items-heading">Items</p>
                             <ul class="my-order-items-list">${lines}</ul>

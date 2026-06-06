@@ -249,7 +249,10 @@ app.post('/api/order', requireCustomer, async (req, res) => {
             ok: true,
             orderId: id,
             status: order.status,
-            created_at: order.created_at
+            created_at: order.created_at,
+            venueName: order.venueName || '',
+            venueContactMobile: order.venueContactMobile || '',
+            venueHoursText: order.venueHoursText || ''
         });
     } catch (err) {
         const code =
