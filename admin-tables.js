@@ -2,8 +2,6 @@
 
 const ADMIN_STORAGE_KEY = 'balojiAdminCredentials';
 const LS_FLOOR_KEY_PREFIX = 'balojiFloorSessions';
-/** Floor KOT lines use this many rupees less per unit than the online menu list price when picking from suggestions. */
-const KOT_VS_ONLINE_UNIT_DISCOUNT_RS = 5;
 /** Max rows in the inline KOT name dropdown (full menu is ~80 items; do not cap at 28). */
 const KOT_SUGGEST_MAX = 200;
 
@@ -24,10 +22,10 @@ function kotOpenPicksSectionHtml() {
     </div>`;
 }
 
-function kotFloorUnitPriceFromMenuListPrice(menuListPrice) {
-    const p = parseInt(String(menuListPrice), 10);
+function kotUnitPriceFromMenuPrice(menuPrice) {
+    const p = parseInt(String(menuPrice), 10);
     if (!Number.isFinite(p) || p < 0) return 0;
-    return Math.max(0, p - KOT_VS_ONLINE_UNIT_DISCOUNT_RS);
+    return p;
 }
 
 let creds = null;
@@ -368,8 +366,8 @@ function renderKotSuggestList(ul, hits) {
     }
     ul.innerHTML = hits
         .map((h) => {
-            const kotUnit = kotFloorUnitPriceFromMenuListPrice(h.price);
-            return `<li><button type="button" class="kot-suggest-btn" data-name="${escapeAttr(h.name)}" data-price="${kotUnit}" data-category="${escapeAttr(h.category_type)}"><span class="kot-suggest-name">${escapeHtml(h.name)}</span><span class="kot-suggest-meta">${escapeHtml(h.category_type)} · ${formatRupee(kotUnit)} <span class="kot-suggest-online">(online ${formatRupee(h.price)})</span></span></button></li>`;
+            const kotUnit = kotUnitPriceFromMenuPrice(h.price);
+            return `<li><button type="button" class="kot-suggest-btn" data-name="${escapeAttr(h.name)}" data-price="${kotUnit}" data-category="${escapeAttr(h.category_type)}"><span class="kot-suggest-name">${escapeHtml(h.name)}</span><span class="kot-suggest-meta">${escapeHtml(h.category_type)} · ${formatRupee(kotUnit)}</span></button></li>`;
         })
         .join('');
     ul.hidden = false;
@@ -2410,7 +2408,7 @@ function renderKotMenuBrowser(panel, lineBox) {
         .map(([cat, items]) => {
             const chips = items
                 .map((h) => {
-                    const kotUnit = kotFloorUnitPriceFromMenuListPrice(h.price);
+                    const kotUnit = kotUnitPriceFromMenuPrice(h.price);
                     return `<button type="button" class="kot-menu-pick" data-name="${escapeAttr(h.name)}" data-price="${kotUnit}" data-category="${escapeAttr(h.category_type)}"><span class="kot-menu-pick-label">${escapeHtml(h.name)}</span><span class="kot-menu-pick-end"><span class="kot-menu-pick-badge" aria-hidden="true"></span><span class="kot-menu-pick-price">${formatRupee(kotUnit)}</span></span></button>`;
                 })
                 .join('');

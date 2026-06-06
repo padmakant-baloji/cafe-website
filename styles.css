@@ -3969,6 +3969,17 @@ body.app-mobile .combo-grid {
     border: 1px solid rgba(148, 163, 184, 0.35);
 }
 
+.checkout-delivery-note--hotel {
+    color: #14532d;
+    background: rgba(22, 163, 74, 0.1);
+    border-color: rgba(22, 163, 74, 0.28);
+}
+
+.checkout-delivery-note--hotel strong {
+    color: #15803d;
+    font-weight: 700;
+}
+
 .checkout-fields .form-group:last-child {
     margin-bottom: 0;
 }

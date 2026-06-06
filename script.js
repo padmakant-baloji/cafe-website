@@ -2255,8 +2255,11 @@ function renderCheckoutTotals() {
     renderCheckoutDeliveryCard();
 
     if (noteEl) {
+        noteEl.classList.remove('checkout-delivery-note--hotel');
         if (isPartnerCart()) {
-            noteEl.textContent = `Ordering from ${cart[0]?.venueName || 'partner hotel'}. Online prices include partner markup.`;
+            const venueName = cart[0]?.venueName || 'partner hotel';
+            noteEl.innerHTML = `Ordering from <strong>${escapeHtml(venueName)}</strong>`;
+            noteEl.classList.add('checkout-delivery-note--hotel');
             noteEl.hidden = false;
         } else if (cityLower && cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
             const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
