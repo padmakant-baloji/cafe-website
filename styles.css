@@ -6272,7 +6272,7 @@ body.app-mobile {
 }
 
 body.app-mobile:has(#appModeToggle) {
-    --fo-top: 56px;
+    --fo-top: 64px;
 }
 
 body.app-mobile .app-shell {
@@ -6294,24 +6294,28 @@ body.app-mobile.order-app {
 body.app-mobile .app-topbar {
     position: fixed;
     top: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
+    transform: none;
     width: 100%;
     max-width: var(--fo-max);
+    margin-left: auto;
+    margin-right: auto;
     z-index: 1500;
-    padding: env(safe-area-inset-top, 0px) max(1rem, env(safe-area-inset-right, 0px)) 0 max(1rem, env(safe-area-inset-left, 0px));
-    background: rgba(255, 255, 255, 0.88);
-    -webkit-backdrop-filter: saturate(1.8) blur(16px);
-    backdrop-filter: saturate(1.8) blur(16px);
+    padding: env(safe-area-inset-top, 0px) max(0.75rem, env(safe-area-inset-right, 0px)) 0 max(0.75rem, env(safe-area-inset-left, 0px));
+    background: #fff;
     border-bottom: 1px solid var(--fo-border);
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
     transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     pointer-events: auto;
+    isolation: isolate;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
 }
 
 body.app-mobile .app-topbar.scrolled {
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 body.app-mobile .app-topbar-status {
@@ -6368,17 +6372,17 @@ body.app-mobile .app-topbar-inner {
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
-    gap: 0.65rem;
-    min-height: var(--fo-top);
-    padding: 0.35rem 0 0.45rem;
+    gap: 0.6rem;
+    min-height: 0;
+    padding: 0.45rem 0 0.5rem;
     position: relative;
-    z-index: 1;
+    z-index: 2;
 }
 
 body.app-mobile .app-brand {
     display: flex;
     align-items: center;
-    flex-shrink: 0;
+    flex: 0 0 auto;
     text-decoration: none;
     color: inherit;
 }
@@ -6387,43 +6391,74 @@ body.app-mobile .app-brand--logo-only {
     align-self: center;
 }
 
-body.app-mobile .app-brand--logo-only .app-brand-logo-wrap {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-}
-
 body.app-mobile .app-topbar .app-mode-toggle {
     display: flex;
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: 0;
     width: auto;
     max-width: none;
     gap: 0;
     margin: 0;
-    padding: 3px;
-    border-radius: 12px;
-    background: #f4f4f5;
-    border: 1px solid var(--fo-border);
-    box-shadow: none;
+    padding: 4px;
+    border-radius: 10px;
+    background: #ececef;
+    border: none;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
     position: relative;
-    z-index: 2;
+    z-index: 3;
     touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
 }
 
 body.app-mobile .app-topbar .app-mode-btn {
-    flex: 1;
-    display: inline-flex;
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.3rem;
-    min-height: 34px;
+    gap: 0.25rem;
+    min-height: 44px;
     font-size: 0.8125rem;
     font-weight: 700;
-    padding: 0 0.5rem;
-    border-radius: 9px;
+    line-height: 1.1;
+    padding: 0 0.35rem;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #52525b;
+    -webkit-appearance: none;
+    appearance: none;
     touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
     cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.app-mobile .app-topbar .app-mode-btn .app-mode-emoji {
+    font-size: 0.9375rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+body.app-mobile .app-topbar .app-mode-btn .app-mode-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body.app-mobile .app-topbar .app-mode-btn[data-mode="food"].is-active {
+    background: #fff;
+    color: var(--fo-accent-dark, #15803d);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+body.app-mobile .app-topbar .app-mode-btn[data-mode="grocery"].is-active {
+    background: #fff;
+    color: var(--gro-accent, #7c3aed);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 body.app-mobile .app-brand:focus-visible {
@@ -6442,6 +6477,12 @@ body.app-mobile .app-brand-logo-wrap {
     border: 1px solid var(--fo-border);
     box-shadow: 0 2px 6px rgba(20, 83, 45, 0.18);
     padding: 0;
+}
+
+body.app-mobile .app-brand--logo-only .app-brand-logo-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
 }
 
 body.app-mobile .app-brand-logo {

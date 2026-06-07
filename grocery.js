@@ -145,6 +145,10 @@
         } else {
             updateCartUI();
         }
+
+        if (typeof syncTopbarHeight === 'function') {
+            requestAnimationFrame(syncTopbarHeight);
+        }
     }
 
     function getSavedMode() {
@@ -173,18 +177,27 @@
     function initModeToggle() {
         const toggle = $('appModeToggle');
         if (!toggle) return;
+
+        function activate(btn) {
+            if (!btn || btn.hidden) return;
+            if (btn.classList.contains('is-unavailable')) {
+                toast('Grocery is not available yet. Please check back soon.');
+                return;
+            }
+            applyMode(btn.getAttribute('data-mode'));
+        }
+
         toggle.querySelectorAll('.app-mode-btn').forEach((btn) => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('pointerup', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (btn.hidden) return;
-                if (btn.classList.contains('is-unavailable')) {
-                    toast('Grocery is not available yet. Please check back soon.');
-                    return;
-                }
-                applyMode(btn.getAttribute('data-mode'));
+                activate(btn);
             });
         });
+
+        if (typeof syncTopbarHeight === 'function') {
+            syncTopbarHeight();
+        }
     }
 
     // ---------- storefront load + render ----------

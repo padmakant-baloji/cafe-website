@@ -461,8 +461,23 @@ function initSessionGate() {
 let stickyNavInitialized = false;
 let stickyNavScrollHandler = null;
 
+function syncTopbarHeight() {
+    const bar = document.getElementById('navbar');
+    if (!bar || !document.body.classList.contains('app-mobile')) return;
+    const h = Math.ceil(bar.getBoundingClientRect().height);
+    if (h > 0) {
+        document.documentElement.style.setProperty('--fo-top', h + 'px');
+    }
+}
+
 function initStickyNav() {
     if (stickyNavInitialized) return;
+    
+    syncTopbarHeight();
+    window.addEventListener('resize', syncTopbarHeight, { passive: true });
+    window.addEventListener('orientationchange', () => {
+        setTimeout(syncTopbarHeight, 100);
+    }, { passive: true });
     
     if (!stickyNavScrollHandler) {
         stickyNavScrollHandler = throttle(() => {
