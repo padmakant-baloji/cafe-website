@@ -1,8 +1,8 @@
 {
   "id": "https://www.balojicafe.com/",
-  "name": "Baloji's Cafe",
+  "name": "Baloji's Cafe — Food & Grocery Delivery",
   "short_name": "Baloji's Cafe",
-  "description": "Order online from Kudachi with flat ₹8 delivery and live order status updates.",
+  "description": "Order food from hotels & cafes plus daily groceries online in Kudachi — fast home delivery with live order status.",
   "lang": "en",
   "dir": "ltr",
   "start_url": "/menu",
@@ -11,7 +11,7 @@
   "orientation": "portrait-primary",
   "background_color": "#f8fafc",
   "theme_color": "#15803d",
-  "categories": ["food", "lifestyle"],
+  "categories": ["food", "shopping", "lifestyle"],
   "icons": [
     {
       "src": "/images/logo/pwa-144.png?v=2",

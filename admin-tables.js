@@ -1266,6 +1266,7 @@ function printKotReceipt(order, kot) {
             <span>${formatRupee(lineTotal)}</span>
         </div>
         <footer class="kot-print-footer">Thank you! Visit again</footer>
+        <div class="kot-print-delivery"><strong>Home delivery - www.balojicafe.com</strong></div>
     </div>`;
 
     window.print();

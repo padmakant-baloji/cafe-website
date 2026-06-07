@@ -25,6 +25,18 @@ const {
     cancelOrderByCustomer
 } = require('./lib/order-service');
 const { placeOrderForCustomer } = require('./lib/place-order');
+const { placeGroceryOrderForCustomer } = require('./lib/place-grocery-order');
+const {
+    getGroceryStorefront,
+    listGroceryCategoriesForAdmin,
+    upsertGroceryCategory,
+    deleteGroceryCategory,
+    listGroceryProductsForAdmin,
+    upsertGroceryProduct,
+    deleteGroceryProduct,
+    adjustGroceryStock,
+    getLowStockProducts
+} = require('./lib/grocery-service');
 const { validateCoupon } = require('./lib/coupon-service');
 const { getStoreStatus, setStoreStatus, getPublicStorefrontStatus } = require('./lib/store-status');
 const { resolveAdminVenue, getFloorConfig, setFloorConfig, resolvePublicVenue, venuePublicPayload, listVenuesForAdmin, createVenueByMain, updateVenueAccessByMain } = require('./lib/venue-service');
@@ -322,6 +334,42 @@ app.get('/api/menu', async (req, res) => {
     }
 });
 
+app.get('/api/grocery', async (req, res) => {
+    try {
+        await ensureSchema();
+        const storefront = await getGroceryStorefront();
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        return res.json(storefront);
+    } catch (err) {
+        console.error('grocery:', err.message);
+        return res.status(500).json({ error: 'Could not load grocery store.' });
+    }
+});
+
+app.post('/api/grocery/order', requireCustomer, async (req, res) => {
+    try {
+        await ensureSchema();
+        const order = await placeGroceryOrderForCustomer(req.customerSession.mobile, req.body || {});
+        const id = typeof order.id === 'string' ? parseInt(order.id, 10) : Number(order.id);
+        return res.json({
+            ok: true,
+            orderId: id,
+            status: order.status,
+            created_at: order.created_at,
+            venueName: order.venueName || '',
+            venueContactMobile: order.venueContactMobile || '',
+            venueHoursText: order.venueHoursText || ''
+        });
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) {
+            console.error('place grocery order:', err.message);
+        }
+        return res.status(code).json({ error: err.message || 'Could not place order.' });
+    }
+});
+
 app.get('/api/admin/menu', requireAdmin, async (req, res) => {
     try {
         await ensureSchema();
@@ -553,6 +601,133 @@ app.patch('/api/admin/orders/:id', requireAdmin, async (req, res) => {
             console.error('admin patch order:', err.message);
         }
         return res.status(code).json({ error: err.message || 'Update failed.' });
+    }
+});
+
+function groceryTargetVenueId(req) {
+    const fromQuery = req.query && req.query.venueId != null ? parseInt(String(req.query.venueId), 10) : NaN;
+    if (Number.isFinite(fromQuery)) return fromQuery;
+    const fromBody = req.body && req.body.venueId != null ? parseInt(String(req.body.venueId), 10) : NaN;
+    return Number.isFinite(fromBody) ? fromBody : null;
+}
+
+function sendGroceryError(res, err, fallback) {
+    const code = err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+    if (code >= 500) console.error('grocery admin:', err.message);
+    return res.status(code).json({ error: err.message || fallback });
+}
+
+app.get('/api/admin/grocery/categories', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const data = await listGroceryCategoriesForAdmin(req.adminVenue, groceryTargetVenueId(req));
+        res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        return res.json({ ok: true, ...data });
+    } catch (err) {
+        return sendGroceryError(res, err, 'Could not load categories.');
+    }
+});
+
+app.post('/api/admin/grocery/categories', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const category = await upsertGroceryCategory(req.adminVenue, groceryTargetVenueId(req), req.body || {});
+        return res.json({ ok: true, category });
+    } catch (err) {
+        return sendGroceryError(res, err, 'Could not save category.');
+    }
+});
+
+app.patch('/api/admin/grocery/categories/:id', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const category = await upsertGroceryCategory(req.adminVenue, groceryTargetVenueId(req), {
+            ...(req.body || {}),
+            id: parseId(req.params.id)
+        });
+        return res.json({ ok: true, category });
+    } catch (err) {
+        return sendGroceryError(res, err, 'Could not save category.');
+    }
+});
+
+app.delete('/api/admin/grocery/categories/:id', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const result = await deleteGroceryCategory(req.adminVenue, groceryTargetVenueId(req), parseId(req.params.id));
+        return res.json({ ok: true, ...result });
+    } catch (err) {
+        return sendGroceryError(res, err, 'Could not delete category.');
+    }
+});
+
+app.get('/api/admin/grocery/products', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const data = await listGroceryProductsForAdmin(req.adminVenue, groceryTargetVenueId(req));
+        res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        return res.json({ ok: true, ...data });
+    } catch (err) {
+        return sendGroceryError(res, err, 'Could not load products.');
+    }
+});
+
+app.post('/api/admin/grocery/products', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const product = await upsertGroceryProduct(req.adminVenue, groceryTargetVenueId(req), req.body || {});
+        return res.json({ ok: true, product });
+    } catch (err) {
+        return sendGroceryError(res, err, 'Could not save product.');
+    }
+});
+
+app.patch('/api/admin/grocery/products/:id', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const product = await upsertGroceryProduct(req.adminVenue, groceryTargetVenueId(req), {
+            ...(req.body || {}),
+            id: parseId(req.params.id)
+        });
+        return res.json({ ok: true, product });
+    } catch (err) {
+        return sendGroceryError(res, err, 'Could not save product.');
+    }
+});
+
+app.delete('/api/admin/grocery/products/:id', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const result = await deleteGroceryProduct(req.adminVenue, groceryTargetVenueId(req), parseId(req.params.id));
+        return res.json({ ok: true, ...result });
+    } catch (err) {
+        return sendGroceryError(res, err, 'Could not delete product.');
+    }
+});
+
+app.post('/api/admin/grocery/products/:id/stock', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const product = await adjustGroceryStock(
+            req.adminVenue,
+            groceryTargetVenueId(req),
+            parseId(req.params.id),
+            req.body || {}
+        );
+        return res.json({ ok: true, product });
+    } catch (err) {
+        return sendGroceryError(res, err, 'Could not adjust stock.');
+    }
+});
+
+app.get('/api/admin/grocery/low-stock', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const data = await getLowStockProducts(req.adminVenue, groceryTargetVenueId(req));
+        res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        return res.json({ ok: true, ...data });
+    } catch (err) {
+        return sendGroceryError(res, err, 'Could not load low-stock items.');
     }
 });
 

@@ -3,13 +3,14 @@
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin.html
+Disallow: /admin/tables
+Disallow: /api/
 
 # Sitemap
 Sitemap: https://www.balojicafe.com/sitemap.xml
-
-# Disallow admin or private areas (if any)
-# Disallow: /admin/
-# Disallow: /private/
 
 # Allow all search engines
 User-agent: Googlebot

@@ -31,8 +31,13 @@
             --mono: 'JetBrains Mono', ui-monospace, monospace;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { min-height: 100%; }
+        html, body {
+            min-height: 100%;
+            max-width: 100%;
+            overflow-x: clip;
+        }
         body {
+            width: 100%;
             font-family: var(--font);
             background:
                 radial-gradient(1200px 600px at 10% -10%, rgba(52, 211, 153, 0.1), transparent 55%),
@@ -205,12 +210,15 @@
         }
 
         .floor-grid-wrap {
+            width: 100%;
             max-width: 1400px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
             gap: 1.75rem;
+            min-width: 0;
         }
+        .floor-btn-label-short { display: none; }
         .floor-section-head {
             display: flex;
             align-items: baseline;
@@ -236,8 +244,44 @@
             grid-template-columns: repeat(var(--floor-slot-cols, 4), minmax(0, 1fr));
         }
         @media (max-width: 720px) {
+            body {
+                padding: 0.55rem max(0.55rem, env(safe-area-inset-right, 0px)) max(1rem, env(safe-area-inset-bottom, 0px)) max(0.55rem, env(safe-area-inset-left, 0px));
+            }
+            .floor-top,
+            .floor-grid-wrap,
+            .floor-slots {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+            }
+            .floor-top {
+                margin-bottom: 0.75rem;
+            }
+            .floor-toolbar {
+                width: 100%;
+                margin-left: 0;
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.35rem;
+            }
+            .floor-toolbar .floor-btn {
+                width: 100%;
+                min-width: 0;
+                justify-content: center;
+                padding: 0.45rem 0.3rem;
+                font-size: 0.72rem;
+            }
+            .floor-btn-label-full { display: none; }
+            .floor-btn-label-short { display: inline; }
             .floor-slots--tables,
             .floor-slots--parcels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .slot-card {
+                min-height: 104px;
+                padding: 0.6rem 0.5rem;
+                min-width: 0;
+            }
+            .slot-name { font-size: 0.95rem; }
+            .slot-total { font-size: 0.875rem; }
         }
 
         .slot-card {
@@ -1449,18 +1493,18 @@
                 margin: 0 auto;
                 padding: 2mm 3mm 4mm;
                 box-sizing: border-box;
-                font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
                 color: #000;
             }
             .kot-print-header { text-align: center; margin-bottom: 2mm; }
             .kot-print-title {
-                font-size: 14px;
+                font-size: 16px;
                 font-weight: 700;
                 line-height: 1.25;
                 margin-bottom: 1mm;
             }
             .kot-print-address {
-                font-size: 10px;
+                font-size: 12px;
                 line-height: 1.35;
                 white-space: pre-wrap;
             }
@@ -1470,25 +1514,25 @@
             }
             .kot-print-order-meta { text-align: center; }
             .kot-print-meta-line {
-                font-size: 11px;
+                font-size: 13px;
                 line-height: 1.35;
                 margin-bottom: 0.5mm;
             }
-            .kot-print-meta-line--muted { font-size: 10px; }
+            .kot-print-meta-line--muted { font-size: 12px; }
             .kot-print-table {
                 width: 100%;
                 border-collapse: collapse;
             }
             .kot-print-table th {
-                font-size: 10px;
+                font-size: 12px;
                 font-weight: 700;
                 text-align: left;
-                padding: 1mm 0;
+                padding: 1.2mm 0;
                 border-bottom: 1px solid #000;
             }
             .kot-print-table td {
-                font-size: 10px;
-                padding: 1.2mm 0;
+                font-size: 12px;
+                padding: 1.4mm 0;
                 vertical-align: top;
             }
             .kot-print-item { width: auto; text-align: left; word-break: break-word; }
@@ -1498,16 +1542,22 @@
             .kot-print-total-row {
                 display: flex;
                 justify-content: space-between;
-                font-size: 12px;
+                font-size: 14px;
                 font-weight: 700;
                 margin-bottom: 3mm;
             }
             .kot-print-footer {
                 text-align: center;
-                font-size: 11px;
+                font-size: 13px;
                 font-weight: 700;
                 margin-top: 2mm;
                 padding-top: 1mm;
+            }
+            .kot-print-delivery {
+                text-align: center;
+                font-size: 12px;
+                line-height: 1.4;
+                margin-top: 1.5mm;
             }
             @media print {
                 @page {
@@ -1551,9 +1601,9 @@
     <div class="floor-app" id="floorApp" hidden>
         <header class="floor-top">
             <div class="floor-toolbar">
-                <button type="button" class="floor-btn floor-btn--primary" id="floorRefreshBtn" aria-label="Refresh">⟳ Refresh</button>
-                <a class="floor-btn floor-btn--ghost" href="/admin">← Delivery orders</a>
-                <button type="button" class="floor-btn floor-btn--danger" id="floorLogoutBtn">Logout</button>
+                <button type="button" class="floor-btn floor-btn--primary" id="floorRefreshBtn" aria-label="Refresh"><span class="floor-btn-label-full">⟳ Refresh</span><span class="floor-btn-label-short">Refresh</span></button>
+                <a class="floor-btn floor-btn--ghost" href="/admin"><span class="floor-btn-label-full">← Delivery orders</span><span class="floor-btn-label-short">Orders</span></a>
+                <button type="button" class="floor-btn floor-btn--danger" id="floorLogoutBtn"><span class="floor-btn-label-full">Logout</span><span class="floor-btn-label-short">Logout</span></button>
             </div>
         </header>
 

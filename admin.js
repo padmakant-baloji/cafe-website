@@ -9,6 +9,9 @@ let currentAdminCredentials = null;
 let currentVenue = null;
 let floorConfig = { tableCount: 7, parcelCount: 5 };
 let managedHotels = [];
+/** True when at least one partner venue has venueType === 'grocery' (main admin only). */
+let hasGroceryStores = false;
+let groceryInventoryInitialized = false;
 
 const ORDER_STATUS_TABS = [
     { key: 'active', label: 'Active', emptyText: 'active orders' },
@@ -20,13 +23,27 @@ const ORDER_STATUS_TABS = [
     { key: 'rejected', label: 'Restaurant cancelled', emptyText: 'restaurant-cancelled orders' },
     { key: 'cancelled', label: 'Customer cancelled', emptyText: 'customer-cancelled orders' },
     { key: 'kot', label: 'KOT orders', emptyText: 'KOT orders', isKot: true },
+    { key: 'grocery', label: 'Grocery', emptyText: 'grocery orders' },
     { key: 'all', label: 'All delivery', emptyText: 'delivery orders' }
 ];
+
+function isGroceryOrder(o) {
+    return o && String(o.channel || '').toLowerCase() === 'grocery';
+}
 
 let activeOrderTab = 'active';
 /** Delivery order ids to keep visible after a status change until the user picks another tab. */
 let pinnedOrderIdsAfterStatusChange = new Set();
 let lastOrders = [];
+
+/** Mobile layout hides search + status filters; always show the active queue. */
+function isAdminMobileView() {
+    return typeof window !== 'undefined' && window.matchMedia('(max-width: 899px)').matches;
+}
+
+function getEffectiveOrderTab() {
+    return isAdminMobileView() ? 'active' : activeOrderTab;
+}
 
 // New pending orders are queued and shown one-by-one in a popup.
 let pendingPopupQueue = [];
@@ -347,7 +364,8 @@ async function verifyAdminCredentials(user, pass) {
 function updateVenueHeader() {
     const title = document.getElementById('adminVenueTitle');
     if (title && currentVenue && currentVenue.name) {
-        title.textContent = `${currentVenue.name} — Orders`;
+        const suffix = isGroceryVenue() ? 'Grocery' : 'Orders';
+        title.textContent = `${currentVenue.name} — ${suffix}`;
     }
     applyMainVenueUi();
 }
@@ -356,20 +374,145 @@ function isMainAdminVenue() {
     return Boolean(currentVenue && currentVenue.isMain);
 }
 
+function isGroceryVenue() {
+    return Boolean(currentVenue && currentVenue.venueType === 'grocery');
+}
+
+function isFoodPartnerVenue() {
+    return Boolean(currentVenue && !currentVenue.isMain && !isGroceryVenue());
+}
+
+function getAdminPanelMode() {
+    if (isGroceryVenue()) return 'grocery';
+    if (isFoodPartnerVenue()) return 'hotel';
+    if (isMainAdminVenue()) return 'main';
+    return 'unknown';
+}
+
+/** Orders scoped to the logged-in admin role (never mix grocery + hotel in one view). */
+function filterOrdersForAdminView(orders) {
+    const list = Array.isArray(orders) ? orders : [];
+    if (isGroceryVenue()) return list.filter((o) => isGroceryOrder(o));
+    if (isFoodPartnerVenue()) return list.filter((o) => !isGroceryOrder(o));
+    return list;
+}
+
+function shouldShowGroceryOrderTab(countsByStatus) {
+    if (isGroceryVenue()) return false;
+    if (!isMainAdminVenue()) return false;
+    const groceryCount =
+        countsByStatus && typeof countsByStatus === 'object' ? countsByStatus.grocery ?? 0 : 0;
+    return hasGroceryStores || groceryCount > 0;
+}
+
+function isOrderTabVisible(tab, countsByStatus) {
+    if (tab.key === 'kot') return !isGroceryVenue();
+    if (tab.key === 'grocery') return shouldShowGroceryOrderTab(countsByStatus);
+    return true;
+}
+
+function normalizeActiveOrderTab() {
+    const visible = ORDER_STATUS_TABS.filter((t) => isOrderTabVisible(t, {}));
+    if (!visible.some((t) => t.key === activeOrderTab)) {
+        activeOrderTab = visible[0]?.key || 'active';
+        if (window.location.hash.replace(/^#/, '') !== activeOrderTab) {
+            window.location.hash = `#${activeOrderTab}`;
+        }
+    }
+}
+
+async function refreshGroceryStorePresence() {
+    if (!isMainAdminVenue()) {
+        hasGroceryStores = false;
+        applyMainVenueUi();
+        return;
+    }
+    try {
+        await fetchManagedHotels();
+        hasGroceryStores = managedHotels.some((v) => v.venueType === 'grocery');
+    } catch {
+        hasGroceryStores = false;
+    }
+    applyMainVenueUi();
+    normalizeActiveOrderTab();
+    if (lastOrders.length) renderTabsAndActiveList(lastOrders);
+}
+
 function applyMainVenueUi() {
     const isMain = isMainAdminVenue();
+    const isGrocery = isGroceryVenue();
+    const isFoodPartner = isFoodPartnerVenue();
+
+    document.body.classList.toggle('admin-mode-main', isMain);
+    document.body.classList.toggle('admin-mode-grocery', isGrocery);
+    document.body.classList.toggle('admin-mode-hotel', isFoodPartner);
+
     const btn = document.getElementById('adminHotelsBtn');
     if (btn) btn.hidden = !isMain;
+
     const menuBtn = document.getElementById('adminPartnerMenuBtn');
-    if (menuBtn) menuBtn.hidden = isMain;
+    if (menuBtn) {
+        menuBtn.hidden = !isFoodPartner;
+        menuBtn.setAttribute('data-tip', 'Hotel menu');
+        menuBtn.setAttribute('aria-label', 'Edit hotel menu');
+    }
+
+    const invBtn = document.getElementById('adminGroceryInventoryBtn');
+    if (invBtn) {
+        invBtn.hidden = !((isMain && hasGroceryStores) || isGrocery);
+        invBtn.setAttribute('data-tip', isGrocery ? 'Inventory' : 'Grocery inventory');
+        invBtn.setAttribute('aria-label', isGrocery ? 'Manage inventory' : 'Manage grocery inventory');
+    }
+
+    const profileBtn = document.getElementById('adminVenueProfileBtn');
+    if (profileBtn) {
+        profileBtn.hidden = isMain;
+        profileBtn.setAttribute('data-tip', isGrocery ? 'Store info' : 'Hotel info');
+        profileBtn.setAttribute('aria-label', isGrocery ? 'Edit store info' : 'Edit hotel info');
+        profileBtn.textContent = isGrocery ? '🏪' : '🏨';
+    }
+
+    const floorLink = document.getElementById('adminFloorLink');
+    if (floorLink) floorLink.hidden = isGrocery;
+
+    const floorConfigBtn = document.getElementById('adminFloorConfigBtn');
+    if (floorConfigBtn) floorConfigBtn.hidden = isGrocery;
+
     const hotelsCreateSection = document.getElementById('adminHotelsCreateSection');
     if (hotelsCreateSection) hotelsCreateSection.hidden = !isMain;
+
     const hotelsModalSub = document.getElementById('adminHotelsModalSub');
     if (hotelsModalSub) {
         hotelsModalSub.textContent = isMain
             ? 'Baloji Cafe is the main hotel. Create other hotels here and give each its own admin login.'
             : 'Hotel details for your property.';
     }
+
+    const roleBanner = document.getElementById('adminRoleBanner');
+    if (roleBanner) {
+        if (isGrocery) {
+            roleBanner.hidden = false;
+            roleBanner.textContent =
+                'Grocery store admin — manage inventory, stock, and grocery delivery orders.';
+        } else if (isFoodPartner) {
+            roleBanner.hidden = false;
+            roleBanner.textContent =
+                'Hotel admin — manage your menu, online orders, and hotel details.';
+        } else if (isMain) {
+            roleBanner.hidden = false;
+            roleBanner.textContent = hasGroceryStores
+                ? 'Main admin — Baloji Cafe orders, floor/KOT, partner hotels, and grocery stores.'
+                : 'Main admin — Baloji Cafe orders, floor/KOT, and partner hotels.';
+        } else {
+            roleBanner.hidden = true;
+            roleBanner.textContent = '';
+        }
+    }
+
+    const floorMetric = document.getElementById('adminMetricFloor');
+    if (floorMetric) floorMetric.hidden = isGrocery;
+
+    normalizeActiveOrderTab();
 }
 
 function escapeHtml(text) {
@@ -431,7 +574,12 @@ function renderManagedHotelsList() {
     }
     listEl.innerHTML = managedHotels
         .map((hotel) => {
-            const badge = hotel.isMain ? '<span class="admin-hotel-badge">Main</span>' : '';
+            const isGrocery = hotel.venueType === 'grocery';
+            const badge = hotel.isMain
+                ? '<span class="admin-hotel-badge">Main</span>'
+                : isGrocery
+                  ? '<span class="admin-hotel-badge" style="background:#7c3aed;">Grocery</span>'
+                  : '';
             const accessFields = hotel.isMain
                 ? ''
                 : `<label class="admin-search">
@@ -442,7 +590,10 @@ function renderManagedHotelsList() {
                            <span>New password (optional)</span>
                            <input type="password" data-hotel-pass="${hotel.id}" autocomplete="new-password" placeholder="Leave blank to keep current">
                        </label>`;
-            const editBtn = `<button type="button" class="admin-hotel-edit-btn" data-hotel-menu="${hotel.id}"${hotel.isMain ? ' hidden' : ''}>Menu</button>
+            const catalogBtn = isGrocery
+                ? `<button type="button" class="admin-hotel-edit-btn" data-hotel-inventory="${hotel.id}">Inventory</button>`
+                : `<button type="button" class="admin-hotel-edit-btn" data-hotel-menu="${hotel.id}"${hotel.isMain ? ' hidden' : ''}>Menu</button>`;
+            const editBtn = `${catalogBtn}
                    <button type="button" class="admin-hotel-edit-btn" data-hotel-edit="${hotel.id}">Hotel details</button>
                    <div class="admin-hotel-edit-form" id="adminHotelEditForm-${hotel.id}" hidden>
                        ${accessFields}
@@ -753,14 +904,24 @@ function renderAdminAnalytics(orders) {
     if (ordersTodayEl) ordersTodayEl.textContent = String(data.ordersTodayCount);
     const ordersTodayHintEl = document.getElementById('metricOrdersTodayHint');
     if (ordersTodayHintEl) {
-        ordersTodayHintEl.textContent = `Delivery ${data.ordersTodayDelivery} · Floor ${data.ordersTodayKot}`;
+        if (isGroceryVenue()) {
+            ordersTodayHintEl.textContent = `${data.ordersTodayDelivery} grocery delivery today`;
+        } else if (isFoodPartnerVenue()) {
+            ordersTodayHintEl.textContent = `Delivery ${data.ordersTodayDelivery} · Floor ${data.ordersTodayKot}`;
+        } else {
+            ordersTodayHintEl.textContent = `Delivery ${data.ordersTodayDelivery} · Floor ${data.ordersTodayKot}`;
+        }
     }
 
     const revenueEl = document.getElementById('metricRevenueToday');
     if (revenueEl) revenueEl.textContent = formatMoney(data.settledSalesToday);
     const revenueHintEl = document.getElementById('metricRevenueTodayHint');
     if (revenueHintEl) {
-        revenueHintEl.textContent = `Online ${formatMoney(data.settledDeliverySales)} · KOT ${formatMoney(data.settledKotSales)}`;
+        if (isGroceryVenue()) {
+            revenueHintEl.textContent = `Settled grocery sales ${formatMoney(data.settledDeliverySales)}`;
+        } else {
+            revenueHintEl.textContent = `Online ${formatMoney(data.settledDeliverySales)} · KOT ${formatMoney(data.settledKotSales)}`;
+        }
     }
 
     const cashTodayEl = document.getElementById('metricCashToday');
@@ -824,9 +985,9 @@ function renderAdminAnalytics(orders) {
     }
 
     const totalEarnEl = document.getElementById('metricTotalEarning');
-    if (totalEarnEl) totalEarnEl.textContent = String(data.kotActive);
+    if (totalEarnEl && !isGroceryVenue()) totalEarnEl.textContent = String(data.kotActive);
     const totalEarnHintEl = document.getElementById('metricTotalEarningHint');
-    if (totalEarnHintEl) {
+    if (totalEarnHintEl && !isGroceryVenue()) {
         totalEarnHintEl.textContent =
             data.kotActive > 0
                 ? `Open bills ${formatMoney(data.kotActiveValue)}`
@@ -917,6 +1078,7 @@ function buildDeliveryOrderArticleHtml(o) {
                     <header class="admin-order-head">
                         <span class="admin-order-id">#${escapeHtml(id)}</span>
                         <span class="admin-order-head-badges">
+                            ${!isFoodPartnerVenue() && isGroceryOrder(o) ? '<span class="admin-order-status" style="background:#7c3aed;color:#fff;">🛒 Grocery</span>' : ''}
                             ${payPill}
                             <span class="admin-order-status admin-order-status--${escapeHtml(o.status)}">${escapeHtml(statusLabel(o.status))}</span>
                         </span>
@@ -1063,6 +1225,9 @@ function renderOrderTabs(tabsEl, countsByStatus, activeKey) {
     tabsEl.innerHTML = '';
 
     for (const tab of ORDER_STATUS_TABS) {
+        if (!isOrderTabVisible(tab, countsByStatus)) {
+            continue;
+        }
         const count =
             countsByStatus && typeof countsByStatus === 'object'
                 ? countsByStatus[tab.key] ?? 0
@@ -1143,6 +1308,375 @@ function showToast(message) {
     el.classList.add('admin-toast--show');
     clearTimeout(showToast._t);
     showToast._t = setTimeout(() => el.classList.remove('admin-toast--show'), 4500);
+}
+
+function ensureGroceryInventoryInit() {
+    if (groceryInventoryInitialized || getAdminPanelMode() === 'hotel') return;
+    initGroceryInventory();
+}
+
+function initGroceryInventory() {
+    if (groceryInventoryInitialized) return;
+    groceryInventoryInitialized = true;
+
+    const modal = document.getElementById('adminGroceryModal');
+    if (!modal) return;
+    const el = (id) => document.getElementById(id);
+
+    const state = { storeId: null, isMain: false, categories: [], products: [], editingId: null };
+
+    async function api(method, path, body) {
+        const opts = { method, headers: { ...adminHeaders(), 'Content-Type': 'application/json' }, cache: 'no-store' };
+        if (body !== undefined) opts.body = JSON.stringify(body);
+        const res = await fetch(path, opts);
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+            clearAdminCredentials();
+            showAdminGate('Session expired. Enter admin credentials again.');
+            throw Object.assign(new Error('Authentication required'), { code: 401 });
+        }
+        if (!res.ok) throw new Error(data.error || res.statusText);
+        return data;
+    }
+
+    function withVenue(path) {
+        if (!state.storeId) return path;
+        return path + (path.includes('?') ? '&' : '?') + 'venueId=' + encodeURIComponent(state.storeId);
+    }
+
+    function setMsg(text, isError) {
+        const m = el('adminGroceryProductMsg');
+        if (!m) return;
+        m.textContent = text || '';
+        if (isError) m.setAttribute('data-state', 'error');
+        else m.removeAttribute('data-state');
+    }
+
+    function close() {
+        modal.hidden = true;
+    }
+
+    async function loadStoreSelect() {
+        const wrap = el('adminGroceryStoreSelectWrap');
+        const select = el('adminGroceryStoreSelect');
+        if (!state.isMain) {
+            if (wrap) wrap.hidden = true;
+            return;
+        }
+        const data = await api('GET', '/api/admin/venues');
+        const stores = (data.venues || []).filter((v) => v.venueType === 'grocery');
+        if (wrap) wrap.hidden = stores.length <= 1 && stores.length !== 0 ? false : false;
+        if (wrap) wrap.hidden = false;
+        if (!stores.length) {
+            if (select) select.innerHTML = '<option value="">No grocery stores yet — create one in Hotels</option>';
+            state.storeId = null;
+            return;
+        }
+        if (select) {
+            select.innerHTML = stores
+                .map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`)
+                .join('');
+            if (!state.storeId || !stores.some((s) => String(s.id) === String(state.storeId))) {
+                state.storeId = stores[0].id;
+            }
+            select.value = String(state.storeId);
+            select.onchange = async () => {
+                state.storeId = select.value ? Number(select.value) : null;
+                await loadAll();
+            };
+        }
+    }
+
+    async function loadAll() {
+        if (state.isMain && !state.storeId) {
+            renderCategories();
+            renderProductCatSelect();
+            renderProducts();
+            el('adminGroceryLowStock').hidden = true;
+            return;
+        }
+        try {
+            const [cats, prods, low] = await Promise.all([
+                api('GET', withVenue('/api/admin/grocery/categories')),
+                api('GET', withVenue('/api/admin/grocery/products')),
+                api('GET', withVenue('/api/admin/grocery/low-stock'))
+            ]);
+            state.categories = cats.categories || [];
+            state.products = prods.products || [];
+            renderCategories();
+            renderProductCatSelect();
+            renderProducts();
+            renderLowStock(low.products || []);
+        } catch (err) {
+            if (err.code !== 401) setMsg(err.message || 'Could not load inventory.', true);
+        }
+    }
+
+    function renderLowStock(items) {
+        const box = el('adminGroceryLowStock');
+        if (!box) return;
+        if (!items.length) {
+            box.hidden = true;
+            box.innerHTML = '';
+            return;
+        }
+        box.hidden = false;
+        box.innerHTML =
+            '<strong>⚠️ Low stock (' + items.length + ')</strong>' +
+            items
+                .map((p) => `${escapeHtml(p.name)} — ${p.stockQty} left`)
+                .join(' · ');
+    }
+
+    function renderCategories() {
+        const list = el('adminGroceryCatList');
+        if (!list) return;
+        if (!state.categories.length) {
+            list.innerHTML = '<p class="admin-modal-sub" style="margin:0;">No categories yet.</p>';
+            return;
+        }
+        list.innerHTML = state.categories
+            .map(
+                (c) => `<div class="admin-grocery-row">
+                    <div class="admin-grocery-row-main">
+                        <div class="admin-grocery-row-name">${escapeHtml(c.name)}${c.enabled ? '' : ' <span class="admin-grocery-badge admin-grocery-badge--oos">Hidden</span>'}</div>
+                        <div class="admin-grocery-row-meta">${escapeHtml(c.slug)}</div>
+                    </div>
+                    <div class="admin-grocery-row-actions">
+                        <button type="button" class="danger" data-gro-cat-del="${c.id}">Delete</button>
+                    </div>
+                </div>`
+            )
+            .join('');
+    }
+
+    function renderProductCatSelect() {
+        const select = el('adminGroceryProductCategory');
+        if (!select) return;
+        const current = select.value;
+        select.innerHTML =
+            '<option value="">— No category —</option>' +
+            state.categories.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+        if (current) select.value = current;
+    }
+
+    function renderProducts() {
+        const list = el('adminGroceryProductList');
+        const count = el('adminGroceryProductCount');
+        if (count) count.textContent = `${state.products.length} item${state.products.length === 1 ? '' : 's'}`;
+        if (!list) return;
+        if (!state.products.length) {
+            list.innerHTML = '<p class="admin-modal-sub" style="margin:0;">No products yet.</p>';
+            return;
+        }
+        list.innerHTML = state.products
+            .map((p) => {
+                const badge = !p.enabled
+                    ? '<span class="admin-grocery-badge admin-grocery-badge--oos">Hidden</span>'
+                    : p.outOfStock
+                      ? '<span class="admin-grocery-badge admin-grocery-badge--oos">Out</span>'
+                      : p.lowStock
+                        ? '<span class="admin-grocery-badge admin-grocery-badge--low">Low</span>'
+                        : '';
+                const mrp = p.mrp > p.price ? ` <s style="color:#94a3b8;">₹${p.mrp}</s>` : '';
+                return `<div class="admin-grocery-row">
+                    <div class="admin-grocery-row-main">
+                        <div class="admin-grocery-row-name">${escapeHtml(p.name)}${badge}</div>
+                        <div class="admin-grocery-row-meta">₹${p.price}${mrp} · ${p.unitValue} ${escapeHtml(p.unit)} · ${escapeHtml(p.categoryName || 'Uncategorized')}</div>
+                    </div>
+                    <div class="admin-grocery-stock-controls">
+                        <button type="button" data-gro-stock-dec="${p.id}">−</button>
+                        <span class="admin-grocery-stock-val">${p.stockQty}</span>
+                        <button type="button" data-gro-stock-inc="${p.id}">+</button>
+                    </div>
+                    <div class="admin-grocery-row-actions">
+                        <button type="button" data-gro-prod-edit="${p.id}">Edit</button>
+                        <button type="button" class="danger" data-gro-prod-del="${p.id}">Del</button>
+                    </div>
+                </div>`;
+            })
+            .join('');
+    }
+
+    function resetProductForm() {
+        state.editingId = null;
+        el('adminGroceryProductId').value = '';
+        el('adminGroceryProductName').value = '';
+        el('adminGroceryProductSku').value = '';
+        el('adminGroceryProductUnit').value = 'pcs';
+        el('adminGroceryProductUnitValue').value = '1';
+        el('adminGroceryProductMrp').value = '';
+        el('adminGroceryProductPrice').value = '';
+        el('adminGroceryProductStock').value = '0';
+        el('adminGroceryProductLowStock').value = '5';
+        el('adminGroceryProductImage').value = '';
+        el('adminGroceryProductEnabled').checked = true;
+        el('adminGroceryProductCategory').value = '';
+        el('adminGroceryProductFormTitle').textContent = 'Add product';
+        el('adminGroceryProductSaveBtn').textContent = 'Add product';
+        el('adminGroceryProductCancelBtn').hidden = true;
+    }
+
+    function fillProductForm(p) {
+        state.editingId = p.id;
+        el('adminGroceryProductId').value = p.id;
+        el('adminGroceryProductName').value = p.name || '';
+        el('adminGroceryProductSku').value = p.sku || '';
+        el('adminGroceryProductUnit').value = p.unit || 'pcs';
+        el('adminGroceryProductUnitValue').value = p.unitValue != null ? p.unitValue : 1;
+        el('adminGroceryProductMrp').value = p.mrp || '';
+        el('adminGroceryProductPrice').value = p.price || '';
+        el('adminGroceryProductStock').value = p.stockQty || 0;
+        el('adminGroceryProductLowStock').value = p.lowStockThreshold != null ? p.lowStockThreshold : 5;
+        el('adminGroceryProductImage').value = p.image || '';
+        el('adminGroceryProductEnabled').checked = p.enabled !== false;
+        renderProductCatSelect();
+        el('adminGroceryProductCategory').value = p.categoryId != null ? String(p.categoryId) : '';
+        el('adminGroceryProductFormTitle').textContent = 'Edit product';
+        el('adminGroceryProductSaveBtn').textContent = 'Save changes';
+        el('adminGroceryProductCancelBtn').hidden = false;
+    }
+
+    async function openGroceryInventory(targetId) {
+        state.isMain = isMainAdminVenue();
+        state.storeId = targetId != null ? Number(targetId) : state.isMain ? null : (currentVenue ? currentVenue.id : null);
+        modal.hidden = false;
+        setMsg('', false);
+        resetProductForm();
+        const sub = el('adminGroceryModalSub');
+        if (sub) {
+            sub.textContent = state.isMain
+                ? 'Pick a grocery store, then manage its categories, products and stock.'
+                : 'Manage your categories, products, stock, MRP and selling price.';
+        }
+        try {
+            await loadStoreSelect();
+            await loadAll();
+        } catch (err) {
+            if (err.code !== 401) setMsg(err.message || 'Could not open inventory.', true);
+        }
+    }
+    window.openGroceryInventory = openGroceryInventory;
+
+    // toolbar button
+    el('adminGroceryInventoryBtn')?.addEventListener('click', () => openGroceryInventory(null));
+    el('adminGroceryCloseBtn')?.addEventListener('click', close);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) close();
+    });
+
+    // category add
+    el('adminGroceryCatAddBtn')?.addEventListener('click', async () => {
+        const name = String(el('adminGroceryCatName').value || '').trim();
+        if (!name) {
+            setMsg('Category name is required.', true);
+            return;
+        }
+        try {
+            await api('POST', withVenue('/api/admin/grocery/categories'), {
+                name,
+                image: String(el('adminGroceryCatImage').value || '').trim(),
+                sortOrder: parseInt(String(el('adminGroceryCatSort').value || '0'), 10) || 0
+            });
+            el('adminGroceryCatName').value = '';
+            el('adminGroceryCatImage').value = '';
+            el('adminGroceryCatSort').value = '';
+            await loadAll();
+            setMsg('Category saved.', false);
+        } catch (err) {
+            if (err.code !== 401) setMsg(err.message || 'Could not save category.', true);
+        }
+    });
+
+    // category + product delegated actions
+    document.getElementById('adminGroceryCatList')?.addEventListener('click', async (e) => {
+        const del = e.target.closest('[data-gro-cat-del]');
+        if (!del) return;
+        if (!window.confirm('Delete this category? Products keep existing but lose the category.')) return;
+        try {
+            await api('DELETE', withVenue('/api/admin/grocery/categories/' + del.getAttribute('data-gro-cat-del')));
+            await loadAll();
+        } catch (err) {
+            if (err.code !== 401) setMsg(err.message || 'Could not delete category.', true);
+        }
+    });
+
+    document.getElementById('adminGroceryProductList')?.addEventListener('click', async (e) => {
+        const inc = e.target.closest('[data-gro-stock-inc]');
+        const dec = e.target.closest('[data-gro-stock-dec]');
+        const edit = e.target.closest('[data-gro-prod-edit]');
+        const del = e.target.closest('[data-gro-prod-del]');
+        try {
+            if (inc || dec) {
+                const id = (inc || dec).getAttribute(inc ? 'data-gro-stock-inc' : 'data-gro-stock-dec');
+                await api('POST', withVenue('/api/admin/grocery/products/' + id + '/stock'), {
+                    mode: 'delta',
+                    amount: inc ? 1 : -1
+                });
+                await loadAll();
+                return;
+            }
+            if (edit) {
+                const id = Number(edit.getAttribute('data-gro-prod-edit'));
+                const p = state.products.find((x) => x.id === id);
+                if (p) {
+                    fillProductForm(p);
+                    modal.querySelector('.admin-modal-card')?.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+                return;
+            }
+            if (del) {
+                if (!window.confirm('Delete this product?')) return;
+                await api('DELETE', withVenue('/api/admin/grocery/products/' + del.getAttribute('data-gro-prod-del')));
+                await loadAll();
+            }
+        } catch (err) {
+            if (err.code !== 401) setMsg(err.message || 'Action failed.', true);
+        }
+    });
+
+    el('adminGroceryProductCancelBtn')?.addEventListener('click', resetProductForm);
+
+    el('adminGroceryProductForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (state.isMain && !state.storeId) {
+            setMsg('Select a grocery store first.', true);
+            return;
+        }
+        const payload = {
+            name: String(el('adminGroceryProductName').value || '').trim(),
+            sku: String(el('adminGroceryProductSku').value || '').trim(),
+            unit: el('adminGroceryProductUnit').value,
+            unitValue: el('adminGroceryProductUnitValue').value,
+            mrp: el('adminGroceryProductMrp').value,
+            price: el('adminGroceryProductPrice').value,
+            stockQty: el('adminGroceryProductStock').value,
+            lowStockThreshold: el('adminGroceryProductLowStock').value,
+            image: String(el('adminGroceryProductImage').value || '').trim(),
+            enabled: el('adminGroceryProductEnabled').checked,
+            categoryId: el('adminGroceryProductCategory').value || null
+        };
+        if (!payload.name || !payload.price) {
+            setMsg('Name and selling price are required.', true);
+            return;
+        }
+        const saveBtn = el('adminGroceryProductSaveBtn');
+        setBtnLoading(saveBtn, true);
+        try {
+            if (state.editingId) {
+                await api('PATCH', withVenue('/api/admin/grocery/products/' + state.editingId), payload);
+            } else {
+                await api('POST', withVenue('/api/admin/grocery/products'), payload);
+            }
+            resetProductForm();
+            await loadAll();
+            setMsg('Product saved.', false);
+        } catch (err) {
+            if (err.code !== 401) setMsg(err.message || 'Could not save product.', true);
+        } finally {
+            setBtnLoading(saveBtn, false);
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1305,6 +1839,90 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape' && hotelsModal && !hotelsModal.hidden) {
             closeHotelsModal();
         }
+        if (e.key === 'Escape' && venueProfileModal && !venueProfileModal.hidden) {
+            closeVenueProfileModal();
+        }
+    });
+
+    const venueProfileBtn = document.getElementById('adminVenueProfileBtn');
+    const venueProfileModal = document.getElementById('adminVenueProfileModal');
+    const venueProfileCloseBtn = document.getElementById('adminVenueProfileCloseBtn');
+    const venueProfileTitle = document.getElementById('adminVenueProfileModalTitle');
+    const venueProfileSub = document.getElementById('adminVenueProfileModalSub');
+    const venueProfileContact = document.getElementById('adminVenueProfileContact');
+    const venueProfileHours = document.getElementById('adminVenueProfileHours');
+    const venueProfileAddress = document.getElementById('adminVenueProfileAddress');
+    const venueProfileSaveBtn = document.getElementById('adminVenueProfileSaveBtn');
+    const venueProfileMsg = document.getElementById('adminVenueProfileMsg');
+
+    function setVenueProfileMessage(text, state) {
+        if (!venueProfileMsg) return;
+        venueProfileMsg.textContent = text || '';
+        if (state) venueProfileMsg.setAttribute('data-state', state);
+        else venueProfileMsg.removeAttribute('data-state');
+    }
+
+    function fillVenueProfileForm() {
+        if (venueProfileContact) venueProfileContact.value = currentVenue?.contactMobile || '';
+        if (venueProfileHours) venueProfileHours.value = currentVenue?.hoursText || '';
+        if (venueProfileAddress) venueProfileAddress.value = currentVenue?.addressLine || '';
+    }
+
+    function openVenueProfileModal() {
+        if (!venueProfileModal || isMainAdminVenue()) return;
+        const grocery = isGroceryVenue();
+        if (venueProfileTitle) venueProfileTitle.textContent = grocery ? 'Store info' : 'Hotel info';
+        if (venueProfileSub) {
+            venueProfileSub.textContent = grocery
+                ? 'Contact, hours, and address for your grocery store.'
+                : 'Contact number and hours shown to customers after they order.';
+        }
+        fillVenueProfileForm();
+        setVenueProfileMessage('', null);
+        venueProfileModal.hidden = false;
+    }
+
+    function closeVenueProfileModal() {
+        if (venueProfileModal) venueProfileModal.hidden = true;
+    }
+
+    venueProfileBtn?.addEventListener('click', openVenueProfileModal);
+    venueProfileCloseBtn?.addEventListener('click', closeVenueProfileModal);
+    venueProfileModal?.addEventListener('click', (e) => {
+        if (e.target === venueProfileModal) closeVenueProfileModal();
+    });
+    venueProfileSaveBtn?.addEventListener('click', async () => {
+        if (!currentVenue || isMainAdminVenue()) return;
+        setBtnLoading(venueProfileSaveBtn, true);
+        setVenueProfileMessage('Saving…', null);
+        try {
+            const res = await fetch('/api/admin/venue-profile', {
+                method: 'PUT',
+                headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contactMobile: String(venueProfileContact?.value || '').trim(),
+                    hoursText: String(venueProfileHours?.value || '').trim(),
+                    addressLine: String(venueProfileAddress?.value || '').trim()
+                })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
+            if (!res.ok) throw new Error(data.error || res.statusText);
+            if (data.venue) {
+                currentVenue = data.venue;
+                updateVenueHeader();
+            }
+            setVenueProfileMessage('Saved.', 'success');
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired. Enter admin credentials again.');
+            } else {
+                setVenueProfileMessage(err.message || 'Could not save.', 'error');
+            }
+        } finally {
+            setBtnLoading(venueProfileSaveBtn, false);
+        }
     });
 
     const floorConfigBtn = document.getElementById('adminFloorConfigBtn');
@@ -1399,6 +2017,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const hotelParcelCountInput = document.getElementById('adminHotelParcelCount');
     const hotelContactMobileInput = document.getElementById('adminHotelContactMobile');
     const hotelHoursTextInput = document.getElementById('adminHotelHoursText');
+    const hotelTypeInput = document.getElementById('adminHotelType');
 
     function setHotelsMessage(text, state) {
         if (!hotelsMsg) return;
@@ -1460,6 +2079,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const parcelCount = parseInt(String(hotelParcelCountInput?.value || '5'), 10);
         const contactMobile = String(hotelContactMobileInput?.value || '').trim();
         const hoursText = String(hotelHoursTextInput?.value || '').trim();
+        const venueType = hotelTypeInput?.value === 'grocery' ? 'grocery' : 'food';
         if (!name || !adminUser || !adminPass) {
             setHotelsMessage('Name, admin username, and password are required.', 'error');
             return;
@@ -1476,10 +2096,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 tableCount,
                 parcelCount,
                 contactMobile,
-                hoursText
+                hoursText,
+                venueType
             });
             clearHotelCreateForm();
             await fetchManagedHotels();
+            hasGroceryStores = managedHotels.some((v) => v.venueType === 'grocery');
+            applyMainVenueUi();
             renderManagedHotelsList();
             setHotelsMessage('Hotel created. Share the login with that property.', 'success');
         } catch (err) {
@@ -1495,6 +2118,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     hotelsModal?.addEventListener('click', async (e) => {
+        const invBtn = e.target.closest('[data-hotel-inventory]');
+        if (invBtn) {
+            const id = invBtn.getAttribute('data-hotel-inventory');
+            closeHotelsModal();
+            if (typeof window.openGroceryInventory === 'function') {
+                window.openGroceryInventory(id);
+            }
+            return;
+        }
         const menuBtn = e.target.closest('[data-hotel-menu]');
         if (menuBtn) {
             const id = menuBtn.getAttribute('data-hotel-menu');
@@ -2172,6 +2804,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (ORDER_STATUS_TABS.some((t) => t.key === hashKey)) {
         activeOrderTab = hashKey;
     }
+    normalizeActiveOrderTab();
     if (!window.location.hash) {
         window.location.hash = `#${activeOrderTab}`;
     }
@@ -2180,8 +2813,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const key = String(window.location.hash || '')
             .replace(/^#/, '')
             .trim();
-        if (ORDER_STATUS_TABS.some((t) => t.key === key)) {
+        const countsByStatus = getCountsByStatus(filterOrdersForAdminView(lastOrders));
+        const tabDef = ORDER_STATUS_TABS.find((t) => t.key === key);
+        if (tabDef && isOrderTabVisible(tabDef, countsByStatus)) {
             activeOrderTab = key;
+            renderTabsAndActiveList(lastOrders);
+        } else {
+            normalizeActiveOrderTab();
             renderTabsAndActiveList(lastOrders);
         }
     });
@@ -2263,6 +2901,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const kot = (orders || []).filter((o) => isKotFloorOrder(o));
         counts.kot = kot.length;
         counts.all = delivery.length;
+        counts.grocery = delivery.filter((o) => isGroceryOrder(o)).length;
         counts.active = (orders || []).filter((o) => isUnsettledOrder(o)).length;
         for (const o of delivery) {
             if (counts[o.status] !== undefined) counts[o.status] += 1;
@@ -2275,18 +2914,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderTabsAndActiveList(orders) {
-        const q = normalizeSearch(searchInput?.value);
-        const searched = q ? orders.filter((o) => matchesAdminOrderSearch(o, q)) : orders;
+        const scoped = filterOrdersForAdminView(orders);
+        const mobile = isAdminMobileView();
+        const q = mobile ? '' : normalizeSearch(searchInput?.value);
+        const searched = q ? scoped.filter((o) => matchesAdminOrderSearch(o, q)) : scoped;
         const deliverySearched = searched.filter((o) => !isKotFloorOrder(o));
         const kotSearched = searched.filter((o) => isKotFloorOrder(o));
+        const viewTab = getEffectiveOrderTab();
 
         const countsByStatus = getCountsByStatus(searched);
-        renderAdminAnalytics(orders);
-        renderOrderTabs(tabsEl, countsByStatus, activeOrderTab);
-        const tab = ORDER_STATUS_TABS.find((t) => t.key === activeOrderTab) || ORDER_STATUS_TABS[0];
+        renderAdminAnalytics(scoped);
+        renderOrderTabs(tabsEl, countsByStatus, viewTab);
+        const tab = ORDER_STATUS_TABS.find((t) => t.key === viewTab) || ORDER_STATUS_TABS[0];
         const emptyText = q ? 'matching orders' : tab.emptyText || 'orders';
 
-        if (activeOrderTab === 'active') {
+        if (viewTab === 'active') {
             renderMixedOrderList(listEl, {
                 kotOrders: kotSearched.filter((o) => showInActiveOrdersTab(o, pinnedOrderIdsAfterStatusChange)),
                 deliveryOrders: deliverySearched.filter((o) => showInActiveOrdersTab(o, pinnedOrderIdsAfterStatusChange)),
@@ -2295,7 +2937,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (activeOrderTab === 'kot') {
+        if (viewTab === 'kot') {
             renderMixedOrderList(listEl, {
                 kotOrders: kotSearched,
                 deliveryOrders: [],
@@ -2304,12 +2946,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (viewTab === 'grocery') {
+            renderMixedOrderList(listEl, {
+                kotOrders: [],
+                deliveryOrders: deliverySearched.filter((o) => isGroceryOrder(o)),
+                deliveryEmptyText: emptyText
+            });
+            return;
+        }
+
         const filteredDelivery =
-            activeOrderTab === 'all'
+            viewTab === 'all'
                 ? deliverySearched
                 : deliverySearched.filter(
                       (o) =>
-                          o.status === activeOrderTab ||
+                          o.status === viewTab ||
                           pinnedOrderIdsAfterStatusChange.has(String(o.id))
                   );
 
@@ -2321,10 +2972,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     tabsEl?.addEventListener('click', (e) => {
+        if (isAdminMobileView()) return;
         const btn = e.target.closest('button[data-status]');
         if (!btn) return;
         const nextKey = String(btn.getAttribute('data-status') || '');
-        if (!ORDER_STATUS_TABS.some((t) => t.key === nextKey)) return;
+        const countsByStatus = getCountsByStatus(filterOrdersForAdminView(lastOrders));
+        const tabDef = ORDER_STATUS_TABS.find((t) => t.key === nextKey);
+        if (!tabDef || !isOrderTabVisible(tabDef, countsByStatus)) return;
         if (nextKey === activeOrderTab) return;
         activeOrderTab = nextKey;
         pinnedOrderIdsAfterStatusChange.clear();
@@ -2333,6 +2987,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     searchInput?.addEventListener('input', () => {
+        if (isAdminMobileView()) return;
+        renderTabsAndActiveList(lastOrders);
+    });
+
+    let wasAdminMobile = isAdminMobileView();
+    window.addEventListener('resize', () => {
+        const mobile = isAdminMobileView();
+        if (mobile === wasAdminMobile) return;
+        wasAdminMobile = mobile;
+        if (mobile && searchInput) searchInput.value = '';
         renderTabsAndActiveList(lastOrders);
     });
 
@@ -2354,7 +3018,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnCopyTodaySummary?.addEventListener('click', async () => {
-        const data = computeAdminAnalytics(lastOrders || []);
+        const data = computeAdminAnalytics(filterOrdersForAdminView(lastOrders));
         const lines = [
             `Baloji's Cafe — Today summary`,
             `Updated: ${data.updatedAt.toLocaleString()}`,
@@ -2376,7 +3040,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnDownloadCsv?.addEventListener('click', () => {
-        const rows = (lastOrders || []).map((o) => ({
+        const rows = filterOrdersForAdminView(lastOrders).map((o) => ({
             id: o.id,
             status: o.status,
             name: o.name,
@@ -2427,7 +3091,9 @@ document.addEventListener('DOMContentLoaded', () => {
         hideNewOrderPopup();
 
         const pendingSet = new Set(
-            (lastOrders || []).filter((o) => o.status === 'pending' && !isKotFloorOrder(o)).map((o) => String(o.id))
+            filterOrdersForAdminView(lastOrders)
+                .filter((o) => o.status === 'pending' && !isKotFloorOrder(o))
+                .map((o) => String(o.id))
         );
         const next = pendingPopupQueue[0];
         if (next && pendingSet.has(String(next.id))) {
@@ -2473,8 +3139,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const orders = await fetchOrders();
             lastOrders = orders;
             renderTabsAndActiveList(orders);
+            const scopedOrders = filterOrdersForAdminView(orders);
             const pendingSet = new Set(
-                orders.filter((o) => o.status === 'pending' && !isKotFloorOrder(o)).map((o) => String(o.id))
+                scopedOrders
+                    .filter((o) => o.status === 'pending' && !isKotFloorOrder(o))
+                    .map((o) => String(o.id))
             );
 
             // Drop handled/obsolete items from the popup queue.
@@ -2503,7 +3172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (!bootstrapped) {
-                orders
+                scopedOrders
                     .filter((o) => o.status === 'pending' && !isKotFloorOrder(o))
                     .forEach((o) => seenPending.add(String(o.id)));
                 saveSeenIds(seenPending);
@@ -2511,7 +3180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            for (const o of orders) {
+            for (const o of scopedOrders) {
                 const sid = String(o.id);
                 if (o.status === 'pending' && !isKotFloorOrder(o) && !seenPending.has(sid)) {
                     seenPending.add(sid);
@@ -2592,6 +3261,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     logoutBtn?.addEventListener('click', () => {
         clearAdminCredentials();
+        currentVenue = null;
+        hasGroceryStores = false;
+        applyMainVenueUi();
         hideNewOrderPopup();
         pendingPopupQueue = [];
         pendingPopupQueueIds = new Set();
@@ -2616,6 +3288,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 saveAdminCredentials(user, pass);
                 hideAdminGate();
+                await refreshGroceryStorePresence();
+                ensureGroceryInventoryInit();
                 await refresh();
                 loadStoreStatus();
                 fetchFloorConfig().catch(() => {});
@@ -2649,10 +3323,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         hideAdminGate();
+        await refreshGroceryStorePresence();
         refresh();
         loadStoreStatus();
         fetchFloorConfig().catch(() => {});
     };
 
-    initAdmin();
+    initAdmin().then(() => {
+        ensureGroceryInventoryInit();
+    });
 });

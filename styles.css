@@ -6271,6 +6271,10 @@ body.app-mobile {
     -webkit-tap-highlight-color: transparent;
 }
 
+body.app-mobile:has(#appModeToggle) {
+    --fo-top: 56px;
+}
+
 body.app-mobile .app-shell {
     max-width: var(--fo-max);
     margin: 0 auto;
@@ -6294,7 +6298,7 @@ body.app-mobile .app-topbar {
     transform: translateX(-50%);
     width: 100%;
     max-width: var(--fo-max);
-    z-index: 1100;
+    z-index: 1500;
     padding: env(safe-area-inset-top, 0px) max(1rem, env(safe-area-inset-right, 0px)) 0 max(1rem, env(safe-area-inset-left, 0px));
     background: rgba(255, 255, 255, 0.88);
     -webkit-backdrop-filter: saturate(1.8) blur(16px);
@@ -6302,6 +6306,7 @@ body.app-mobile .app-topbar {
     border-bottom: 1px solid var(--fo-border);
     box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
     transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    pointer-events: auto;
 }
 
 body.app-mobile .app-topbar.scrolled {
@@ -6360,20 +6365,65 @@ body.app-mobile .app-topbar-status--closed .app-topbar-status-dot {
 
 body.app-mobile .app-topbar-inner {
     display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--fo-space-3);
+    gap: 0.65rem;
     min-height: var(--fo-top);
-    padding-bottom: var(--fo-space-2);
+    padding: 0.35rem 0 0.45rem;
+    position: relative;
+    z-index: 1;
 }
 
 body.app-mobile .app-brand {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
-    min-width: 0;
+    flex-shrink: 0;
     text-decoration: none;
     color: inherit;
+}
+
+body.app-mobile .app-brand--logo-only {
+    align-self: center;
+}
+
+body.app-mobile .app-brand--logo-only .app-brand-logo-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+}
+
+body.app-mobile .app-topbar .app-mode-toggle {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    max-width: none;
+    gap: 0;
+    margin: 0;
+    padding: 3px;
+    border-radius: 12px;
+    background: #f4f4f5;
+    border: 1px solid var(--fo-border);
+    box-shadow: none;
+    position: relative;
+    z-index: 2;
+    touch-action: manipulation;
+}
+
+body.app-mobile .app-topbar .app-mode-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-height: 34px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    padding: 0 0.5rem;
+    border-radius: 9px;
+    touch-action: manipulation;
+    cursor: pointer;
 }
 
 body.app-mobile .app-brand:focus-visible {
@@ -10643,6 +10693,782 @@ body.app-mobile.has-cart-bar .category-jump-fab {
     .category-sheet-backdrop,
     .category-sheet-panel {
         transition: none;
+    }
+}
+
+/* ============================================================
+   FOOD / GROCERY MODE TOGGLE + GROCERY (INSTAMART) STOREFRONT
+   ============================================================ */
+
+:root {
+    --gro-accent: #7c3aed;
+    --gro-accent-dark: #6d28d9;
+    --gro-accent-soft: #f3eefe;
+}
+
+.app-mode-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 3px;
+    border-radius: 12px;
+    background: #f4f4f5;
+    margin: 0 auto;
+    max-width: 100%;
+}
+
+.app-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border: none;
+    background: transparent;
+    color: #71717a;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 700;
+    padding: 0 0.75rem;
+    min-height: 38px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.app-mode-btn .app-mode-emoji {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.app-mode-btn[data-mode="food"].is-active {
+    background: #fff;
+    color: var(--fo-accent-dark, #15803d);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.app-mode-btn[data-mode="grocery"].is-active {
+    background: #fff;
+    color: var(--gro-accent);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.app-mode-btn:active:not(.is-active) {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.app-mode-btn.is-unavailable {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.app-mode-btn .app-mode-emoji,
+.app-mode-btn .app-mode-text {
+    pointer-events: none;
+}
+
+/* Section visibility driven by body mode class */
+.grocery-section {
+    display: none;
+}
+
+body.mode-grocery #home,
+body.mode-grocery #menu,
+body.mode-grocery #categoryJumpFab,
+body.mode-grocery #cartBar {
+    display: none !important;
+}
+
+body.mode-grocery .grocery-section {
+    display: block;
+}
+
+body:not(.mode-grocery) #grocery {
+    display: none !important;
+}
+
+.grocery-section {
+    padding: 14px 0 24px;
+    background: var(--cream-bg, #faf8f3);
+    min-height: 60vh;
+}
+
+.grocery-hero {
+    background: linear-gradient(135deg, var(--gro-accent), var(--gro-accent-dark));
+    color: #fff;
+    border-radius: 18px;
+    padding: 16px 16px 18px;
+    margin-bottom: 14px;
+}
+
+.grocery-hero-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.grocery-hero-eyebrow {
+    font-size: 0.74rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.18);
+    padding: 3px 9px;
+    border-radius: 999px;
+}
+
+.grocery-hero-live {
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.grocery-hero-live.is-closed {
+    opacity: 0.85;
+}
+
+.grocery-hero-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin: 0 0 2px;
+    color: #fff;
+}
+
+.grocery-hero-lead {
+    font-size: 0.85rem;
+    margin: 0 0 12px;
+    opacity: 0.92;
+}
+
+.grocery-search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 12px;
+    padding: 0 10px;
+}
+
+.grocery-search-wrapper .search-icon {
+    width: 18px;
+    height: 18px;
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+
+.grocery-search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 11px 8px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: #1e293b;
+}
+
+.grocery-store-filter {
+    margin-bottom: 12px;
+}
+
+.grocery-store-filter-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.grocery-store-tab {
+    flex-shrink: 0;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.grocery-store-tab.is-active {
+    background: var(--gro-accent);
+    border-color: var(--gro-accent);
+    color: #fff;
+}
+
+.grocery-store-closed-notice {
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    margin: 0 0 12px;
+}
+
+.grocery-cat-tabs {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding: 4px 2px 12px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.grocery-cat-tab {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 64px;
+    border: none;
+    background: transparent;
+    color: #334155;
+    font-family: inherit;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    line-height: 1.1;
+}
+
+.grocery-cat-tab .grocery-cat-img,
+.grocery-cat-tab .grocery-cat-emoji {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    object-fit: cover;
+    background: var(--gro-accent-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.grocery-cat-block {
+    margin-bottom: 18px;
+    scroll-margin-top: 120px;
+}
+
+.grocery-cat-heading {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 0 10px;
+}
+
+.grocery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+@media (min-width: 560px) {
+    .grocery-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 820px) {
+    .grocery-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.grocery-card {
+    position: relative;
+    background: #fff;
+    border: 1px solid #eef0f3;
+    border-radius: 14px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.grocery-card.is-oos {
+    opacity: 0.72;
+}
+
+.grocery-off-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: var(--gro-accent);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 6px;
+    z-index: 2;
+}
+
+.grocery-card-img {
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #f8fafc;
+    margin-bottom: 6px;
+}
+
+.grocery-card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.grocery-card-unit {
+    font-size: 0.68rem;
+    color: #94a3b8;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.grocery-card-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 8px;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.1em;
+}
+
+.grocery-card-foot {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.grocery-card-price {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.grocery-price {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.grocery-mrp {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.grocery-add-btn {
+    border: 1.5px solid var(--gro-accent);
+    background: var(--gro-accent-soft);
+    color: var(--gro-accent-dark);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    padding: 7px 14px;
+    border-radius: 9px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.grocery-oos-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #ef4444;
+}
+
+.grocery-stepper {
+    display: inline-flex;
+    align-items: center;
+    background: var(--gro-accent);
+    border-radius: 9px;
+    overflow: hidden;
+}
+
+.grocery-stepper--sm {
+    border-radius: 8px;
+}
+
+.grocery-step {
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 800;
+    width: 30px;
+    height: 32px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.grocery-step-qty {
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 800;
+    min-width: 20px;
+    text-align: center;
+}
+
+.grocery-loading,
+.grocery-empty {
+    text-align: center;
+    color: #64748b;
+    padding: 40px 16px;
+    font-size: 0.9rem;
+}
+
+/* Grocery cart bar — purple accent variant */
+body.app-mobile .grocery-cart-bar {
+    background: linear-gradient(180deg, var(--gro-accent), var(--gro-accent-dark));
+    box-shadow: 0 12px 30px rgba(124, 58, 237, 0.34), 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+body.app-mobile.has-grocery-cart-bar .app-shell {
+    padding-bottom: calc(var(--fo-nav) + env(safe-area-inset-bottom, 0px) + 84px);
+}
+
+/* Grocery cart modal body */
+.grocery-cart-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.grocery-cart-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.grocery-cart-line-img {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #f1f5f9;
+    flex-shrink: 0;
+}
+
+.grocery-cart-line-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.grocery-cart-line-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.grocery-cart-line-unit {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+.grocery-cart-line-total {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1e293b;
+    min-width: 52px;
+    text-align: right;
+}
+
+.grocery-cart-empty {
+    text-align: center;
+    color: #64748b;
+    padding: 24px;
+}
+
+.grocery-checkout-block {
+    border-top: 1px solid #eef0f3;
+    padding-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.grocery-field-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #475569;
+}
+
+.grocery-address-select,
+.grocery-input {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 0.88rem;
+    color: #1e293b;
+    background: #fff;
+}
+
+.grocery-new-address {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.grocery-coupon-row {
+    display: flex;
+    gap: 8px;
+}
+
+.grocery-coupon-row .grocery-input {
+    flex: 1;
+}
+
+.grocery-coupon-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.grocery-coupon-msg {
+    font-size: 0.78rem;
+    color: #16a34a;
+    margin: 0;
+}
+
+.grocery-coupon-msg.is-error {
+    color: #ef4444;
+}
+
+.grocery-totals {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.grocery-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.grocery-total-row--grand {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1e293b;
+    border-top: 1px dashed #cbd5e1;
+    padding-top: 8px;
+    margin-top: 2px;
+}
+
+.grocery-checkout-error {
+    color: #ef4444;
+    font-size: 0.82rem;
+    margin: 0;
+}
+
+.grocery-place-btn {
+    width: 100%;
+    padding: 13px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    background: var(--gro-accent);
+    border-color: var(--gro-accent);
+}
+
+.grocery-place-btn:hover {
+    background: var(--gro-accent-dark);
+}
+
+.grocery-toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--fo-nav, 64px) + 90px);
+    transform: translateX(-50%) translateY(10px);
+    background: #1e293b;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 999px;
+    z-index: 1200;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+    max-width: 88vw;
+    text-align: center;
+}
+
+    .grocery-toast.is-visible {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+
+/* ============================================================
+   APP FOOTER (food + grocery)
+   ============================================================ */
+
+.app-footer {
+    background: linear-gradient(180deg, #11221a, #0c1a14);
+    color: #cbd5d1;
+    padding: 28px 0 calc(var(--fo-nav, 64px) + env(safe-area-inset-bottom, 0px) + 24px);
+    margin-top: 24px;
+}
+
+.app-footer .container {
+    max-width: var(--fo-max, 720px);
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.app-footer-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app-footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.app-footer-logo img {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #fff;
+    padding: 3px;
+}
+
+.app-footer-brand-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.app-footer-name {
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: #fff;
+}
+
+.app-footer-tagline {
+    font-size: 0.8rem;
+    color: #93a59d;
+    line-height: 1.3;
+}
+
+.app-footer-services {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.app-footer-chip {
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 5px 11px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8e5;
+    white-space: nowrap;
+}
+
+.app-footer-chip--food {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+}
+
+.app-footer-chip--grocery {
+    background: rgba(124, 58, 237, 0.22);
+    color: #c4b5fd;
+}
+
+.app-footer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    padding: 22px 0;
+}
+
+.app-footer-heading {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #7c8c85;
+    margin: 0 0 10px;
+}
+
+.app-footer-col ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.app-footer-col a {
+    color: #cbd5d1;
+    text-decoration: none;
+    font-size: 0.86rem;
+    transition: color 0.2s ease;
+}
+
+.app-footer-col a:hover {
+    color: #fff;
+}
+
+.app-footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: #8b9b94;
+}
+
+.app-footer-bottom p {
+    margin: 0;
+}
+
+.app-footer-made a {
+    color: #86efac;
+    text-decoration: none;
+}
+
+@media (max-width: 560px) {
+    .app-footer-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .app-footer-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .app-footer-bottom {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
 

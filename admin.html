@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#059669">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Orders — Baloji's Cafe Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,8 +26,15 @@
             --surface-muted: #f1f5f9;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html {
+            overflow-x: clip;
+            max-width: 100%;
+        }
         body {
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: clip;
             background:
                 radial-gradient(1100px 520px at 8% -8%, rgba(52, 211, 153, 0.1), transparent 55%),
                 radial-gradient(900px 480px at 100% 0%, rgba(34, 211, 238, 0.08), transparent 50%),
@@ -35,12 +45,14 @@
             padding-bottom: 2rem;
         }
         .admin-header {
+            width: 100%;
             max-width: 720px;
             margin: 0 auto 1.25rem;
             display: flex;
             flex-direction: column;
             align-items: stretch;
             gap: 0.75rem;
+            min-width: 0;
         }
         .admin-header-main {
             width: 100%;
@@ -146,6 +158,10 @@
         /* Extra toolbar actions — desktop only (mobile shows floor, refresh, orders, logout). */
         .admin-icon-btn--desktop-only {
             display: inline-flex;
+        }
+        .admin-icon-btn[hidden],
+        .admin-icon-btn--desktop-only[hidden] {
+            display: none !important;
         }
 
         /* Tooltips (desktop hover + keyboard focus) */
@@ -337,7 +353,7 @@
         }
         .admin-analytics-grid {
             display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 0.65rem;
         }
         .admin-metric {
@@ -458,8 +474,10 @@
         }
 
         .admin-layout {
+            width: 100%;
             max-width: 720px;
             margin: 0 auto;
+            min-width: 0;
         }
 
         .admin-sidebar-actions {
@@ -663,11 +681,13 @@
             font-weight: 800;
         }
         #adminOrderList {
+            width: 100%;
             max-width: 720px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
             gap: 1rem;
+            min-width: 0;
         }
         .admin-empty, .admin-error {
             text-align: center;
@@ -676,6 +696,9 @@
         }
         .admin-error { color: #be123c; }
         .admin-order {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
             background: var(--card);
             border: 1px solid var(--card-border);
             box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
@@ -762,6 +785,8 @@
             border-radius: 6px;
             background: var(--surface-muted);
             color: var(--text);
+            max-width: 100%;
+            overflow-wrap: anywhere;
         }
         .admin-order-status--pending { background: #fef3c7; color: #b45309; }
         .admin-order-status--accepted { background: #d1fae5; color: #047857; }
@@ -818,8 +843,13 @@
             flex-direction: column;
             gap: 1.5rem;
             width: 100%;
+            max-width: 100%;
+            min-width: 0;
         }
         .admin-kot-block {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
             border-radius: 16px;
             padding: 1rem 1.1rem 1.15rem;
             border: 2px solid rgba(251, 191, 36, 0.42);
@@ -1001,64 +1031,8 @@
 
         /* Mobile tweaks */
         @media (max-width: 640px) {
-            body {
-                padding: 0.75rem;
-                padding-bottom: 1.25rem;
-            }
-            .admin-header {
-                gap: 0.85rem;
-            }
-            .admin-header h1 {
-                font-size: 1.05rem;
-                text-align: center;
-            }
-            .admin-header-sales {
-                display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 0.45rem;
-                margin-top: 0.55rem;
-            }
-            .admin-header-sale {
-                align-items: center;
-                text-align: center;
-                padding: 0.5rem 0.35rem;
-                border-radius: 10px;
-                background: var(--surface-muted);
-                border: 1px solid var(--card-border);
-            }
-            .admin-header-sale-label {
-                font-size: 0.6rem;
-                line-height: 1.25;
-            }
-            .admin-header-sale-label-full {
-                display: none;
-            }
-            .admin-header-sale-label-short {
-                display: inline;
-            }
-            .admin-header-sale-value {
-                font-size: 0.8125rem;
-            }
-            .admin-toolbar {
-                gap: 0.65rem;
-            }
-            .admin-toolbar button,
-            .admin-toolbar .admin-icon-btn {
-                width: 2.5rem;
-                height: 2.5rem;
-                flex: 0 0 auto;
-            }
             .admin-icon-btn--desktop-only {
                 display: none !important;
-            }
-            #adminOrderList {
-                gap: 0.85rem;
-            }
-            .admin-order {
-                padding: 0.9rem 0.95rem;
-            }
-            .admin-order-items {
-                font-size: 0.78rem;
             }
             .admin-popup-actions {
                 flex-direction: column;
@@ -1069,14 +1043,6 @@
             }
             .admin-modal-card {
                 padding: 0.9rem 0.95rem;
-            }
-
-            .admin-filters {
-                display: none;
-            }
-
-            .admin-sidebar-actions {
-                display: none;
             }
 
             /* Larger touch targets for the shop open/close popup on phones. */
@@ -1105,14 +1071,13 @@
         }
 
         @media (max-width: 520px) {
-            .admin-tabs {
-                flex-wrap: nowrap;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                padding-bottom: 0.25rem;
+            .admin-tabs,
+            .admin-tabs--sidebar {
+                flex-wrap: wrap;
+                overflow: visible;
             }
-            .admin-tab-btn {
-                white-space: nowrap;
+            .admin-tabs--sidebar .admin-tab-btn {
+                flex: 1 1 100%;
             }
         }
 
@@ -1400,8 +1365,8 @@
             min-height: 0;
         }
         #adminPartnerMenuModal .admin-modal-card {
-            width: min(100%, 38rem);
-            max-height: min(92vh, 780px);
+            width: min(100%, 58rem);
+            max-height: min(92vh, 820px);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -1412,6 +1377,68 @@
             min-height: 0;
             flex: 1;
             overflow: hidden;
+        }
+        .admin-partner-menu-split {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+            gap: 1rem;
+            flex: 1;
+            min-height: 0;
+            align-items: stretch;
+        }
+        .admin-partner-menu-panel {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            min-width: 0;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 16px;
+            background: #fff;
+            overflow: hidden;
+        }
+        .admin-partner-menu-panel--list {
+            background: var(--surface-muted, #f8fafc);
+        }
+        .admin-partner-menu-panel--list .admin-partner-menu-list-head {
+            flex-shrink: 0;
+            padding: 0.85rem 0.95rem 0.55rem;
+            margin-bottom: 0;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+        }
+        .admin-partner-menu-panel--list .admin-partner-menu-list {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            padding: 0 0.55rem 0.55rem;
+        }
+        .admin-partner-menu-panel--list .admin-partner-menu-table-wrap {
+            max-height: none;
+            height: 100%;
+            border: none;
+            border-radius: 12px;
+            background: #fff;
+        }
+        .admin-partner-menu-panel--form {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0.95rem;
+        }
+        .admin-partner-menu-panel--form .admin-partner-menu-add-form {
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        @media (max-width: 820px) {
+            .admin-partner-menu-split {
+                grid-template-columns: 1fr;
+                grid-template-rows: minmax(220px, 1fr) auto;
+            }
+            #adminPartnerMenuModal .admin-modal-card {
+                width: min(100%, 38rem);
+            }
+            .admin-partner-menu-panel--list {
+                max-height: min(42vh, 360px);
+            }
         }
         .admin-partner-menu-list-head {
             display: flex;
@@ -1651,6 +1678,713 @@
             background: #dcfce7;
             border-color: #16a34a;
         }
+
+        /* ============================================================
+           ADMIN UX REFRESH — modern, easy, mobile-friendly
+           ============================================================ */
+        body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+        /* Header as a frosted card */
+        .admin-header {
+            background: rgba(255, 255, 255, 0.72);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.32);
+            border-radius: 18px;
+            padding: 0.85rem 1rem;
+            box-shadow: 0 6px 22px rgba(15, 23, 42, 0.06);
+        }
+        .admin-header h1 { letter-spacing: -0.01em; }
+
+        /* Toolbar buttons — depth + tactile feedback */
+        .admin-icon-btn,
+        .admin-toolbar button {
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+            transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.14s ease, border-color 0.14s ease;
+        }
+        .admin-icon-btn:active,
+        .admin-toolbar button:active { transform: translateY(1px) scale(0.97); }
+        .admin-icon-btn--danger { color: var(--danger); }
+        .admin-icon-btn--danger:hover { background: #fef2f2; border-color: #fca5a5; }
+
+        /* Tabs — pill style with clear active state */
+        .admin-tab-btn {
+            border-radius: 999px;
+            transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+        .admin-tab-btn[aria-selected="true"] {
+            background: linear-gradient(180deg, #10b981, #047857);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.32);
+        }
+        .admin-tab-btn[aria-selected="true"] .admin-tab-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: #fff;
+        }
+
+        /* Order cards — status accent bar + lift on hover */
+        .admin-order { position: relative; overflow: hidden; transition: box-shadow 0.2s ease, transform 0.2s ease; }
+        .admin-order::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: #cbd5e1;
+        }
+        .admin-order--pending::before { background: #f59e0b; }
+        .admin-order--accepted::before { background: #10b981; }
+        .admin-order--preparing::before { background: #3b82f6; }
+        .admin-order--out_for_delivery::before { background: #7c3aed; }
+        .admin-order--completed::before { background: #16a34a; }
+        .admin-order--rejected::before { background: #ef4444; }
+        .admin-order--cancelled::before { background: #94a3b8; }
+        @media (hover: hover) and (pointer: fine) {
+            .admin-order:hover { box-shadow: 0 14px 32px rgba(15, 23, 42, 0.12); transform: translateY(-1px); }
+        }
+
+        /* Action buttons — tactile */
+        .admin-btn { transition: transform 0.12s ease, filter 0.15s ease, box-shadow 0.15s ease; }
+        .admin-btn:not(:disabled):active { transform: translateY(1px) scale(0.98); }
+        @media (hover: hover) {
+            .admin-btn:not(:disabled):hover { filter: brightness(1.05); }
+        }
+
+        /* Empty / error states */
+        .admin-empty, .admin-error {
+            border: 1px dashed var(--card-border);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Grocery inventory modal — wide + scrollable like other big modals */
+        #adminGroceryModal .admin-modal-card {
+            width: min(100%, 40rem);
+            max-height: min(92vh, 820px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #adminGroceryModal .admin-modal-head { flex-shrink: 0; }
+        #adminGroceryModal .admin-store-status {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        .admin-grocery-product-list { max-height: none; }
+        .admin-grocery-row { transition: box-shadow 0.15s ease; }
+        @media (hover: hover) {
+            .admin-grocery-row:hover { box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08); }
+        }
+        .admin-partner-menu-add-form input,
+        .admin-partner-menu-add-form select,
+        .admin-search input,
+        .admin-search select {
+            border-radius: 10px;
+        }
+
+        /* ---- Mobile ergonomics ---- */
+        @media (max-width: 768px) {
+            .admin-header {
+                position: sticky;
+                top: 0.4rem;
+                z-index: 60;
+            }
+
+            /* Modals slide up as bottom sheets */
+            .admin-modal { align-items: flex-end; padding: 0; }
+            .admin-modal-card,
+            #adminHotelsModal .admin-modal-card,
+            #adminPartnerMenuModal .admin-modal-card,
+            #adminGroceryModal .admin-modal-card {
+                width: 100%;
+                max-width: 100%;
+                max-height: 94vh;
+                border-radius: 22px 22px 0 0;
+                padding-top: 0.8rem;
+                padding-bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px));
+                animation: adminSheetUp 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .admin-modal-card::before {
+                content: '';
+                display: block;
+                width: 42px;
+                height: 4px;
+                border-radius: 999px;
+                background: #cbd5e1;
+                margin: 0 auto 0.7rem;
+                flex-shrink: 0;
+            }
+            @keyframes adminSheetUp {
+                from { transform: translateY(12%); opacity: 0.5; }
+                to { transform: none; opacity: 1; }
+            }
+            .admin-grocery-cat-form { flex-direction: column; align-items: stretch; }
+            .admin-grocery-cat-form input,
+            .admin-grocery-cat-form button { width: 100%; }
+            .admin-grocery-cat-form input[type="number"] { max-width: none !important; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .admin-modal-card,
+            #adminHotelsModal .admin-modal-card,
+            #adminPartnerMenuModal .admin-modal-card,
+            #adminGroceryModal .admin-modal-card { animation: none; }
+        }
+
+        /* =====================================================
+           MODAL UX OVERHAUL — clean, tactile, consistent
+           ===================================================== */
+        .admin-modal,
+        .admin-auth-gate {
+            background: rgba(15, 23, 42, 0.55);
+            -webkit-backdrop-filter: blur(6px) saturate(115%);
+            backdrop-filter: blur(6px) saturate(115%);
+            animation: adminOverlayIn 0.18s ease both;
+        }
+        @keyframes adminOverlayIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .admin-modal-card,
+        .admin-auth-card {
+            border: none;
+            border-radius: 22px;
+            box-shadow: 0 24px 70px -12px rgba(15, 23, 42, 0.45),
+                        0 0 0 1px rgba(15, 23, 42, 0.04);
+            padding: 1.35rem 1.4rem 1.4rem;
+            animation: adminPopIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @keyframes adminPopIn {
+            from { transform: translateY(10px) scale(0.97); opacity: 0; }
+            to { transform: none; opacity: 1; }
+        }
+
+        /* --- Header becomes a clean titled bar with a divider --- */
+        .admin-modal-head {
+            align-items: flex-start;
+            flex-wrap: nowrap;
+            gap: 0.85rem;
+            padding-bottom: 0.9rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        }
+        .admin-modal-head > div:first-child { min-width: 0; }
+        .admin-modal-title {
+            font-size: 1.15rem;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+        }
+        .admin-modal-head .admin-modal-sub {
+            margin-top: 0.2rem;
+        }
+
+        /* --- Round, tactile close button (text hidden, ✕ via glyph) --- */
+        .admin-popup-close {
+            flex-shrink: 0;
+            width: 2.2rem;
+            height: 2.2rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border-radius: 999px;
+            border: 1px solid rgba(15, 23, 42, 0.1);
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 0;
+            line-height: 1;
+            transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+        }
+        .admin-popup-close::before {
+            content: '\2715';
+            font-size: 1rem;
+            font-weight: 800;
+        }
+        .admin-popup-close:hover,
+        .admin-popup-close:focus-visible {
+            background: #fee2e2;
+            color: #dc2626;
+            border-color: #fca5a5;
+            transform: rotate(90deg);
+            outline: none;
+        }
+
+        /* --- Inputs & selects: consistent, comfortable, clear focus --- */
+        .admin-search > span {
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .admin-search input,
+        .admin-search select,
+        .admin-auth-card input {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            background: #fff;
+            color: var(--text);
+            padding: 0.7rem 0.8rem;
+            font: inherit;
+            min-height: 2.85rem;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .admin-search input:focus,
+        .admin-search select:focus,
+        .admin-auth-card input:focus {
+            border-color: rgba(34, 197, 94, 0.7);
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
+        }
+
+        /* --- Primary / action buttons: gradient, lift, focus ring --- */
+        .admin-popup-actions button,
+        .admin-store-save-btn,
+        .admin-auth-actions button {
+            border-radius: 12px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+        }
+        .admin-popup-actions .admin-btn--accept,
+        .admin-store-save-btn,
+        .admin-auth-actions button {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #052e16;
+            box-shadow: 0 8px 18px -6px rgba(22, 163, 74, 0.55);
+        }
+        .admin-popup-actions .admin-btn--cancel {
+            box-shadow: 0 8px 18px -6px rgba(220, 38, 38, 0.5);
+        }
+        .admin-popup-actions button:hover,
+        .admin-store-save-btn:hover,
+        .admin-auth-actions button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+        }
+        .admin-popup-actions button:active,
+        .admin-store-save-btn:active,
+        .admin-auth-actions button:active {
+            transform: translateY(0);
+        }
+        .admin-popup-actions button:focus-visible,
+        .admin-store-save-btn:focus-visible,
+        .admin-auth-actions button:focus-visible,
+        .admin-store-toggle-btn:focus-visible {
+            outline: 2px solid #0f172a;
+            outline-offset: 2px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .admin-modal,
+            .admin-auth-gate,
+            .admin-modal-card,
+            .admin-auth-card { animation: none; }
+            .admin-popup-close:hover,
+            .admin-popup-close:focus-visible { transform: none; }
+        }
+
+        /* =====================================================
+           FORM & FIELD POLISH inside modals
+           ===================================================== */
+        /* Unify EVERY field in a modal/auth card regardless of wrapper */
+        .admin-modal input:not([type="checkbox"]):not([type="radio"]),
+        .admin-modal select,
+        .admin-modal textarea,
+        .admin-auth-card input {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 2.85rem;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            background: #ffffff;
+            color: var(--text);
+            padding: 0.7rem 0.85rem;
+            font: inherit;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+        }
+        .admin-modal select {
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.85rem center;
+            padding-right: 2.2rem;
+            cursor: pointer;
+        }
+        .admin-modal input::placeholder,
+        .admin-modal textarea::placeholder {
+            color: #94a3b8;
+        }
+        .admin-modal input:not([type="checkbox"]):not([type="radio"]):hover,
+        .admin-modal select:hover,
+        .admin-modal textarea:hover {
+            border-color: #cbd5e1;
+        }
+        .admin-modal input:not([type="checkbox"]):not([type="radio"]):focus,
+        .admin-modal select:focus,
+        .admin-modal textarea:focus,
+        .admin-auth-card input:focus {
+            border-color: rgba(34, 197, 94, 0.75);
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
+        }
+
+        /* Field labels (the <span> inside .admin-search) */
+        .admin-search > span {
+            display: block;
+            margin-bottom: 0.32rem;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        /* Section sub-headings + dividers */
+        .admin-hotels-create-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            color: var(--text);
+            margin-bottom: 0.75rem;
+        }
+        .admin-hotels-divider {
+            margin: 1.15rem 0;
+            background: rgba(15, 23, 42, 0.08);
+        }
+
+        /* Add-item / create forms become tidy panels */
+        .admin-partner-menu-add-form,
+        #adminHotelsCreateSection {
+            background: var(--surface-muted, #f8fafc);
+            border: 1px solid rgba(15, 23, 42, 0.07);
+            border-radius: 16px;
+            padding: 1.05rem 1.1rem;
+        }
+        .admin-partner-menu-add-form { gap: 0.85rem; }
+        #adminHotelsCreateSection .admin-hotels-divider:first-child { display: none; }
+
+        /* Even two-column rows; single field spans full width */
+        .admin-partner-menu-add-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+        .admin-partner-menu-add-row > .admin-search:only-child {
+            grid-column: 1 / -1;
+        }
+        .admin-partner-menu-half-full-row { gap: 0.85rem; }
+
+        /* Grocery category quick-add: clean responsive grid (no cramped wrap) */
+        .admin-grocery-cat-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 0.65rem;
+            align-items: stretch;
+        }
+        .admin-grocery-cat-form #adminGroceryCatName { grid-column: 1 / -1; }
+        .admin-grocery-cat-form #adminGroceryCatSort { max-width: none !important; }
+        .admin-grocery-cat-form .admin-store-save-btn { white-space: nowrap; padding-inline: 1.2rem; }
+
+        /* Checkbox rows look like selectable pills */
+        .admin-partner-menu-pricing-mode {
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 0.7rem 0.85rem;
+            background: #fff;
+            font-size: 0.875rem;
+            font-weight: 700;
+            min-height: 2.85rem;
+        }
+        .admin-partner-menu-pricing-mode:hover { border-color: #cbd5e1; }
+        .admin-partner-menu-pricing-mode input { width: 1.15rem; height: 1.15rem; }
+
+        .admin-partner-menu-form-cancel {
+            border-radius: 12px;
+        }
+
+        @media (max-width: 480px) {
+            .admin-grocery-cat-form { grid-template-columns: 1fr; }
+        }
+
+        /* Mobile: header divider stays, close button stays reachable */
+        @media (max-width: 768px) {
+            .admin-modal-card { padding: 0.8rem 1.05rem calc(1.2rem + env(safe-area-inset-bottom, 0px)); }
+            .admin-modal-head { gap: 0.6rem; }
+            .admin-popup-actions { position: sticky; bottom: 0; }
+            .admin-partner-menu-add-form,
+            #adminHotelsCreateSection { padding: 0.9rem; }
+        }
+
+        .admin-role-banner {
+            margin: 0 0 0.85rem;
+            padding: 0.7rem 0.85rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            line-height: 1.45;
+            font-weight: 600;
+        }
+        body.admin-mode-grocery .admin-role-banner {
+            background: #f5f3ff;
+            border: 1px solid #ddd6fe;
+            color: #5b21b6;
+        }
+        body.admin-mode-hotel .admin-role-banner {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+        body.admin-mode-main .admin-role-banner {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+
+        /* Hard separation: hotel admin never sees grocery UI */
+        body.admin-mode-hotel #adminGroceryInventoryBtn,
+        body.admin-mode-hotel #adminGroceryModal,
+        body.admin-mode-hotel .admin-tab-btn[data-status="grocery"] {
+            display: none !important;
+        }
+
+        /* Hard separation: grocery admin never sees hotel menu / floor tools */
+        body.admin-mode-grocery #adminPartnerMenuBtn,
+        body.admin-mode-grocery #adminFloorLink,
+        body.admin-mode-grocery #adminFloorConfigBtn,
+        body.admin-mode-grocery .admin-tab-btn[data-status="kot"],
+        body.admin-mode-grocery #adminMetricFloor {
+            display: none !important;
+        }
+
+        /* Search + status filters — desktop only */
+        @media (max-width: 899px) {
+            .admin-search--desktop-only,
+            .admin-filters,
+            .admin-icon-btn--desktop-only {
+                display: none !important;
+            }
+        }
+
+        /* Mobile / tablet — single column, no horizontal page scroll */
+        @media (max-width: 899px) {
+            body {
+                overflow-x: clip;
+                max-width: 100%;
+                padding:
+                    0.5rem
+                    max(0.5rem, env(safe-area-inset-right, 0px))
+                    calc(1rem + env(safe-area-inset-bottom, 0px))
+                    max(0.5rem, env(safe-area-inset-left, 0px));
+            }
+            .admin-header,
+            .admin-layout,
+            .admin-primary,
+            #adminOrderList,
+            .admin-order-list-stack,
+            .admin-kot-block,
+            .admin-delivery-block-cards {
+                max-width: 100%;
+                min-width: 0;
+                width: 100%;
+            }
+            .admin-header {
+                max-width: 100%;
+                margin-bottom: 0.5rem;
+                padding: 0.6rem 0.55rem;
+                border-radius: 12px;
+                overflow: hidden;
+            }
+            .admin-header h1 {
+                font-size: clamp(0.95rem, 4.2vw, 1.1rem);
+                text-align: center;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .admin-header-sales {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.3rem;
+                margin-top: 0.45rem;
+                width: 100%;
+            }
+            .admin-header-sale {
+                align-items: center;
+                text-align: center;
+                min-width: 0;
+                padding: 0.35rem 0.2rem;
+                border-radius: 8px;
+                background: var(--surface-muted);
+                border: 1px solid var(--card-border);
+                overflow: hidden;
+            }
+            .admin-header-sale-label {
+                font-size: 0.58rem;
+                line-height: 1.2;
+            }
+            .admin-header-sale-label-full {
+                display: none;
+            }
+            .admin-header-sale-label-short {
+                display: inline;
+            }
+            .admin-header-sale-value {
+                font-size: clamp(0.72rem, 3.4vw, 0.85rem);
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                max-width: 100%;
+            }
+            .admin-toolbar {
+                display: flex;
+                flex-wrap: nowrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.3rem;
+                width: 100%;
+                min-width: 0;
+                max-width: 100%;
+            }
+            .admin-toolbar > .admin-icon-btn,
+            .admin-toolbar > a.admin-icon-btn,
+            .admin-toolbar > button.admin-icon-btn {
+                flex: 1 1 0;
+                min-width: 0;
+                width: 2.05rem !important;
+                max-width: 2.2rem;
+                height: 2.05rem !important;
+                margin: 0;
+                padding: 0 !important;
+                font-size: 0 !important;
+                line-height: 0;
+            }
+            .admin-toolbar .admin-icon-btn svg {
+                width: 1rem;
+                height: 1rem;
+                flex-shrink: 0;
+            }
+            .admin-layout {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .admin-sidebar {
+                display: none !important;
+            }
+            .admin-primary {
+                padding-bottom: env(safe-area-inset-bottom, 0px);
+                overflow-x: hidden;
+            }
+            #adminOrderList {
+                gap: 0.75rem;
+            }
+            .admin-role-banner {
+                overflow-wrap: anywhere;
+                font-size: 0.8125rem;
+                padding: 0.6rem 0.7rem;
+            }
+            .admin-order,
+            .admin-kot-block {
+                padding: 0.7rem 0.6rem;
+                border-radius: 11px;
+                box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+                overflow: hidden;
+            }
+            .admin-order-head {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.35rem;
+            }
+            .admin-order-head > *,
+            .admin-order-head-badges {
+                min-width: 0;
+                max-width: 100%;
+            }
+            .admin-order-head-badges {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+            .admin-order-id {
+                font-size: 0.9375rem;
+            }
+            .admin-order-status {
+                white-space: normal;
+                text-align: left;
+                line-height: 1.25;
+            }
+            .admin-order-phone {
+                max-width: 100%;
+                margin-left: 0;
+                flex-wrap: wrap;
+            }
+            .admin-order-id,
+            .admin-order-line,
+            .admin-order-meta,
+            .admin-order-items,
+            .admin-order-total {
+                overflow-wrap: anywhere;
+                word-break: break-word;
+            }
+            .admin-order-items {
+                font-size: 0.78rem;
+            }
+            .admin-order-actions {
+                flex-direction: column;
+                gap: 0.4rem;
+            }
+            .admin-order-actions .admin-btn,
+            .admin-order-actions .admin-btn--floor {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                min-height: 2.45rem;
+                flex: 0 0 auto;
+                white-space: normal;
+                text-align: center;
+                padding: 0.5rem 0.65rem;
+                font-size: 0.78rem;
+            }
+            .admin-kot-block-head {
+                flex-wrap: wrap;
+            }
+            .admin-kot-subhead {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding-left: max(0.4rem, env(safe-area-inset-left, 0px));
+                padding-right: max(0.4rem, env(safe-area-inset-right, 0px));
+            }
+            .admin-header {
+                padding: 0.5rem 0.45rem;
+            }
+            .admin-toolbar > .admin-icon-btn,
+            .admin-toolbar > a.admin-icon-btn,
+            .admin-toolbar > button.admin-icon-btn {
+                width: 1.95rem !important;
+                max-width: 2rem;
+                height: 1.95rem !important;
+            }
+            .admin-toolbar .admin-icon-btn svg {
+                width: 0.95rem;
+                height: 0.95rem;
+            }
+            .admin-order,
+            .admin-kot-block {
+                padding: 0.6rem 0.5rem;
+            }
+            .admin-order-actions .admin-btn {
+                min-height: 2.25rem;
+                font-size: 0.74rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1696,7 +2430,7 @@
             </div>
         </div>
         <div class="admin-toolbar">
-            <a class="admin-icon-btn" href="/admin/tables" data-tip="Floor / tables" aria-label="Floor tables and KOTs" style="text-decoration:none;">
+            <a class="admin-icon-btn" id="adminFloorLink" href="/admin/tables" data-tip="Floor / tables" aria-label="Floor tables and KOTs" style="text-decoration:none;">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <rect x="3" y="4" width="7" height="7" rx="1.5"/>
                     <rect x="14" y="4" width="7" height="7" rx="1.5"/>
@@ -1704,28 +2438,37 @@
                     <rect x="14" y="13" width="7" height="7" rx="1.5"/>
                 </svg>
             </a>
-            <button type="button" id="adminRefreshBtn" class="admin-icon-btn" data-tip="Refresh" aria-label="Refresh">⟳</button>
+            <button type="button" id="adminRefreshBtn" class="admin-icon-btn" data-tip="Refresh" aria-label="Refresh">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+            </button>
             <button type="button" id="adminPartnerMenuBtn" class="admin-icon-btn admin-icon-btn--desktop-only" data-tip="Hotel menu" aria-label="Edit hotel menu" hidden>📋</button>
+            <button type="button" id="adminVenueProfileBtn" class="admin-icon-btn admin-icon-btn--desktop-only" data-tip="Hotel info" aria-label="Edit hotel info" hidden>🏨</button>
             <button type="button" id="adminHotelsBtn" class="admin-icon-btn admin-icon-btn--desktop-only" data-tip="Hotels" aria-label="Manage hotels" hidden>🏨</button>
+            <button type="button" id="adminGroceryInventoryBtn" class="admin-icon-btn admin-icon-btn--desktop-only" data-tip="Grocery inventory" aria-label="Manage grocery inventory" hidden>🛒</button>
             <button type="button" id="adminFloorConfigBtn" class="admin-icon-btn admin-icon-btn--desktop-only" data-tip="Floor layout" aria-label="Floor layout settings">🪑</button>
-            <button type="button" id="adminStoreStatusBtn" class="admin-icon-btn" data-tip="Orders ON/OFF" aria-label="Online orders on or off" data-state="loading">🏪</button>
-            <button type="button" id="adminLogoutBtn" class="admin-icon-btn admin-icon-btn--danger" data-tip="Logout" aria-label="Logout">⎋</button>
+            <button type="button" id="adminStoreStatusBtn" class="admin-icon-btn" data-tip="Orders ON/OFF" aria-label="Online orders on or off" data-state="loading">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><path d="M3 9l2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 12v.01"/></svg>
+            </button>
+            <button type="button" id="adminLogoutBtn" class="admin-icon-btn admin-icon-btn--danger" data-tip="Logout" aria-label="Logout">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+            </button>
         </div>
     </header>
 
     <main class="admin-layout">
         <aside class="admin-filters">
             <div class="admin-filters-card">
-                <div class="admin-search">
+                <div class="admin-search admin-search--desktop-only">
                     <label for="adminSearchInput">Search</label>
                     <input id="adminSearchInput" type="search" placeholder="Order #, name, mobile, city" autocomplete="off">
                 </div>
-                <div style="height: 0.65rem;"></div>
+                <div class="admin-filters-spacer admin-search--desktop-only" style="height: 0.65rem;"></div>
                 <div id="adminTabs" class="admin-tabs admin-tabs--sidebar" role="tablist" aria-label="Order status"></div>
             </div>
         </aside>
 
         <section class="admin-primary">
+            <p class="admin-role-banner" id="adminRoleBanner" hidden></p>
             <div id="adminOrderList">
                 <p class="admin-empty">Loading…</p>
             </div>
@@ -1734,7 +2477,7 @@
         <aside class="admin-sidebar">
             <section class="admin-desktop-analytics" id="adminDesktopAnalytics" aria-label="Analytics">
                 <div class="admin-analytics-head">
-                    <div class="admin-analytics-title">Today’s analytics</div>
+                    <div class="admin-analytics-title">Today's analytics</div>
                     <div class="admin-analytics-sub" id="adminAnalyticsUpdatedAt">—</div>
                 </div>
                 <div class="admin-analytics-grid">
@@ -1753,7 +2496,7 @@
                         <div class="admin-metric-value" id="metricTotalOrders">—</div>
                         <div class="admin-metric-hint" id="metricTotalOrdersHint">—</div>
                     </div>
-                    <div class="admin-metric">
+                    <div class="admin-metric" id="adminMetricFloor">
                         <div class="admin-metric-label">Floor live</div>
                         <div class="admin-metric-value" id="metricTotalEarning">—</div>
                         <div class="admin-metric-hint" id="metricTotalEarningHint">—</div>
@@ -1912,6 +2655,38 @@
         </div>
     </div>
 
+    <div id="adminVenueProfileModal" class="admin-modal" hidden>
+        <div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminVenueProfileModalTitle">
+            <div class="admin-modal-head">
+                <div>
+                    <div class="admin-modal-title" id="adminVenueProfileModalTitle">Hotel info</div>
+                    <div class="admin-modal-sub" id="adminVenueProfileModalSub">Contact number and hours shown to customers after they order.</div>
+                </div>
+                <button type="button" id="adminVenueProfileCloseBtn" class="admin-popup-close" aria-label="Close">Close</button>
+            </div>
+            <section class="admin-store-status" aria-label="Venue profile">
+                <label class="admin-search" for="adminVenueProfileContact">
+                    <span>Customer contact number</span>
+                    <input id="adminVenueProfileContact" type="tel" autocomplete="tel" placeholder="Shown after customer orders">
+                </label>
+                <div style="height: 0.65rem;"></div>
+                <label class="admin-search" for="adminVenueProfileHours">
+                    <span>Opening hours</span>
+                    <input id="adminVenueProfileHours" type="text" autocomplete="off" placeholder="e.g. 8 AM – 10 PM">
+                </label>
+                <div style="height: 0.65rem;"></div>
+                <label class="admin-search" for="adminVenueProfileAddress">
+                    <span>Address (optional)</span>
+                    <input id="adminVenueProfileAddress" type="text" autocomplete="off" placeholder="Store / hotel address">
+                </label>
+                <div class="admin-store-status-foot" style="margin-top: 1rem;">
+                    <button type="button" class="admin-store-save-btn" id="adminVenueProfileSaveBtn">Save</button>
+                    <span class="admin-store-status-msg" id="adminVenueProfileMsg" role="status"></span>
+                </div>
+            </section>
+        </div>
+    </div>
+
     <div id="adminHotelsModal" class="admin-modal" hidden>
         <div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminHotelsModalTitle">
             <div class="admin-modal-head">
@@ -1925,7 +2700,15 @@
                 <div id="adminHotelsList" class="admin-hotels-list" aria-live="polite"></div>
                 <div id="adminHotelsCreateSection" hidden>
                 <div class="admin-hotels-divider"></div>
-                <div class="admin-hotels-create-title">Add hotel</div>
+                <div class="admin-hotels-create-title">Add hotel / store</div>
+                <label class="admin-search" for="adminHotelType">
+                    <span>Store type</span>
+                    <select id="adminHotelType">
+                        <option value="food" selected>Food (hotel / cafe)</option>
+                        <option value="grocery">Grocery (Instamart-style)</option>
+                    </select>
+                </label>
+                <div style="height: 0.55rem;"></div>
                 <label class="admin-search" for="adminHotelName">
                     <span>Hotel name</span>
                     <input id="adminHotelName" type="text" autocomplete="off" placeholder="e.g. Hill View Cafe">
@@ -1989,56 +2772,266 @@
                 </div>
                 <button type="button" id="adminPartnerMenuCloseBtn" class="admin-popup-close" aria-label="Close">Close</button>
             </div>
-            <section class="admin-store-status" aria-label="Hotel menu editor">
-                <form id="adminPartnerMenuAddForm" class="admin-partner-menu-add-form">
-                    <div class="admin-hotels-create-title" id="adminPartnerMenuFormTitle">Add menu item</div>
-                    <label class="admin-search" for="adminPartnerMenuItemName">
-                        <span>Item name</span>
-                        <input id="adminPartnerMenuItemName" type="text" autocomplete="off" placeholder="e.g. Masala Dosa" required>
-                    </label>
-                    <div class="admin-partner-menu-add-row">
-                        <label class="admin-search" for="adminPartnerMenuItemCategory">
-                            <span>Category</span>
-                            <input id="adminPartnerMenuItemCategory" type="text" list="adminPartnerMenuCategoryList" autocomplete="off" placeholder="e.g. Breakfast" required>
-                            <datalist id="adminPartnerMenuCategoryList"></datalist>
-                        </label>
+            <section class="admin-store-status admin-partner-menu-layout" aria-label="Hotel menu editor">
+                <div class="admin-partner-menu-split">
+                    <div class="admin-partner-menu-panel admin-partner-menu-panel--list">
+                        <div class="admin-partner-menu-list-head">
+                            <div class="admin-hotels-create-title" style="margin-bottom:0;">Current menu</div>
+                            <span class="admin-partner-menu-list-count" id="adminPartnerMenuListCount">0 items</span>
+                        </div>
+                        <div id="adminPartnerMenuList" class="admin-partner-menu-list" aria-live="polite"></div>
                     </div>
-                    <label class="admin-partner-menu-pricing-mode" for="adminPartnerMenuHalfFull">
-                        <input type="checkbox" id="adminPartnerMenuHalfFull">
-                        <span>Half / Full portions</span>
-                    </label>
-                    <div class="admin-partner-menu-add-row" id="adminPartnerMenuSinglePriceRow">
-                        <label class="admin-search" for="adminPartnerMenuItemPrice">
-                            <span>Price (₹)</span>
-                            <input id="adminPartnerMenuItemPrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="99">
-                        </label>
+                    <div class="admin-partner-menu-panel admin-partner-menu-panel--form">
+                        <form id="adminPartnerMenuAddForm" class="admin-partner-menu-add-form">
+                            <div class="admin-hotels-create-title" id="adminPartnerMenuFormTitle">Add menu item</div>
+                            <label class="admin-search" for="adminPartnerMenuItemName">
+                                <span>Item name</span>
+                                <input id="adminPartnerMenuItemName" type="text" autocomplete="off" placeholder="e.g. Masala Dosa" required>
+                            </label>
+                            <div class="admin-partner-menu-add-row">
+                                <label class="admin-search" for="adminPartnerMenuItemCategory">
+                                    <span>Category</span>
+                                    <input id="adminPartnerMenuItemCategory" type="text" list="adminPartnerMenuCategoryList" autocomplete="off" placeholder="e.g. Breakfast" required>
+                                    <datalist id="adminPartnerMenuCategoryList"></datalist>
+                                </label>
+                            </div>
+                            <label class="admin-partner-menu-pricing-mode" for="adminPartnerMenuHalfFull">
+                                <input type="checkbox" id="adminPartnerMenuHalfFull">
+                                <span>Half / Full portions</span>
+                            </label>
+                            <div class="admin-partner-menu-add-row" id="adminPartnerMenuSinglePriceRow">
+                                <label class="admin-search" for="adminPartnerMenuItemPrice">
+                                    <span>Price (₹)</span>
+                                    <input id="adminPartnerMenuItemPrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="99">
+                                </label>
+                            </div>
+                            <div class="admin-partner-menu-half-full-row" id="adminPartnerMenuHalfFullRow" hidden>
+                                <label class="admin-search" for="adminPartnerMenuItemHalfPrice">
+                                    <span>Half (₹)</span>
+                                    <input id="adminPartnerMenuItemHalfPrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="20">
+                                </label>
+                                <label class="admin-search" for="adminPartnerMenuItemFullPrice">
+                                    <span>Full (₹)</span>
+                                    <input id="adminPartnerMenuItemFullPrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="40">
+                                </label>
+                            </div>
+                            <div class="admin-store-status-foot admin-partner-menu-form-actions" style="margin-top: 0.25rem;">
+                                <button type="submit" class="admin-store-save-btn" id="adminPartnerMenuAddBtn">Add item</button>
+                                <button type="button" class="admin-partner-menu-form-cancel" id="adminPartnerMenuCancelBtn" hidden>Cancel edit</button>
+                                <span class="admin-store-status-msg" id="adminPartnerMenuMsg" role="status"></span>
+                            </div>
+                        </form>
                     </div>
-                    <div class="admin-partner-menu-half-full-row" id="adminPartnerMenuHalfFullRow" hidden>
-                        <label class="admin-search" for="adminPartnerMenuItemHalfPrice">
-                            <span>Half (₹)</span>
-                            <input id="adminPartnerMenuItemHalfPrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="20">
-                        </label>
-                        <label class="admin-search" for="adminPartnerMenuItemFullPrice">
-                            <span>Full (₹)</span>
-                            <input id="adminPartnerMenuItemFullPrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="40">
-                        </label>
-                    </div>
-                    <div class="admin-store-status-foot admin-partner-menu-form-actions" style="margin-top: 0.25rem;">
-                        <button type="submit" class="admin-store-save-btn" id="adminPartnerMenuAddBtn">Add item</button>
-                        <button type="button" class="admin-partner-menu-form-cancel" id="adminPartnerMenuCancelBtn" hidden>Cancel edit</button>
-                        <span class="admin-store-status-msg" id="adminPartnerMenuMsg" role="status"></span>
-                    </div>
-                </form>
-                <div class="admin-hotels-divider"></div>
-                <div class="admin-partner-menu-list-head">
-                    <div class="admin-hotels-create-title" style="margin-bottom:0;">Current menu</div>
-                    <span class="admin-partner-menu-list-count" id="adminPartnerMenuListCount">0 items</span>
                 </div>
-                <div id="adminPartnerMenuList" class="admin-partner-menu-list" aria-live="polite"></div>
             </section>
         </div>
     </div>
 
-    <script src="/admin.js?v=20"></script>
+    <style>
+        .admin-grocery-cat-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .admin-grocery-cat-form input {
+            flex: 1;
+            min-width: 120px;
+            padding: 0.5rem 0.65rem;
+            border: 1px solid #d8dee9;
+            border-radius: 8px;
+            font: inherit;
+        }
+        .admin-grocery-cat-list,
+        .admin-grocery-product-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .admin-grocery-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.55rem 0.7rem;
+            border: 1px solid #e8ecf2;
+            border-radius: 10px;
+            background: #fff;
+        }
+        .admin-grocery-row-main {
+            flex: 1;
+            min-width: 0;
+        }
+        .admin-grocery-row-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+        .admin-grocery-row-meta {
+            font-size: 0.76rem;
+            color: #64748b;
+        }
+        .admin-grocery-badge {
+            font-size: 0.66rem;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 5px;
+            margin-left: 6px;
+        }
+        .admin-grocery-badge--low { background: #fef3c7; color: #92400e; }
+        .admin-grocery-badge--oos { background: #fee2e2; color: #b91c1c; }
+        .admin-grocery-stock-controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .admin-grocery-stock-controls button {
+            width: 26px;
+            height: 26px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 800;
+        }
+        .admin-grocery-stock-val {
+            min-width: 34px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 0.85rem;
+        }
+        .admin-grocery-row-actions {
+            display: inline-flex;
+            gap: 4px;
+        }
+        .admin-grocery-row-actions button {
+            border: none;
+            background: #eef2f7;
+            border-radius: 6px;
+            padding: 5px 8px;
+            cursor: pointer;
+            font-size: 0.78rem;
+        }
+        .admin-grocery-row-actions button.danger { background: #fee2e2; color: #b91c1c; }
+        .admin-grocery-lowstock {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 10px;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.82rem;
+            color: #92400e;
+        }
+        .admin-grocery-lowstock strong { display: block; margin-bottom: 0.25rem; }
+    </style>
+    <div id="adminGroceryModal" class="admin-modal" hidden>
+        <div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminGroceryModalTitle">
+            <div class="admin-modal-head">
+                <div>
+                    <div class="admin-modal-title" id="adminGroceryModalTitle">Grocery inventory</div>
+                    <div class="admin-modal-sub" id="adminGroceryModalSub">Manage categories, products, stock, MRP and selling price.</div>
+                </div>
+                <button type="button" id="adminGroceryCloseBtn" class="admin-popup-close" aria-label="Close">Close</button>
+            </div>
+            <section class="admin-store-status" aria-label="Grocery inventory editor">
+                <label class="admin-search" for="adminGroceryStoreSelect" id="adminGroceryStoreSelectWrap" hidden>
+                    <span>Grocery store</span>
+                    <select id="adminGroceryStoreSelect"></select>
+                </label>
+
+                <div id="adminGroceryLowStock" class="admin-grocery-lowstock" hidden></div>
+
+                <div class="admin-hotels-divider"></div>
+                <div class="admin-hotels-create-title">Categories (aisles)</div>
+                <div class="admin-grocery-cat-form">
+                    <input id="adminGroceryCatName" type="text" autocomplete="off" placeholder="Category name e.g. Fruits & Vegetables">
+                    <input id="adminGroceryCatImage" type="text" autocomplete="off" placeholder="Image URL (optional)">
+                    <input id="adminGroceryCatSort" type="number" step="1" placeholder="Sort" style="max-width:80px;">
+                    <button type="button" class="admin-store-save-btn" id="adminGroceryCatAddBtn">Add</button>
+                </div>
+                <div id="adminGroceryCatList" class="admin-grocery-cat-list" aria-live="polite"></div>
+
+                <div class="admin-hotels-divider"></div>
+                <form id="adminGroceryProductForm" class="admin-partner-menu-add-form">
+                    <div class="admin-hotels-create-title" id="adminGroceryProductFormTitle">Add product</div>
+                    <input type="hidden" id="adminGroceryProductId" value="">
+                    <label class="admin-search" for="adminGroceryProductName">
+                        <span>Product name</span>
+                        <input id="adminGroceryProductName" type="text" autocomplete="off" placeholder="e.g. Amul Gold Milk" required>
+                    </label>
+                    <div class="admin-partner-menu-add-row">
+                        <label class="admin-search" for="adminGroceryProductCategory">
+                            <span>Category</span>
+                            <select id="adminGroceryProductCategory"></select>
+                        </label>
+                        <label class="admin-search" for="adminGroceryProductSku">
+                            <span>SKU (optional)</span>
+                            <input id="adminGroceryProductSku" type="text" autocomplete="off" placeholder="SKU code">
+                        </label>
+                    </div>
+                    <div class="admin-partner-menu-add-row">
+                        <label class="admin-search" for="adminGroceryProductUnit">
+                            <span>Unit</span>
+                            <select id="adminGroceryProductUnit">
+                                <option value="pcs">pcs</option>
+                                <option value="pack">pack</option>
+                                <option value="kg">kg</option>
+                                <option value="g">g</option>
+                                <option value="l">l</option>
+                                <option value="ml">ml</option>
+                                <option value="dozen">dozen</option>
+                                <option value="bundle">bundle</option>
+                            </select>
+                        </label>
+                        <label class="admin-search" for="adminGroceryProductUnitValue">
+                            <span>Unit value</span>
+                            <input id="adminGroceryProductUnitValue" type="number" min="0" step="0.01" placeholder="e.g. 500" value="1">
+                        </label>
+                    </div>
+                    <div class="admin-partner-menu-add-row">
+                        <label class="admin-search" for="adminGroceryProductMrp">
+                            <span>MRP (₹)</span>
+                            <input id="adminGroceryProductMrp" type="number" min="0" max="999999" step="1" inputmode="numeric" placeholder="60">
+                        </label>
+                        <label class="admin-search" for="adminGroceryProductPrice">
+                            <span>Selling price (₹)</span>
+                            <input id="adminGroceryProductPrice" type="number" min="1" max="999999" step="1" inputmode="numeric" placeholder="54" required>
+                        </label>
+                    </div>
+                    <div class="admin-partner-menu-add-row">
+                        <label class="admin-search" for="adminGroceryProductStock">
+                            <span>Stock qty</span>
+                            <input id="adminGroceryProductStock" type="number" min="0" step="1" inputmode="numeric" placeholder="100" value="0">
+                        </label>
+                        <label class="admin-search" for="adminGroceryProductLowStock">
+                            <span>Low-stock alert at</span>
+                            <input id="adminGroceryProductLowStock" type="number" min="0" step="1" inputmode="numeric" placeholder="5" value="5">
+                        </label>
+                    </div>
+                    <label class="admin-search" for="adminGroceryProductImage">
+                        <span>Image URL (optional)</span>
+                        <input id="adminGroceryProductImage" type="text" autocomplete="off" placeholder="images/...">
+                    </label>
+                    <label class="admin-partner-menu-pricing-mode" for="adminGroceryProductEnabled">
+                        <input type="checkbox" id="adminGroceryProductEnabled" checked>
+                        <span>Listed (visible to customers)</span>
+                    </label>
+                    <div class="admin-store-status-foot admin-partner-menu-form-actions" style="margin-top: 0.25rem;">
+                        <button type="submit" class="admin-store-save-btn" id="adminGroceryProductSaveBtn">Add product</button>
+                        <button type="button" class="admin-partner-menu-form-cancel" id="adminGroceryProductCancelBtn" hidden>Cancel edit</button>
+                        <span class="admin-store-status-msg" id="adminGroceryProductMsg" role="status"></span>
+                    </div>
+                </form>
+
+                <div class="admin-hotels-divider"></div>
+                <div class="admin-partner-menu-list-head">
+                    <div class="admin-hotels-create-title" style="margin-bottom:0;">Products</div>
+                    <span class="admin-partner-menu-list-count" id="adminGroceryProductCount">0 items</span>
+                </div>
+                <div id="adminGroceryProductList" class="admin-grocery-product-list" aria-live="polite"></div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/admin.js?v=27"></script>
 </body>
 </html>
