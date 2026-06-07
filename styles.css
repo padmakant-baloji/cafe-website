@@ -6385,6 +6385,7 @@ body.app-mobile .app-brand {
     flex: 0 0 auto;
     text-decoration: none;
     color: inherit;
+    gap: 12px;
 }
 
 body.app-mobile .app-brand--logo-only {

@@ -362,7 +362,7 @@
     }
     </script>
 </head>
-<body class="order-app app-mobile app-four-tabs">
+<body class="order-app app-mobile app-five-tabs">
     <div id="appSplash" class="app-splash" role="status" aria-label="Loading Baloji's Cafe">
         <div class="app-splash-inner">
             <span class="app-splash-badge">
@@ -393,21 +393,12 @@
     <div class="app-shell">
     <div class="app-topbar" id="navbar" role="banner">
         <div class="app-topbar-inner">
-            <a href="#home" class="app-brand app-brand--logo-only" aria-label="Home">
+            <a href="#home" class="app-brand" aria-label="Home">
                 <span class="app-brand-logo-wrap">
                     <img src="/images/logo/pwa-192.png?v=2" alt="" class="app-brand-logo" width="36" height="36" fetchpriority="high" decoding="async">
                 </span>
+                <span class="app-brand-name">Baloji's Cafe</span>
             </a>
-            <div class="app-mode-toggle" id="appModeToggle" role="tablist" aria-label="Choose Food or Grocery">
-                <button type="button" class="app-mode-btn is-active" data-mode="food" role="tab" aria-selected="true">
-                    <span class="app-mode-emoji" aria-hidden="true">🍽️</span>
-                    <span class="app-mode-text">Food</span>
-                </button>
-                <button type="button" class="app-mode-btn" data-mode="grocery" role="tab" aria-selected="false">
-                    <span class="app-mode-emoji" aria-hidden="true">🛒</span>
-                    <span class="app-mode-text">Grocery</span>
-                </button>
-            </div>
         </div>
     </div>
 
@@ -1007,7 +998,11 @@
         </a>
         <a href="#menu" class="app-tab" data-app-tab="menu">
             <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
-            <span class="app-tab-label">Menu</span>
+            <span class="app-tab-label">Food</span>
+        </a>
+        <a href="#grocery" class="app-tab" data-app-tab="grocery">
+            <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            <span class="app-tab-label">Mart</span>
         </a>
         <a href="/orders" class="app-tab" data-app-tab="orders">
             <svg class="app-tab-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11V6a3 3 0 0 1 6 0v5"/><rect x="5" y="11" width="14" height="10" rx="2"/></svg>

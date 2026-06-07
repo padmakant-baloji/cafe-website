@@ -534,22 +534,34 @@ function initSmoothScroll() {
             const href = this.getAttribute('href');
             if (href === '#') return;
             
-            e.preventDefault();
-            const target = document.querySelector(href);
-            
-            if (target) {
-                const navEl = document.getElementById('navbar');
-                const navH = navEl ? navEl.getBoundingClientRect().height : 80;
-                const y =
-                    target.getBoundingClientRect().top +
-                    (window.pageYOffset || document.documentElement.scrollTop) -
-                    navH -
-                    12;
-                window.scrollTo({
-                    top: Math.max(0, y),
-                    behavior: 'auto'
-                });
+            // Mode switching for 5-tab nav
+            if (window.groceryApp && window.groceryApp.applyMode) {
+                if (href === '#grocery') {
+                    window.groceryApp.applyMode('grocery', { scroll: false });
+                } else if (href === '#home' || href === '#menu') {
+                    window.groceryApp.applyMode('food', { scroll: false });
+                }
             }
+            
+            e.preventDefault();
+            
+            // Allow DOM to update before calculating scroll position
+            setTimeout(() => {
+                const target = document.querySelector(href);
+                if (target) {
+                    const navEl = document.getElementById('navbar');
+                    const navH = navEl ? navEl.getBoundingClientRect().height : 80;
+                    const y =
+                        target.getBoundingClientRect().top +
+                        (window.pageYOffset || document.documentElement.scrollTop) -
+                        navH -
+                        12;
+                    window.scrollTo({
+                        top: Math.max(0, y),
+                        behavior: 'auto'
+                    });
+                }
+            }, 50);
         });
     });
 }
@@ -575,6 +587,9 @@ function initActiveNavLink() {
 
             let currentId = sections.length ? sections[0].getAttribute('id') : null;
             sections.forEach((section) => {
+                // Skip sections that are hidden
+                if (section.offsetParent === null) return;
+                
                 const top = section.offsetTop - offset;
                 if (scrollY >= top) {
                     currentId = section.getAttribute('id');

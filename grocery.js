@@ -169,9 +169,6 @@
             groceryBtn.classList.toggle('is-unavailable', !hasStores);
             groceryBtn.setAttribute('aria-disabled', hasStores ? 'false' : 'true');
         }
-        if (!hasStores && document.body.classList.contains('mode-grocery')) {
-            applyMode('food', { scroll: false });
-        }
     }
 
     function initModeToggle() {
@@ -913,7 +910,8 @@
         const section = $('grocery');
         if (section) section.hidden = false;
         probeGroceryStores().finally(() => {
-            const mode = state.stores.length ? getSavedMode() : 'food';
+            const hash = window.location.hash;
+            const mode = (hash === '#grocery' && state.stores.length) ? 'grocery' : 'food';
             applyMode(mode, { scroll: false });
         });
     }
@@ -923,4 +921,7 @@
     } else {
         init();
     }
+    
+    // Expose for external tab routing
+    window.groceryApp = { applyMode };
 })();
