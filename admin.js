@@ -2,10 +2,8 @@
 
 const DEFAULT_ADMIN_USER = 'balojicafe';
 const DEFAULT_ADMIN_PASS = 'admin';
-const ADMIN_STORAGE_KEY = 'balojiAdminCredentials';
 const SESSION_STORAGE_SEEN = 'balojiAdminSeenPendingIds';
 const SESSION_STORAGE_LAST_ORDER = 'balojiAdminLastOrderId';
-let currentAdminCredentials = null;
 let currentVenue = null;
 let floorConfig = { tableCount: 7, parcelCount: 5 };
 let managedHotels = [];
@@ -50,49 +48,99 @@ let pendingPopupQueue = [];
 let pendingPopupQueueIds = new Set();
 let newOrderPopupOpen = false;
 let newOrderPopupOrderId = null;
+/** Set when the user signs in manually so a slow boot check cannot wipe the session. */
+let adminManualLoginDone = false;
 
-function loadAdminCredentials() {
-    try {
-        const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object') return null;
-        if (!parsed.user || !parsed.pass) return null;
-        return parsed;
-    } catch {
-        return null;
+async function failAdminBoot(message) {
+    if (adminManualLoginDone || window.balojiAdminAuth.loadAdminToken()) {
+        return false;
     }
+    clearAdminCredentials();
+    showAdminGate(message);
+    hideNewOrderPopup();
+    pendingPopupQueue = [];
+    pendingPopupQueueIds = new Set();
+    const listEl = document.getElementById('adminOrderList');
+    if (listEl) {
+        listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
+    }
+    return true;
 }
 
-function saveAdminCredentials(user, pass) {
-    const normalized = { user: String(user || '').trim(), pass: String(pass || '').trim() };
-    currentAdminCredentials = normalized;
-    try {
-        localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(normalized));
-    } catch {
-        /* ignore storage failures; in-memory creds still work */
-    }
+function adminSessionHooks() {
+    return {
+        onVenue: (venue) => {
+            currentVenue = venue;
+            updateVenueHeader();
+        },
+        onFloorConfig: (cfg) => {
+            floorConfig = {
+                tableCount: Number(cfg.tableCount) || 7,
+                parcelCount: Number(cfg.parcelCount) || 5
+            };
+        }
+    };
+}
+
+function adminHeaders(extra = {}) {
+    return window.balojiAdminAuth.adminAuthHeaders(extra);
 }
 
 function clearAdminCredentials() {
-    currentAdminCredentials = null;
-    try {
-        localStorage.removeItem(ADMIN_STORAGE_KEY);
-    } catch {
-        /* ignore */
-    }
+    window.balojiAdminAuth.clearAdminToken();
 }
 
-function adminHeaders(credsOverride) {
-    const creds = credsOverride || currentAdminCredentials || loadAdminCredentials();
-    if (!creds) return { Accept: 'application/json' };
-    const user = creds.user;
-    const pass = String(creds.pass || '');
-    const token = btoa(`${user}:${pass}`);
-    return {
-        Authorization: `Basic ${token}`,
-        Accept: 'application/json'
-    };
+function hasAdminSession() {
+    return !!window.balojiAdminAuth.loadAdminToken();
+}
+
+function setAdminOrderListLoading(message, options = {}) {
+    const listEl = document.getElementById('adminOrderList');
+    if (!listEl) return;
+    window.balojiAdminAuth.setSectionLoader(listEl, message || 'Loading orders…', {
+        overlay: options.overlay
+    });
+}
+
+function setAdminTabsLoading(message, options = {}) {
+    const tabsEl = document.getElementById('adminTabs');
+    if (!tabsEl) return;
+    window.balojiAdminAuth.setSectionLoader(tabsEl, message || 'Loading filters…', {
+        overlay: options.overlay
+    });
+}
+
+function setAdminAnalyticsLoading(message, options = {}) {
+    const analyticsEl = document.getElementById('adminDesktopAnalytics');
+    if (!analyticsEl) return;
+    window.balojiAdminAuth.setSectionLoader(analyticsEl, message || 'Updating analytics…', {
+        overlay: options.overlay !== false
+    });
+}
+
+function clearAdminOrderListLoading() {
+    window.balojiAdminAuth.clearSectionLoader(document.getElementById('adminOrderList'));
+}
+
+function clearAdminTabsLoading() {
+    window.balojiAdminAuth.clearSectionLoader(document.getElementById('adminTabs'));
+}
+
+function clearAdminAnalyticsLoading() {
+    window.balojiAdminAuth.clearSectionLoader(document.getElementById('adminDesktopAnalytics'));
+}
+
+function setAdminDashboardLoading(message, options = {}) {
+    const text = message || 'Loading…';
+    setAdminOrderListLoading(text, options);
+    setAdminTabsLoading(text, options);
+    if (options.overlay) setAdminAnalyticsLoading(text, options);
+}
+
+function clearAdminDashboardLoading() {
+    clearAdminOrderListLoading();
+    clearAdminTabsLoading();
+    clearAdminAnalyticsLoading();
 }
 
 function fillAdminDefaults() {
@@ -342,23 +390,11 @@ async function saveStoreStatus(acceptingOrders, reason) {
 }
 
 async function verifyAdminCredentials(user, pass) {
-    const res = await fetch('/api/admin/session', {
-        headers: adminHeaders({ user: String(user || '').trim(), pass: String(pass || '').trim() })
-    });
-    if (res.status === 401) return null;
-    if (!res.ok) return null;
-    const data = await res.json().catch(() => ({}));
-    if (data.venue) {
-        currentVenue = data.venue;
-        updateVenueHeader();
+    try {
+        return await window.balojiAdminAuth.adminLogin(user, pass, adminSessionHooks());
+    } catch {
+        return null;
     }
-    if (data.floorConfig) {
-        floorConfig = {
-            tableCount: Number(data.floorConfig.tableCount) || 7,
-            parcelCount: Number(data.floorConfig.parcelCount) || 5
-        };
-    }
-    return data;
 }
 
 function updateVenueHeader() {
@@ -435,7 +471,6 @@ async function refreshGroceryStorePresence() {
     }
     applyMainVenueUi();
     normalizeActiveOrderTab();
-    if (lastOrders.length) renderTabsAndActiveList(lastOrders);
 }
 
 function applyMainVenueUi() {
@@ -3136,70 +3171,112 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastOrderId = loadLastOrderId();
     let bootstrapped = false;
 
-    async function refresh() {
+    function applyOrdersRefreshState(orders) {
+        const scopedOrders = filterOrdersForAdminView(orders);
+        const pendingSet = new Set(
+            scopedOrders
+                .filter((o) => o.status === 'pending' && !isKotFloorOrder(o))
+                .map((o) => String(o.id))
+        );
+
+        pendingPopupQueue = pendingPopupQueue.filter((o) => pendingSet.has(String(o.id)));
+        pendingPopupQueueIds = new Set(pendingPopupQueue.map((o) => String(o.id)));
+
+        if (newOrderPopupOpen && newOrderPopupOrderId && !pendingSet.has(newOrderPopupOrderId)) {
+            hideNewOrderPopup();
+        }
+
+        if (!newOrderPopupOpen) {
+            const next = pendingPopupQueue[0];
+            if (next && pendingSet.has(String(next.id))) {
+                showNewOrderPopup(next);
+            }
+        }
+
+        if (orders.length > 0) {
+            const latest = parseInt(String(orders[0].id), 10);
+            if (Number.isFinite(latest) && latest > lastOrderId) {
+                lastOrderId = latest;
+                saveLastOrderId(lastOrderId);
+            }
+        }
+
+        if (!bootstrapped) {
+            scopedOrders
+                .filter((o) => o.status === 'pending' && !isKotFloorOrder(o))
+                .forEach((o) => seenPending.add(String(o.id)));
+            saveSeenIds(seenPending);
+            bootstrapped = true;
+            return;
+        }
+
+        for (const o of scopedOrders) {
+            const sid = String(o.id);
+            if (o.status === 'pending' && !isKotFloorOrder(o) && !seenPending.has(sid)) {
+                seenPending.add(sid);
+                saveSeenIds(seenPending);
+                showToast(`New order #${sid}`);
+
+                if (!pendingPopupQueueIds.has(sid)) {
+                    pendingPopupQueue.push(o);
+                    pendingPopupQueueIds.add(sid);
+                }
+
+                if (!newOrderPopupOpen) {
+                    const next = pendingPopupQueue[0];
+                    if (next) showNewOrderPopup(next);
+                }
+            }
+        }
+    }
+
+    async function loadAdminDashboard(message = 'Loading…', options = {}) {
+        const overlay = options.overlay === true;
+        if (!overlay) hideAdminGate();
+        setAdminDashboardLoading(message, { overlay });
+        try {
+            const ordersPromise = fetchOrders();
+            await Promise.all([
+                ordersPromise,
+                refreshGroceryStorePresence().catch(() => {}),
+                loadStoreStatus().catch(() => {}),
+                fetchFloorConfig().catch(() => {})
+            ]);
+            const orders = await ordersPromise;
+            lastOrders = orders;
+            normalizeActiveOrderTab();
+            renderTabsAndActiveList(orders);
+            applyOrdersRefreshState(orders);
+            ensureGroceryInventoryInit();
+        } catch (e) {
+            clearAdminDashboardLoading();
+            if (e && e.code === 401) {
+                clearAdminCredentials();
+                hideNewOrderPopup();
+                pendingPopupQueue = [];
+                pendingPopupQueueIds = new Set();
+                showAdminGate('Enter valid admin credentials to continue.');
+                listEl.innerHTML = '<p class="admin-empty">Admin login required.</p>';
+                if (tabsEl) tabsEl.innerHTML = '';
+                return;
+            }
+            listEl.innerHTML = `<p class="admin-error">${escapeHtml(e.message)}</p>`;
+            if (tabsEl) tabsEl.innerHTML = '<p class="admin-empty">Could not load filters.</p>';
+            return;
+        }
+        clearAdminDashboardLoading();
+    }
+
+    async function refresh(showLoader = false) {
+        if (showLoader) {
+            await loadAdminDashboard('Refreshing…', { overlay: true });
+            return;
+        }
         try {
             const orders = await fetchOrders();
             lastOrders = orders;
             renderTabsAndActiveList(orders);
-            const scopedOrders = filterOrdersForAdminView(orders);
-            const pendingSet = new Set(
-                scopedOrders
-                    .filter((o) => o.status === 'pending' && !isKotFloorOrder(o))
-                    .map((o) => String(o.id))
-            );
-
-            // Drop handled/obsolete items from the popup queue.
-            pendingPopupQueue = pendingPopupQueue.filter((o) => pendingSet.has(String(o.id)));
-            pendingPopupQueueIds = new Set(pendingPopupQueue.map((o) => String(o.id)));
-
-            // If the popup was open, ensure it still corresponds to a pending order.
-            if (newOrderPopupOpen && newOrderPopupOrderId && !pendingSet.has(newOrderPopupOrderId)) {
-                hideNewOrderPopup();
-            }
-
-            // Show the next queued pending order (one-at-a-time).
-            if (!newOrderPopupOpen) {
-                const next = pendingPopupQueue[0];
-                if (next && pendingSet.has(String(next.id))) {
-                    showNewOrderPopup(next);
-                }
-            }
-
-            if (orders.length > 0) {
-                const latest = parseInt(String(orders[0].id), 10);
-                if (Number.isFinite(latest) && latest > lastOrderId) {
-                    lastOrderId = latest;
-                    saveLastOrderId(lastOrderId);
-                }
-            }
-
-            if (!bootstrapped) {
-                scopedOrders
-                    .filter((o) => o.status === 'pending' && !isKotFloorOrder(o))
-                    .forEach((o) => seenPending.add(String(o.id)));
-                saveSeenIds(seenPending);
-                bootstrapped = true;
-                return;
-            }
-
-            for (const o of scopedOrders) {
-                const sid = String(o.id);
-                if (o.status === 'pending' && !isKotFloorOrder(o) && !seenPending.has(sid)) {
-                    seenPending.add(sid);
-                    saveSeenIds(seenPending);
-                    showToast(`New order #${sid}`);
-
-                    if (!pendingPopupQueueIds.has(sid)) {
-                        pendingPopupQueue.push(o);
-                        pendingPopupQueueIds.add(sid);
-                    }
-
-                    if (!newOrderPopupOpen) {
-                        const next = pendingPopupQueue[0];
-                        if (next) showNewOrderPopup(next);
-                    }
-                }
-            }
+            applyOrdersRefreshState(orders);
         } catch (e) {
             if (e && e.code === 401) {
                 clearAdminCredentials();
@@ -3208,6 +3285,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pendingPopupQueueIds = new Set();
                 showAdminGate('Enter valid admin credentials to continue.');
                 listEl.innerHTML = '<p class="admin-empty">Admin login required.</p>';
+                if (tabsEl) tabsEl.innerHTML = '';
                 return;
             }
             listEl.innerHTML = `<p class="admin-error">${escapeHtml(e.message)}</p>`;
@@ -3256,12 +3334,13 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshBtn.addEventListener('click', async () => {
             setBtnLoading(refreshBtn, true);
             try {
-                await refresh();
+                await refresh(true);
             } finally {
                 setBtnLoading(refreshBtn, false);
             }
         });
     logoutBtn?.addEventListener('click', () => {
+        adminManualLoginDone = false;
         clearAdminCredentials();
         currentVenue = null;
         hasGroceryStores = false;
@@ -3269,8 +3348,9 @@ document.addEventListener('DOMContentLoaded', () => {
         hideNewOrderPopup();
         pendingPopupQueue = [];
         pendingPopupQueueIds = new Set();
-        showAdminGate('Admin credentials removed from this browser.');
+        showAdminGate('Signed out.');
         listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
+        if (tabsEl) tabsEl.innerHTML = '';
     });
 
     authForm?.addEventListener('submit', async (event) => {
@@ -3288,13 +3368,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearAdminCredentials();
                 showAdminGate('Invalid admin credentials. Please try again.');
             } else {
-                saveAdminCredentials(user, pass);
+                adminManualLoginDone = true;
                 hideAdminGate();
-                await refreshGroceryStorePresence();
-                ensureGroceryInventoryInit();
-                await refresh();
-                loadStoreStatus();
-                fetchFloorConfig().catch(() => {});
+                await loadAdminDashboard('Loading orders…');
             }
         } finally {
             setBtnLoading(authSubmit, false);
@@ -3302,36 +3378,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const initAdmin = async () => {
-        const savedCreds = loadAdminCredentials();
-        currentAdminCredentials = savedCreds;
-        if (!savedCreds) {
-            showAdminGate();
-            hideNewOrderPopup();
-            pendingPopupQueue = [];
-            pendingPopupQueueIds = new Set();
-            listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
-            return;
-        }
-
-        const session = await verifyAdminCredentials(savedCreds.user, savedCreds.pass).catch(() => null);
-        if (!session) {
-            clearAdminCredentials();
-            showAdminGate('Invalid saved admin credentials. Please log in again.');
-            hideNewOrderPopup();
-            pendingPopupQueue = [];
-            pendingPopupQueueIds = new Set();
-            listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
+        if (
+            !window.balojiAdminAuth.loadAdminToken() &&
+            !localStorage.getItem('balojiAdminCredentials')
+        ) {
+            await failAdminBoot('');
             return;
         }
 
         hideAdminGate();
-        await refreshGroceryStorePresence();
-        refresh();
-        loadStoreStatus();
-        fetchFloorConfig().catch(() => {});
+
+        let session = null;
+        try {
+            session = await window.balojiAdminAuth.ensureAdminSession(adminSessionHooks());
+        } catch (err) {
+            if (adminManualLoginDone) return;
+            if (window.balojiAdminAuth.loadAdminToken()) {
+                showAdminGate(err.message || 'Could not verify session. Try refresh.');
+                return;
+            }
+            await failAdminBoot(err.message || 'Could not verify session.');
+            return;
+        }
+
+        if (!session) {
+            if (adminManualLoginDone) return;
+            if (window.balojiAdminAuth.loadAdminToken()) {
+                session = await window.balojiAdminAuth
+                    .fetchAdminSession(adminSessionHooks())
+                    .catch(() => null);
+            }
+            if (!session) {
+                await failAdminBoot('Session expired. Please log in again.');
+                return;
+            }
+        }
+
+        if (adminManualLoginDone) return;
+        await loadAdminDashboard('Loading orders…');
     };
 
-    initAdmin().then(() => {
-        ensureGroceryInventoryInit();
-    });
+    initAdmin();
 });

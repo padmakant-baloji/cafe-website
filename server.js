@@ -6,6 +6,7 @@ const path = require('path');
 const express = require('express');
 const { ensureSchema } = require('./lib/schema');
 const { signCustomerSession, verifyCustomerSession } = require('./lib/customer-session');
+const { signAdminSession } = require('./lib/admin-session');
 const {
     normalizeMobile,
     findCustomerByMobile,
@@ -39,7 +40,7 @@ const {
 } = require('./lib/grocery-service');
 const { validateCoupon } = require('./lib/coupon-service');
 const { getStoreStatus, setStoreStatus, getPublicStorefrontStatus } = require('./lib/store-status');
-const { resolveAdminVenue, getFloorConfig, setFloorConfig, resolvePublicVenue, venuePublicPayload, listVenuesForAdmin, createVenueByMain, updateVenueAccessByMain } = require('./lib/venue-service');
+const { resolveAdminVenue, authenticateAdminUser, getFloorConfig, setFloorConfig, resolvePublicVenue, venuePublicPayload, listVenuesForAdmin, createVenueByMain, updateVenueAccessByMain } = require('./lib/venue-service');
 const { getAggregatedCustomerMenu, getAdminMenuForVenue, saveAdminMenuForVenue } = require('./lib/menu-service');
 
 const app = express();
@@ -740,6 +741,52 @@ app.get('/api/admin/session', requireAdmin, (req, res) => {
             parcelCount: req.adminVenue.parcelCount
         }
     });
+});
+
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        await ensureSchema();
+        const body = req.body || {};
+        let user = String(body.user || body.username || '').trim();
+        let pass = String(body.pass || body.password || '');
+
+        if (!user || !pass) {
+            const auth = req.headers.authorization;
+            if (auth && auth.startsWith('Basic ')) {
+                try {
+                    const decoded = Buffer.from(auth.slice(6), 'base64').toString('utf8');
+                    const colon = decoded.indexOf(':');
+                    user = colon >= 0 ? decoded.slice(0, colon) : decoded;
+                    pass = colon >= 0 ? decoded.slice(colon + 1) : '';
+                } catch {
+                    /* ignore */
+                }
+            }
+        }
+
+        if (!user || !pass) {
+            return res.status(400).json({ error: 'Username and password are required.' });
+        }
+
+        const venue = await authenticateAdminUser(user, pass);
+        if (!venue) {
+            return res.status(401).json({ error: 'Invalid admin credentials.' });
+        }
+
+        const token = signAdminSession(venue.id);
+        return res.json({
+            ok: true,
+            token,
+            venue: venuePublicPayload(venue),
+            floorConfig: {
+                tableCount: venue.tableCount,
+                parcelCount: venue.parcelCount
+            }
+        });
+    } catch (err) {
+        console.error('admin login:', err.message);
+        return res.status(500).json({ error: 'Could not sign in.' });
+    }
 });
 
 app.get('/admin/tables', (req, res) => {

@@ -51,15 +51,18 @@
         .floor-boot {
             max-width: 420px;
             margin: 4rem auto;
-            padding: 1.5rem;
-            text-align: center;
-            border-radius: calc(var(--radius) + 4px);
-            border: 1px solid var(--border);
-            background: var(--card);
+            padding: 0;
+            border: none;
+            background: transparent;
             color: var(--muted);
             font-size: 0.9375rem;
         }
         .floor-boot[hidden] { display: none !important; }
+
+        .floor-grid-wrap--loading {
+            opacity: 0.72;
+            pointer-events: none;
+        }
 
         .floor-auth {
             max-width: 400px;
@@ -1589,7 +1592,7 @@
     </style>
 </head>
 <body>
-    <div class="floor-boot" id="floorBoot" aria-live="polite">Checking admin session…</div>
+    <div class="floor-boot" id="floorBoot" hidden aria-live="polite"></div>
 
     <div class="floor-auth" id="floorAuth" hidden>
         <h2>Floor &amp; KOT</h2>
@@ -1681,6 +1684,7 @@
         </div>
     </div>
 
-    <script src="/admin-tables.js?v=47"></script>
+    <script src="/admin-auth.js?v=6"></script>
+    <script src="/admin-tables.js?v=51"></script>
 </body>
 </html>

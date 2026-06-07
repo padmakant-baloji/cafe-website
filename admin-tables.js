@@ -28,7 +28,6 @@ function kotUnitPriceFromMenuPrice(menuPrice) {
     return p;
 }
 
-let creds = null;
 let currentVenue = null;
 /** @type {{ tableCount: number, parcelCount: number }} */
 let floorConfig = { tableCount: 7, parcelCount: 5 };
@@ -50,42 +49,37 @@ let kotEditingId = null;
 const KOT_MOBILE_MQL = window.matchMedia('(max-width: 720px)');
 /** Whether the mobile order sheet is currently expanded (persists across drawer re-renders). */
 let mobileSheetOpen = false;
+/** Set after manual sign-in so a slow boot check cannot wipe the session. */
+let floorManualLoginDone = false;
 
-function loadCreds() {
-    try {
-        const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
-        if (!raw) return null;
-        const p = JSON.parse(raw);
-        if (!p || !p.user || !p.pass) return null;
-        return { user: String(p.user).trim(), pass: String(p.pass).trim() };
-    } catch {
-        return null;
-    }
+function adminSessionHooks() {
+    return {
+        onVenue: (venue) => {
+            const prevId = currentVenue && currentVenue.id;
+            currentVenue = venue;
+            if (String(prevId) !== String(currentVenue.id)) {
+                resetKotMenuCache();
+            }
+        },
+        onFloorConfig: (cfg) => {
+            floorConfig = {
+                tableCount: Number(cfg.tableCount) || 7,
+                parcelCount: Number(cfg.parcelCount) || 5
+            };
+        }
+    };
 }
 
-function saveCreds(user, pass) {
-    creds = { user: String(user || '').trim(), pass: String(pass || '').trim() };
-    try {
-        localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(creds));
-    } catch {
-        /* ignore */
-    }
+function adminHeaders(extra = {}) {
+    return window.balojiAdminAuth.adminAuthHeaders(extra);
 }
 
 function clearCreds() {
-    creds = null;
-    try {
-        localStorage.removeItem(ADMIN_STORAGE_KEY);
-    } catch {
-        /* ignore */
-    }
+    window.balojiAdminAuth.clearAdminToken();
 }
 
-function adminHeaders() {
-    const c = creds || loadCreds();
-    if (!c) return { Accept: 'application/json' };
-    const token = btoa(`${c.user}:${c.pass}`);
-    return { Authorization: `Basic ${token}`, Accept: 'application/json' };
+function hasAdminSession() {
+    return !!window.balojiAdminAuth.loadAdminToken();
 }
 
 function showToast(msg, ms = 2600) {
@@ -833,46 +827,11 @@ async function postFloorCommit(payload) {
 }
 
 async function verifyAdmin(user, pass) {
-    let token;
     try {
-        token = btoa(`${String(user).trim()}:${String(pass)}`);
-    } catch {
-        throw new Error(
-            'This browser cannot encode your password for sign-in. Use only basic letters and numbers in the password field, or try another browser.'
-        );
-    }
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 20000);
-    try {
-        const res = await fetch('/api/admin/session', {
-            headers: { Authorization: `Basic ${token}`, Accept: 'application/json' },
-            signal: ctrl.signal
-        });
-        if (!res.ok) return null;
-        const data = await res.json().catch(() => ({}));
-        if (data.venue) {
-            const prevId = currentVenue && currentVenue.id;
-            currentVenue = data.venue;
-            if (String(prevId) !== String(currentVenue.id)) {
-                resetKotMenuCache();
-            }
-        }
-        if (data.floorConfig) {
-            floorConfig = {
-                tableCount: Number(data.floorConfig.tableCount) || 7,
-                parcelCount: Number(data.floorConfig.parcelCount) || 5
-            };
-        }
-        return data;
+        return await window.balojiAdminAuth.adminLogin(user, pass, adminSessionHooks());
     } catch (e) {
-        if (e && e.name === 'AbortError') {
-            throw new Error(
-                'The server did not respond in time. If you are developing, run `yarn dev` and open this page at http://localhost:3000/admin/tables (same host as the API).'
-            );
-        }
-        throw new Error('Could not reach the admin API. Check your network or VPN.');
-    } finally {
-        clearTimeout(tid);
+        if (e && e.message) throw e;
+        return null;
     }
 }
 
@@ -2489,7 +2448,7 @@ function renderKotMenuBrowser(panel, lineBox) {
     if (panel.dataset.rendered === '1') return;
     panel.dataset.rendered = '1';
     if (!menuFlat.length) {
-        panel.innerHTML = '<p class="kot-menu-browser-empty">Menu still loading…</p>';
+        panel.innerHTML = window.balojiAdminAuth.loaderHtml('Loading menu…', { compact: true });
         return;
     }
     const byCat = new Map();
@@ -2706,8 +2665,6 @@ async function refreshAll(options = {}) {
 }
 
 function showApp() {
-    const boot = document.getElementById('floorBoot');
-    if (boot) boot.hidden = true;
     document.getElementById('floorAuth').hidden = true;
     document.getElementById('floorApp').hidden = false;
     resetKotMenuCache();
@@ -2715,14 +2672,56 @@ function showApp() {
 }
 
 function showGate(msg = '') {
-    const boot = document.getElementById('floorBoot');
-    if (boot) boot.hidden = true;
+    hideFloorBoot();
     document.getElementById('floorAuth').hidden = false;
     document.getElementById('floorApp').hidden = true;
+    setFloorDataLoading(false);
     const err = document.getElementById('floorAuthError');
     if (err) {
         err.textContent = msg;
         err.dataset.show = msg ? '1' : '0';
+    }
+}
+
+function setFloorDataLoading(loading, message = 'Loading tables…') {
+    const wrap = document.querySelector('.floor-grid-wrap');
+    if (wrap) {
+        wrap.classList.toggle('floor-grid-wrap--loading', !!loading);
+        wrap.classList.toggle('is-loading', !!loading);
+        let loader = wrap.querySelector('.floor-grid-loader');
+        if (loading) {
+            if (!loader) {
+                loader = document.createElement('div');
+                loader.className = 'floor-grid-loader';
+                wrap.appendChild(loader);
+            }
+            loader.innerHTML = window.balojiAdminAuth.loaderHtml(message, { compact: true });
+        } else if (loader) {
+            loader.remove();
+        }
+    }
+    const tableLabel = document.getElementById('tableCountLabel');
+    const parcelLabel = document.getElementById('parcelCountLabel');
+    if (loading) {
+        if (tableLabel) tableLabel.textContent = 'Loading…';
+        if (parcelLabel) parcelLabel.textContent = 'Loading…';
+    } else {
+        updateFloorConfigLabels();
+    }
+}
+
+function showFloorBoot(message = 'Restoring session…') {
+    const boot = document.getElementById('floorBoot');
+    if (!boot) return;
+    boot.hidden = false;
+    boot.innerHTML = window.balojiAdminAuth.loaderHtml(message, { panel: true });
+}
+
+function hideFloorBoot() {
+    const boot = document.getElementById('floorBoot');
+    if (boot) {
+        boot.hidden = true;
+        boot.innerHTML = '';
     }
 }
 
@@ -2745,6 +2744,7 @@ document.getElementById('floorAuthForm')?.addEventListener('submit', async (e) =
     const p = document.getElementById('floorPass')?.value || '';
     const submitBtn = e.currentTarget.querySelector('button[type="submit"], button:not([type])');
     setBtnLoading(submitBtn, true);
+    showFloorBoot('Signing in…');
     let session;
     try {
         session = await verifyAdmin(u, p);
@@ -2758,23 +2758,27 @@ document.getElementById('floorAuthForm')?.addEventListener('submit', async (e) =
         showGate('Invalid username or password.');
         return;
     }
-    saveCreds(u, p);
+    floorManualLoginDone = true;
+    hideFloorBoot();
     localFloorSessions = loadLocalFloorSessions();
+    showApp();
+    setFloorDataLoading(true, 'Loading floor…');
     try {
         await refreshAll({ reloadLocalFromDisk: true });
-        showApp();
         applyFloorDeepLink();
     } catch (err) {
         if (err && err.code === 401) showGate('Session invalid.');
         else showGate(err.message || 'Could not load.');
     } finally {
         setBtnLoading(submitBtn, false);
+        setFloorDataLoading(false);
     }
 });
 
 document.getElementById('floorRefreshBtn')?.addEventListener('click', async (e) => {
     const refreshBtn = e.currentTarget;
     setBtnLoading(refreshBtn, true);
+    setFloorDataLoading(true, 'Refreshing tables…');
     try {
         await refreshAll({ reloadLocalFromDisk: true });
         showToast('Updated.');
@@ -2783,6 +2787,7 @@ document.getElementById('floorRefreshBtn')?.addEventListener('click', async (e) 
         if (e && e.code === 401) showGate('Sign in again.');
     } finally {
         setBtnLoading(refreshBtn, false);
+        setFloorDataLoading(false);
     }
 });
 
@@ -2796,33 +2801,30 @@ document.getElementById('floorLogoutBtn')?.addEventListener('click', () => {
 initFloorDrawerDelegates();
 
 (async function init() {
-    const boot = document.getElementById('floorBoot');
-    if (boot) {
-        boot.hidden = false;
-        boot.textContent = 'Checking admin session…';
-    }
-
     try {
-        creds = loadCreds();
-        if (!creds) {
+        const hasToken = window.balojiAdminAuth.loadAdminToken();
+        const hasLegacy = !!localStorage.getItem(ADMIN_STORAGE_KEY);
+        if (!hasToken && !hasLegacy) {
             showGate('');
             return;
         }
-        let session;
-        try {
-            session = await verifyAdmin(creds.user, creds.pass);
-        } catch (e) {
-            showGate(e.message || 'Could not verify saved login.');
-            return;
-        }
+
+        showApp();
+        setFloorDataLoading(true, 'Loading tables…');
+
+        const session = await window.balojiAdminAuth.ensureAdminSession(adminSessionHooks()).catch(() => null);
         if (!session) {
-            showGate('Saved login is no longer valid. Please sign in again.');
+            if (floorManualLoginDone || window.balojiAdminAuth.loadAdminToken()) {
+                setFloorDataLoading(false);
+                return;
+            }
+            clearCreds();
+            showGate('Session expired. Please sign in again.');
             return;
         }
         try {
             localFloorSessions = loadLocalFloorSessions();
             await refreshAll({ reloadLocalFromDisk: true });
-            showApp();
             applyFloorDeepLink();
         } catch (err) {
             const msg =
@@ -2834,6 +2836,7 @@ initFloorDrawerDelegates();
     } catch (e) {
         showGate(e.message || 'Something went wrong. Please sign in.');
     } finally {
-        if (boot) boot.hidden = true;
+        hideFloorBoot();
+        setFloorDataLoading(false);
     }
 })();
