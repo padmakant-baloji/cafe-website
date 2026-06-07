@@ -2611,6 +2611,57 @@ function openDrawer(orderId) {
     renderDrawer();
 }
 
+function readFloorDeepLinkFromUrl() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        return {
+            orderId: String(params.get('order') || '').trim(),
+            slotKey: String(params.get('slot') || '').trim()
+        };
+    } catch {
+        return { orderId: '', slotKey: '' };
+    }
+}
+
+function clearFloorDeepLinkFromUrl() {
+    try {
+        const url = new URL(window.location.href);
+        if (!url.searchParams.has('order') && !url.searchParams.has('slot')) return;
+        url.searchParams.delete('order');
+        url.searchParams.delete('slot');
+        const qs = url.searchParams.toString();
+        window.history.replaceState({}, '', url.pathname + (qs ? `?${qs}` : '') + url.hash);
+    } catch {
+        /* ignore */
+    }
+}
+
+function applyFloorDeepLink() {
+    const { orderId, slotKey } = readFloorDeepLinkFromUrl();
+    if (!orderId && !slotKey) return false;
+
+    let targetId = '';
+    if (orderId && getOrderById(orderId)) {
+        targetId = String(orderId);
+    } else if (slotKey) {
+        const order = slotMapFromOrders(floorOrders).get(slotKey);
+        if (order) targetId = String(order.id);
+    }
+
+    if (!targetId) return false;
+
+    openDrawer(targetId);
+    clearFloorDeepLinkFromUrl();
+
+    const order = getOrderById(targetId);
+    const slot = order ? String(parseMeta(order).slot || '').trim() : slotKey;
+    if (slot) {
+        const btn = document.querySelector(`.slot-card[data-slot-key="${CSS.escape(slot)}"]`);
+        btn?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    return true;
+}
+
 function closeDrawer() {
     selectedOrderId = null;
     renderDrawer();
@@ -2712,6 +2763,7 @@ document.getElementById('floorAuthForm')?.addEventListener('submit', async (e) =
     try {
         await refreshAll({ reloadLocalFromDisk: true });
         showApp();
+        applyFloorDeepLink();
     } catch (err) {
         if (err && err.code === 401) showGate('Session invalid.');
         else showGate(err.message || 'Could not load.');
@@ -2771,6 +2823,7 @@ initFloorDrawerDelegates();
             localFloorSessions = loadLocalFloorSessions();
             await refreshAll({ reloadLocalFromDisk: true });
             showApp();
+            applyFloorDeepLink();
         } catch (err) {
             const msg =
                 err && err.code === 401

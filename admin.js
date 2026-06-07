@@ -1110,7 +1110,11 @@ function buildKotOrderArticleHtml(o) {
         .join('');
 
     const copyBtn = `<button type="button" class="admin-btn admin-btn--copy" data-action="copy" data-id="${id}">Copy order</button>`;
-    const floorBtn = `<a class="admin-btn admin-btn--floor" href="/admin/tables">Open floor / KOT</a>`;
+    const meta = readOrderMeta(o);
+    const slotKey = String(meta.slot || '').trim();
+    const floorQuery = new URLSearchParams({ order: id });
+    if (slotKey) floorQuery.set('slot', slotKey);
+    const floorBtn = `<a class="admin-btn admin-btn--floor" href="/admin/tables?${floorQuery.toString()}">Open floor / KOT</a>`;
     const when = o.created_at ? new Date(o.created_at).toLocaleString() : '';
     const slot = formatKotSlotLabel(o);
     const ch = kotChannelLabel(o);
