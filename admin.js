@@ -499,10 +499,8 @@ function applyMainVenueUi() {
             roleBanner.textContent =
                 'Hotel admin — manage your menu, online orders, and hotel details.';
         } else if (isMain) {
-            roleBanner.hidden = false;
-            roleBanner.textContent = hasGroceryStores
-                ? 'Main admin — Baloji Cafe orders, floor/KOT, partner hotels, and grocery stores.'
-                : 'Main admin — Baloji Cafe orders, floor/KOT, and partner hotels.';
+            roleBanner.hidden = true;
+            roleBanner.textContent = '';
         } else {
             roleBanner.hidden = true;
             roleBanner.textContent = '';

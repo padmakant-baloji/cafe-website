@@ -1486,98 +1486,104 @@
                 border-radius: 12px;
                 padding: 0.65rem;
             }
-            #kotPrintArea { display: none; }
+        }
+
+        /* KOT thermal print — must live outside mobile breakpoints so print works on all screen sizes */
+        #kotPrintArea { display: none; }
+        .kot-print-sheet {
+            width: 80mm;
+            max-width: 80mm;
+            margin: 0 auto;
+            padding: 2mm 3mm 4mm;
+            box-sizing: border-box;
+            font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            color: #000;
+        }
+        .kot-print-header { text-align: center; margin-bottom: 2mm; }
+        .kot-print-title {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-bottom: 1mm;
+        }
+        .kot-print-address {
+            font-size: 12px;
+            line-height: 1.35;
+            white-space: pre-wrap;
+        }
+        .kot-print-rule {
+            border-top: 1px dashed #000;
+            margin: 2mm 0;
+        }
+        .kot-print-order-meta { text-align: center; }
+        .kot-print-meta-line {
+            font-size: 13px;
+            line-height: 1.35;
+            margin-bottom: 0.5mm;
+        }
+        .kot-print-meta-line--muted { font-size: 12px; }
+        .kot-print-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .kot-print-table th {
+            font-size: 12px;
+            font-weight: 700;
+            text-align: left;
+            padding: 1.2mm 0;
+            border-bottom: 1px solid #000;
+        }
+        .kot-print-table td {
+            font-size: 12px;
+            padding: 1.4mm 0;
+            vertical-align: top;
+        }
+        .kot-print-item { width: auto; text-align: left; word-break: break-word; }
+        .kot-print-qty { width: 10mm; text-align: center; white-space: nowrap; }
+        .kot-print-amt { width: 16mm; text-align: right; white-space: nowrap; }
+        .kot-print-empty { text-align: center; color: #444; }
+        .kot-print-total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 3mm;
+        }
+        .kot-print-footer {
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 2mm;
+            padding-top: 1mm;
+        }
+        .kot-print-delivery {
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.4;
+            margin-top: 1.5mm;
+        }
+        @media print {
+            @page {
+                size: 80mm auto;
+                margin: 0;
+            }
+            body > *:not(#kotPrintArea) {
+                display: none !important;
+            }
+            #kotPrintArea {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm;
+            }
+            #kotPrintArea, #kotPrintArea * {
+                visibility: visible !important;
+            }
             .kot-print-sheet {
                 width: 80mm;
                 max-width: 80mm;
-                margin: 0 auto;
                 padding: 2mm 3mm 4mm;
-                box-sizing: border-box;
-                font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-                color: #000;
-            }
-            .kot-print-header { text-align: center; margin-bottom: 2mm; }
-            .kot-print-title {
-                font-size: 16px;
-                font-weight: 700;
-                line-height: 1.25;
-                margin-bottom: 1mm;
-            }
-            .kot-print-address {
-                font-size: 12px;
-                line-height: 1.35;
-                white-space: pre-wrap;
-            }
-            .kot-print-rule {
-                border-top: 1px dashed #000;
-                margin: 2mm 0;
-            }
-            .kot-print-order-meta { text-align: center; }
-            .kot-print-meta-line {
-                font-size: 13px;
-                line-height: 1.35;
-                margin-bottom: 0.5mm;
-            }
-            .kot-print-meta-line--muted { font-size: 12px; }
-            .kot-print-table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-            .kot-print-table th {
-                font-size: 12px;
-                font-weight: 700;
-                text-align: left;
-                padding: 1.2mm 0;
-                border-bottom: 1px solid #000;
-            }
-            .kot-print-table td {
-                font-size: 12px;
-                padding: 1.4mm 0;
-                vertical-align: top;
-            }
-            .kot-print-item { width: auto; text-align: left; word-break: break-word; }
-            .kot-print-qty { width: 10mm; text-align: center; white-space: nowrap; }
-            .kot-print-amt { width: 16mm; text-align: right; white-space: nowrap; }
-            .kot-print-empty { text-align: center; color: #444; }
-            .kot-print-total-row {
-                display: flex;
-                justify-content: space-between;
-                font-size: 14px;
-                font-weight: 700;
-                margin-bottom: 3mm;
-            }
-            .kot-print-footer {
-                text-align: center;
-                font-size: 13px;
-                font-weight: 700;
-                margin-top: 2mm;
-                padding-top: 1mm;
-            }
-            .kot-print-delivery {
-                text-align: center;
-                font-size: 12px;
-                line-height: 1.4;
-                margin-top: 1.5mm;
-            }
-            @media print {
-                @page {
-                    size: 80mm auto;
-                    margin: 0;
-                }
-                body * { visibility: hidden !important; }
-                #kotPrintArea, #kotPrintArea * { visibility: visible !important; }
-                #kotPrintArea {
-                    display: block !important;
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    width: 80mm;
-                }
-                .kot-print-sheet {
-                    width: 80mm;
-                    max-width: 80mm;
-                    padding: 2mm 3mm 4mm;
-                }
             }
         }
     </style>
@@ -1675,6 +1681,6 @@
         </div>
     </div>
 
-    <script src="/admin-tables.js?v=44"></script>
+    <script src="/admin-tables.js?v=46"></script>
 </body>
 </html>

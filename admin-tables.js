@@ -1189,7 +1189,70 @@ function getKotPrintAddress(venue) {
     return fallback;
 }
 
-function printKotReceipt(order, kot) {
+function getKotPrintStyles() {
+    return `@page { size: 80mm auto; margin: 0; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 2mm 3mm 4mm;
+            width: 80mm;
+            font: 15px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-weight: 600;
+            color: #000;
+        }
+        .kot-print-header { text-align: center; margin-bottom: 2mm; }
+        .kot-print-title { font-size: 20px; font-weight: 800; line-height: 1.25; margin-bottom: 1mm; }
+        .kot-print-address { font-size: 14px; font-weight: 600; line-height: 1.35; white-space: pre-wrap; }
+        .kot-print-rule { border-top: 1px dashed #000; margin: 2mm 0; }
+        .kot-print-order-meta { margin-bottom: 0.5mm; }
+        .kot-print-meta-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 3mm;
+            font-size: 17px;
+            font-weight: 800;
+            line-height: 1.3;
+            margin-bottom: 1mm;
+        }
+        .kot-print-meta-left { text-align: left; flex: 1 1 auto; min-width: 0; }
+        .kot-print-meta-right { text-align: right; flex: 0 0 auto; white-space: nowrap; }
+        .kot-print-meta-line--muted {
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            color: #222;
+        }
+        .kot-print-table { width: 100%; border-collapse: collapse; }
+        .kot-print-table th {
+            font-size: 14px;
+            font-weight: 800;
+            text-align: left;
+            padding: 1.4mm 0;
+            border-bottom: 1px solid #000;
+        }
+        .kot-print-table td {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 1.6mm 0;
+            vertical-align: top;
+        }
+        .kot-print-item { width: auto; text-align: left; word-break: break-word; font-weight: 700; }
+        .kot-print-qty { width: 10mm; text-align: center; white-space: nowrap; font-weight: 800; }
+        .kot-print-amt { width: 16mm; text-align: right; white-space: nowrap; font-weight: 800; }
+        .kot-print-empty { text-align: center; color: #444; font-weight: 600; }
+        .kot-print-total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 3mm;
+        }
+        .kot-print-footer { text-align: center; font-size: 15px; font-weight: 800; margin-top: 2mm; padding-top: 1mm; }
+        .kot-print-delivery { text-align: center; font-size: 14px; font-weight: 700; line-height: 1.4; margin-top: 1.5mm; }`;
+}
+
+function buildKotReceiptHtml(order, kot) {
     const meta = floorMeta(order);
     const slotLabel =
         meta.slot && meta.slot.startsWith('table:')
@@ -1231,22 +1294,17 @@ function printKotReceipt(order, kot) {
         .map((part) => `<div class="kot-print-address">${escapeHtml(part)}</div>`)
         .join('');
 
-    let area = document.getElementById('kotPrintArea');
-    if (!area) {
-        area = document.createElement('div');
-        area.id = 'kotPrintArea';
-        document.body.appendChild(area);
-    }
-
-    area.innerHTML = `<div class="kot-print-sheet">
+    return `<div class="kot-print-sheet">
         <header class="kot-print-header">
             <div class="kot-print-title">${escapeHtml(venueName)}</div>
             ${addressHtml}
         </header>
         <div class="kot-print-rule"></div>
         <div class="kot-print-order-meta">
-            <div class="kot-print-meta-line"><strong>${escapeHtml(slotLabel)}</strong></div>
-            <div class="kot-print-meta-line">${escapeHtml(kotTit)}</div>
+            <div class="kot-print-meta-row">
+                <span class="kot-print-meta-left">${escapeHtml(slotLabel)}</span>
+                <span class="kot-print-meta-right">${escapeHtml(kotTit)}</span>
+            </div>
             <div class="kot-print-meta-line kot-print-meta-line--muted">${escapeHtml(printedAt)}</div>
         </div>
         <div class="kot-print-rule"></div>
@@ -1268,8 +1326,42 @@ function printKotReceipt(order, kot) {
         <footer class="kot-print-footer">Thank you! Visit again</footer>
         <div class="kot-print-delivery"><strong>Home delivery - www.balojicafe.com</strong></div>
     </div>`;
+}
 
-    window.print();
+function printKotReceipt(order, kot) {
+    if (typeof setMobileSheetOpen === 'function') {
+        setMobileSheetOpen(false, false);
+    }
+
+    const receiptHtml = buildKotReceiptHtml(order, kot);
+    const styles = getKotPrintStyles();
+
+    let frame = document.getElementById('kotPrintFrame');
+    if (!frame) {
+        frame = document.createElement('iframe');
+        frame.id = 'kotPrintFrame';
+        frame.setAttribute('title', 'KOT print');
+        frame.style.cssText =
+            'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none';
+        document.body.appendChild(frame);
+    }
+
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    doc.open();
+    doc.write(
+        `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>KOT</title><style>${styles}</style></head><body>${receiptHtml}</body></html>`
+    );
+    doc.close();
+
+    const win = frame.contentWindow;
+    if (!win) return;
+
+    const runPrint = () => {
+        win.focus();
+        win.print();
+    };
+
+    requestAnimationFrame(() => requestAnimationFrame(runPrint));
 }
 
 function renderSlotButton({ kind, num, order }) {
@@ -2159,7 +2251,9 @@ function renderDrawer() {
 
 function bindKotPrintButtons(order) {
     document.querySelectorAll('[data-print-kot]').forEach((btn) => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const kotId = btn.getAttribute('data-print-kot');
             const meta = floorMeta(order);
             const kot = (meta.kots || []).find((k) => k && String(k.id) === String(kotId));
