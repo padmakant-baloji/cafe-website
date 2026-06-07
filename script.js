@@ -596,6 +596,14 @@ function initActiveNavLink() {
                 }
             });
 
+            // Super App mode locks
+            const isGroceryMode = document.body.classList.contains('mode-grocery');
+            if (isGroceryMode) {
+                currentId = 'grocery';
+            } else if (currentId === 'grocery') {
+                currentId = 'home';
+            }
+
             if (currentId) {
                 navLinks.forEach((link) => {
                     const href = link.getAttribute('href');
