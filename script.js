@@ -4046,7 +4046,10 @@ function createMenuItem(item, categoryId) {
         ${buildMenuItemImageHtml(item, categoryId)}
         <div class="menu-item-content">
             <div class="menu-item-header">
-                <h3 class="menu-item-name">${item.name}</h3>
+                <div class="menu-item-title-wrap">
+                    <span class="menu-item-veg-dot" title="Vegetarian" aria-label="Veg"></span>
+                    <h3 class="menu-item-name">${item.name}</h3>
+                </div>
                 ${priceHTML}
             </div>
             ${actionsBlock}

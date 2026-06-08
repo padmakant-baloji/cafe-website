@@ -7498,6 +7498,13 @@ body.app-mobile .menu-item-header {
     gap: var(--fo-space-1);
 }
 
+body.app-mobile .menu-item-title-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.35rem;
+}
+
 body.app-mobile .menu-item-content h3,
 body.app-mobile .menu-item-name {
     font-family: var(--font-body);
@@ -11514,3 +11521,792 @@ body.app-mobile.has-grocery-cart-bar .app-shell {
     }
 }
 
+/* ============================================
+   NATIVE APP FEEL — Premium micro-interactions
+   ============================================ */
+
+/* —— Global touch optimizations —— */
+body.app-mobile button,
+body.app-mobile a,
+body.app-mobile [role="button"],
+body.app-mobile [role="tab"],
+body.app-mobile input,
+body.app-mobile select,
+body.app-mobile textarea,
+body.app-mobile .menu-item-card,
+body.app-mobile .delivery-hero-cat,
+body.app-mobile .delivery-hero-promo,
+body.app-mobile .category-tab {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent pull-to-refresh on the body for app-like feel */
+body.app-mobile {
+    overscroll-behavior-y: contain;
+}
+
+body.app-mobile .app-shell {
+    overscroll-behavior-y: contain;
+}
+
+/* —— Glassmorphism top bar —— */
+body.app-mobile .app-topbar {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid rgba(228, 228, 231, 0.6);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+body.app-mobile .app-topbar.scrolled {
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border-bottom-color: rgba(228, 228, 231, 0.8);
+}
+
+/* —— Bottom nav glassmorphism + bounce —— */
+body.app-mobile .app-bottom-nav {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid rgba(228, 228, 231, 0.5);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.04);
+}
+
+/* Tab tap animation — spring bounce on icon */
+body.app-mobile .app-tab:active .app-tab-icon {
+    transform: scale(0.82);
+    transition: transform 0.08s ease;
+}
+
+body.app-mobile .app-tab .app-tab-icon {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
+}
+
+body.app-mobile .app-tab.active .app-tab-icon {
+    transform: scale(1.08);
+}
+
+/* Active indicator with smooth animation */
+body.app-mobile .app-tab::before {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* —— Press-state feedback for all touchable elements —— */
+body.app-mobile .btn:active,
+body.app-mobile .delivery-hero-cta:active {
+    transform: scale(0.97);
+    transition: transform 0.08s ease;
+}
+
+body.app-mobile .btn {
+    transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1), background 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Card press feedback */
+body.app-mobile .menu-item-card:active {
+    transform: scale(0.985);
+    transition: transform 0.08s ease;
+}
+
+body.app-mobile .menu-item-card {
+    transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 0.2s ease;
+}
+
+/* Category pill press feedback */
+body.app-mobile .delivery-hero-cat:active {
+    transform: scale(0.92);
+    transition: transform 0.08s ease;
+}
+
+body.app-mobile .delivery-hero-cat {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+}
+
+/* Category tab press feedback */
+body.app-mobile .category-tab:active,
+body.app-mobile [role="tab"]:active {
+    transform: scale(0.95);
+    transition: transform 0.08s ease;
+}
+
+body.app-mobile .category-tab,
+body.app-mobile [role="tab"] {
+    transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1), color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+/* Hero search bar press feedback */
+body.app-mobile .delivery-hero-search:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transition: transform 0.08s ease;
+}
+
+body.app-mobile .delivery-hero-search {
+    transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 0.2s ease;
+}
+
+/* Promo chip press */
+body.app-mobile .delivery-hero-promo:active {
+    transform: scale(0.94);
+    transition: transform 0.08s ease;
+}
+
+body.app-mobile .delivery-hero-promo {
+    transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* —— Momentum scrolling for all scroll containers —— */
+body.app-mobile .delivery-hero-categories,
+body.app-mobile .category-tabs,
+body.app-mobile .category-tabs-wrapper,
+body.app-mobile .menu-hotel-filter-tabs,
+body.app-mobile .grocery-cat-tabs,
+body.app-mobile .grocery-store-filter-tabs {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+}
+
+body.app-mobile .delivery-hero-cat,
+body.app-mobile .category-tab {
+    scroll-snap-align: start;
+}
+
+/* —— Shimmer loading skeleton —— */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+body.app-mobile .skeleton {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 25%,
+        #e0e0e0 37%,
+        #f0f0f0 63%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+    border-radius: var(--fo-radius-sm);
+    min-height: 1em;
+}
+
+body.app-mobile .skeleton-card {
+    background: var(--fo-surface);
+    border-radius: var(--fo-radius);
+    padding: var(--fo-space-4);
+    box-shadow: var(--fo-shadow);
+}
+
+body.app-mobile .skeleton-card .skeleton-img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--fo-radius-sm);
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 25%,
+        #e0e0e0 37%,
+        #f0f0f0 63%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+}
+
+body.app-mobile .skeleton-card .skeleton-line {
+    height: 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 25%,
+        #e0e0e0 37%,
+        #f0f0f0 63%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+}
+
+body.app-mobile .skeleton-card .skeleton-line:nth-child(2) {
+    width: 70%;
+}
+
+body.app-mobile .skeleton-card .skeleton-line:nth-child(3) {
+    width: 45%;
+}
+
+/* —— Smooth section transitions —— */
+body.app-mobile .menu-section,
+body.app-mobile .grocery-section,
+body.app-mobile .delivery-hero {
+    animation: sectionFadeIn 0.4s ease-out;
+}
+
+@keyframes sectionFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* —— Cart bar enhanced entrance —— */
+body.app-mobile .cart-bar:not(.cart-bar--hidden) {
+    animation: cartBarEntrance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cartBarEntrance {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+}
+
+/* —— Cart modal slide-up with spring —— */
+body.app-mobile .cart-modal.open .cart-modal-content,
+body.app-mobile .checkout-modal.open .checkout-modal-content {
+    animation: modalSlideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(60px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* —— Order success confetti-like pop —— */
+body.app-mobile .order-success-icon {
+    animation: successPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+}
+
+@keyframes successPop {
+    from {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* —— Enhanced splash screen fade —— */
+body.app-mobile .app-splash--hide {
+    transition: opacity 0.45s ease, transform 0.45s ease;
+    opacity: 0;
+    transform: scale(1.05);
+}
+
+/* —— Delivery time badge —— */
+.delivery-time-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(22, 163, 74, 0.12);
+    color: #15803d;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    animation: badgePulse 3s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+/* —— Prefers reduced motion —— */
+@media (prefers-reduced-motion: reduce) {
+    body.app-mobile .skeleton,
+    body.app-mobile .skeleton-card .skeleton-img,
+    body.app-mobile .skeleton-card .skeleton-line {
+        animation: none;
+    }
+
+    body.app-mobile .app-tab .app-tab-icon,
+    body.app-mobile .btn,
+    body.app-mobile .menu-item-card,
+    body.app-mobile .delivery-hero-cat,
+    body.app-mobile .delivery-hero-promo,
+    body.app-mobile .delivery-hero-search,
+    body.app-mobile .category-tab,
+    body.app-mobile [role="tab"],
+    body.app-mobile .app-tab::before {
+        transition: none;
+    }
+
+    body.app-mobile .menu-section,
+    body.app-mobile .grocery-section,
+    body.app-mobile .delivery-hero {
+        animation: none;
+    }
+
+    body.app-mobile .cart-bar:not(.cart-bar--hidden) {
+        animation: none;
+    }
+
+    .delivery-time-badge {
+        animation: none;
+    }
+}
+
+/* ============================================
+   SWIGGY / ZOMATO / ZEPTO — Inspired UI
+   ============================================ */
+
+/* —— Hero headline with inline ETA —— */
+.delivery-hero-headline {
+    margin-bottom: var(--fo-space-3, 0.75rem);
+}
+
+.delivery-hero-eta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(74, 222, 128, 0.18);
+    border: 1px solid rgba(134, 239, 172, 0.35);
+    animation: etaPulse 2.5s ease-in-out infinite;
+}
+
+.delivery-eta-icon {
+    display: inline-flex;
+    color: #86efac;
+}
+
+.delivery-eta-text {
+    font-size: 0.8125rem;
+    color: #dcfce7;
+    font-weight: 600;
+}
+
+.delivery-eta-text strong {
+    font-weight: 800;
+    color: #fff;
+}
+
+@keyframes etaPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.2); }
+    50% { transform: scale(1.02); box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+}
+
+/* —— Swiggy-style offer banners (horizontal scroll) —— */
+.delivery-hero-offers {
+    display: flex;
+    gap: 0.65rem;
+    margin: 0 0 var(--fo-space-5, 1.25rem);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    margin-left: calc(-1 * max(var(--fo-space-5, 1.25rem), env(safe-area-inset-left, 0px)));
+    margin-right: calc(-1 * max(var(--fo-space-5, 1.25rem), env(safe-area-inset-right, 0px)));
+    padding-left: max(var(--fo-space-5, 1.25rem), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--fo-space-5, 1.25rem), env(safe-area-inset-right, 0px));
+    padding-bottom: 4px;
+}
+
+.delivery-hero-offers::-webkit-scrollbar {
+    display: none;
+}
+
+.delivery-offer-card {
+    flex: 0 0 auto;
+    width: 10.5rem;
+    min-height: 5.5rem;
+    border-radius: 14px;
+    padding: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    scroll-snap-align: start;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.delivery-offer-card:active {
+    transform: scale(0.96);
+}
+
+.delivery-offer-card--1 {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.delivery-offer-card--2 {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+.delivery-offer-card--3 {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.delivery-offer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.delivery-offer-tag {
+    font-size: 0.5625rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1;
+}
+
+.delivery-offer-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+
+.delivery-offer-sub {
+    font-size: 0.6875rem;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.25;
+    font-weight: 500;
+}
+
+.delivery-offer-emoji {
+    font-size: 2rem;
+    line-height: 1;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+    animation: offerEmojiFloat 3s ease-in-out infinite;
+}
+
+@keyframes offerEmojiFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-4px) rotate(6deg); }
+}
+
+/* —— "What's on your mind?" section label —— */
+.delivery-hero-section-label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0 0 0.65rem;
+}
+
+/* —— Swiggy-style category grid (4 columns, wrap) —— */
+.delivery-hero-categories {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem 0.35rem;
+    overflow-x: visible !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-bottom: var(--fo-space-5, 1.25rem);
+}
+
+.delivery-hero-cat {
+    width: auto !important;
+    flex: none !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.25rem;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-decoration: none;
+    color: #fff;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+}
+
+.delivery-hero-cat:active {
+    transform: scale(0.92) !important;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.delivery-hero-cat-icon {
+    width: 3.6rem !important;
+    height: 3.6rem !important;
+    border-radius: 50%;
+    font-size: 1.65rem !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.delivery-hero-cat:hover .delivery-hero-cat-icon {
+    transform: scale(1.1) rotate(-5deg);
+}
+
+/* Staggered entrance animation for each category */
+.delivery-hero-cat {
+    animation: catBounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.delivery-hero-cat:nth-child(1) { animation-delay: 0.05s; }
+.delivery-hero-cat:nth-child(2) { animation-delay: 0.1s; }
+.delivery-hero-cat:nth-child(3) { animation-delay: 0.15s; }
+.delivery-hero-cat:nth-child(4) { animation-delay: 0.2s; }
+.delivery-hero-cat:nth-child(5) { animation-delay: 0.25s; }
+.delivery-hero-cat:nth-child(6) { animation-delay: 0.3s; }
+.delivery-hero-cat:nth-child(7) { animation-delay: 0.35s; }
+.delivery-hero-cat:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes catBounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.5) translateY(15px);
+    }
+    60% {
+        transform: scale(1.05) translateY(-2px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* New category colors for grocery & pasta */
+.delivery-hero-cat--grocery .delivery-hero-cat-icon {
+    background: linear-gradient(145deg, rgba(187, 247, 208, 0.95), rgba(74, 222, 128, 0.85));
+}
+
+.delivery-hero-cat--pasta .delivery-hero-cat-icon {
+    background: linear-gradient(145deg, rgba(254, 215, 170, 0.95), rgba(251, 146, 60, 0.85));
+}
+
+.delivery-hero-cat-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.92);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* —— Trust strip (Zepto-style) —— */
+.delivery-hero-trust {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    margin-bottom: var(--fo-space-5, 1.25rem);
+    padding: 0.65rem 0.85rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.delivery-trust-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.delivery-trust-icon {
+    font-size: 0.875rem;
+    line-height: 1;
+}
+
+.delivery-trust-text {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+}
+
+.delivery-trust-divider {
+    width: 1px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+}
+
+/* —— Enhanced menu items — Swiggy/Zomato-style —— */
+
+/* Larger image with rounded corners and subtle overlay */
+body.app-mobile .menu-item {
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: transform 0.25s cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 0.2s ease;
+}
+
+body.app-mobile .menu-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    border-color: rgba(22, 163, 74, 0.2);
+}
+
+/* Larger image area like Swiggy */
+body.app-mobile .menu-item-image {
+    width: 116px;
+    min-width: 116px;
+    border-radius: 0;
+    position: relative;
+}
+
+body.app-mobile .menu-item-image img {
+    width: 100%;
+    height: 100%;
+    min-height: 116px;
+    object-fit: cover;
+}
+
+/* Swiggy-style "ADD" button — compact green with plus */
+body.app-mobile .order-btn {
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    min-height: 38px;
+    padding: 0.5rem 0.75rem;
+    background: #fff;
+    color: var(--fo-accent, #16a34a);
+    border: 1.5px solid var(--fo-accent, #16a34a);
+    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.12);
+    justify-content: center;
+    gap: 0.35rem;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+body.app-mobile .order-btn:hover {
+    background: var(--fo-accent-soft, rgba(22, 163, 74, 0.1));
+    color: var(--fo-accent-dark, #15803d);
+    transform: none;
+}
+
+body.app-mobile .order-btn:active {
+    background: var(--fo-accent, #16a34a);
+    color: #fff;
+    transform: scale(0.97);
+}
+
+/* Hide the separate price label on the ADD button — show as price text under name */
+body.app-mobile .order-btn-price {
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+/* Quantity stepper — Swiggy-style green bar */
+body.app-mobile .menu-cart-qty-bar {
+    border-radius: 10px;
+    min-height: 38px;
+    background: var(--fo-accent, #16a34a);
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.28);
+}
+
+/* Price styling — bolder like Zomato */
+body.app-mobile .menu-item-content .price,
+body.app-mobile .menu-item-content .price .price-main {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+/* Name styling — Zomato-like */
+body.app-mobile .menu-item-content h3,
+body.app-mobile .menu-item-name {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+}
+
+/* —— Swiggy-style "Bestseller" badge (can be added via JS) —— */
+body.app-mobile .menu-item-bestseller {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.5625rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: #fff;
+    border-radius: 0 0 8px 0;
+    line-height: 1.4;
+}
+
+/* —— Veg indicator dot (Zomato-style) —— */
+body.app-mobile .menu-item-veg-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1.5px solid #16a34a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+body.app-mobile .menu-item-veg-dot::after {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #16a34a;
+}
+
+/* —— Enhanced menu grid spacing —— */
+body.app-mobile .menu-grid {
+    gap: 0.75rem;
+}
+
+/* —— Reduced motion for new animations —— */
+@media (prefers-reduced-motion: reduce) {
+    .delivery-hero-eta {
+        animation: none;
+    }
+
+    .delivery-offer-emoji {
+        animation: none;
+    }
+
+    .delivery-hero-cat {
+        animation: none;
+    }
+}
