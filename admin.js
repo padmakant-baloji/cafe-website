@@ -486,7 +486,7 @@ function applyMainVenueUi() {
     if (btn) btn.hidden = !isMain;
 
     const dzBtn2 = document.getElementById('adminDeliveryZonesBtn');
-    if (dzBtn2) dzBtn2.hidden = !isMain;
+    if (dzBtn2) dzBtn2.hidden = false;
 
     const menuBtn = document.getElementById('adminPartnerMenuBtn');
     if (menuBtn) {
@@ -2061,7 +2061,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function openDeliveryZonesModal() {
-        if (!dzModal || !isMainAdminVenue()) return;
+        if (!dzModal) return;
         dzModal.hidden = false;
         resetDzForm();
         setDzMessage('Loading…', null);

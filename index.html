@@ -400,11 +400,12 @@
         <div class="delivery-hero-mesh" aria-hidden="true"></div>
         <div class="order-header-inner delivery-hero-inner">
             <div class="delivery-hero-top">
-                <div class="delivery-hero-location">
+                <div class="delivery-hero-location" style="position: relative;">
                     <span class="delivery-hero-location-icon" aria-hidden="true">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                     </span>
-                    <span class="delivery-hero-location-text"><strong>Kudachi</strong> · Delivering now</span>
+                    <span class="delivery-hero-location-text"><strong id="globalCityDisplay">Kudachi</strong> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin: 0 4px 2px 2px;"><path d="m6 9 6 6 6-6"/></svg> · Delivering now</span>
+                    <select id="globalCitySelect" style="position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; -webkit-appearance: none; appearance: none; font-size: 16px;"></select>
                 </div>
             </div>
 

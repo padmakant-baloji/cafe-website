@@ -74,6 +74,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerBtn = document.getElementById('gateRegister');
     const stepMobile = document.getElementById('gateStepMobile');
     const stepProfile = document.getElementById('gateStepProfile');
+    const gateCity = document.getElementById('gateCity');
+
+    // Fetch dynamic cities
+    fetch('/api/menu', { priority: 'high' })
+        .then(res => res.json())
+        .then(data => {
+            const map = data && data.deliveryZonesMap ? data.deliveryZonesMap : {};
+            const allCities = new Set();
+            for (const key in map) {
+                map[key].forEach(z => {
+                    if (z.city && z.city !== '_default' && z.city.trim() !== '') {
+                        allCities.add(z.city.trim());
+                    }
+                });
+            }
+            const cities = Array.from(allCities).sort();
+            if (cities.length > 0 && gateCity) {
+                const firstOption = gateCity.options[0];
+                gateCity.innerHTML = '';
+                gateCity.appendChild(firstOption);
+                cities.forEach(city => {
+                    const titleCase = city.charAt(0).toUpperCase() + city.slice(1);
+                    const opt = document.createElement('option');
+                    opt.value = titleCase;
+                    opt.textContent = titleCase;
+                    gateCity.appendChild(opt);
+                });
+            }
+        })
+        .catch(err => console.warn('Could not load delivery zones for login:', err));
 
     mobileBtn?.addEventListener('click', async () => {
         clearError();

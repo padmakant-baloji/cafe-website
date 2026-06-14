@@ -19,6 +19,7 @@ const navLinks = document.querySelectorAll('a.app-tab[href^="#"], a.nav-link[hre
 // ============================================
 const SESSION_STORAGE_KEY = 'balojiCustomerToken';
 const CUSTOMER_PROFILE_KEY = 'balojiCustomerProfile';
+let globalSelectedCity = localStorage.getItem('balojiGlobalCity') || '';
 
 function getCustomerToken() {
     return localStorage.getItem(SESSION_STORAGE_KEY);
@@ -2127,13 +2128,22 @@ function getCartTotal() {
 // '_default' is the fallback for any city not explicitly listed.
 
 function findDeliveryZone(cityLower) {
-    if (!deliveryZones.length) {
-        // Fallback if zones not loaded yet
+    const vId = cart.length > 0 ? cart[0].venueId : defaultVenueId;
+    const vKey = vId == null || vId === defaultVenueId ? 'default' : String(vId);
+    
+    let zones = [];
+    if (typeof deliveryZonesMap === 'object' && deliveryZonesMap !== null) {
+        zones = deliveryZonesMap[vKey] || deliveryZonesMap['default'] || [];
+    }
+    
+    if (!zones.length) {
         return { city: '_default', minOrder: 0, deliveryFee: 8, freeDeliveryAbove: null };
     }
-    const exact = deliveryZones.find((z) => z.city === cityLower);
+    const exact = zones.find((z) => z.city === cityLower);
     if (exact) return exact;
-    return deliveryZones.find((z) => z.city === '_default') || deliveryZones[0];
+    const def = zones.find((z) => z.city === '_default');
+    if (def) return def;
+    return null;
 }
 
 function getNormalizedCustomerCity() {
@@ -2141,6 +2151,11 @@ function getNormalizedCustomerCity() {
 }
 
 function getCheckoutSelectedCity() {
+    const isNew = checkoutSelectedAddressId == null;
+    if (!isNew) {
+        const selected = getCheckoutAddressById(checkoutSelectedAddressId);
+        if (selected && selected.city) return String(selected.city).trim().toLowerCase();
+    }
     const citySelect = document.getElementById('customerCity');
     const raw = (citySelect && citySelect.value) || currentCustomer?.city || getCustomerProfile()?.city || '';
     return String(raw).trim().toLowerCase();
@@ -2152,14 +2167,14 @@ function getEffectiveDeliveryCity(cityLower) {
 
 function getDeliveryFee(subtotal, cityLower) {
     if (!subtotal) return 0;
-    if (isPartnerCart()) return partnerDeliveryFee;
     const city = getEffectiveDeliveryCity(cityLower);
     const zone = findDeliveryZone(city);
+    if (!zone) return 0;
+    
     let fee = zone.deliveryFee || 0;
-    // If subtotal meets the free_delivery_above threshold, use kudachi zone fee instead
     if (zone.freeDeliveryAbove != null && subtotal >= zone.freeDeliveryAbove) {
         if (zone.city === '_default') {
-            const kudachiZone = deliveryZones.find((z) => z.city === 'kudachi');
+            const kudachiZone = findDeliveryZone('kudachi');
             fee = kudachiZone ? kudachiZone.deliveryFee : 8;
         } else {
             fee = 0;
@@ -2170,12 +2185,15 @@ function getDeliveryFee(subtotal, cityLower) {
 
 function getMinOrderForCity(cityLower) {
     const zone = findDeliveryZone(getEffectiveDeliveryCity(cityLower));
+    if (!zone) return Infinity;
     return zone.minOrder || 0;
 }
 
 function isCheckoutAllowed(subtotal, cityLower) {
-    if (isPartnerCart()) return subtotal > 0;
     if (!cityLower) return true;
+    const zone = findDeliveryZone(getEffectiveDeliveryCity(cityLower));
+    if (!zone) return false;
+    
     const minOrder = getMinOrderForCity(cityLower);
     if (minOrder > 0 && subtotal > 0 && subtotal < minOrder) return false;
     return subtotal > 0;
@@ -3372,23 +3390,65 @@ function applyStorefrontMenuFallback() {
 
 function updateCityDropdown() {
     const citySelect = document.getElementById('customerCity');
-    if (!citySelect || !Array.isArray(deliveryZones) || deliveryZones.length === 0) return;
+    const globalSelect = document.getElementById('globalCitySelect');
+    const globalDisplay = document.getElementById('globalCityDisplay');
+    
+    if (!Array.isArray(deliveryZones) || deliveryZones.length === 0) return;
     
     const customCities = deliveryZones
         .map(z => z.city)
-        .filter(c => c && c !== '_default' && c.trim() !== '');
+        .filter(c => c && c !== '_default' && c.trim() !== '')
+        .map(c => c.charAt(0).toUpperCase() + c.slice(1));
         
     if (customCities.length > 0) {
-        const firstOption = citySelect.options[0];
-        citySelect.innerHTML = '';
-        citySelect.appendChild(firstOption);
-        customCities.forEach(city => {
-            const opt = document.createElement('option');
-            const titleCaseCity = city.charAt(0).toUpperCase() + city.slice(1);
-            opt.value = titleCaseCity;
-            opt.textContent = titleCaseCity;
-            citySelect.appendChild(opt);
-        });
+        if (citySelect) {
+            const firstOption = citySelect.options[0];
+            citySelect.innerHTML = '';
+            citySelect.appendChild(firstOption);
+            customCities.forEach(city => {
+                const opt = document.createElement('option');
+                opt.value = city;
+                opt.textContent = city;
+                citySelect.appendChild(opt);
+            });
+        }
+        
+        if (globalSelect) {
+            globalSelect.innerHTML = '';
+            customCities.forEach(city => {
+                const opt = document.createElement('option');
+                opt.value = city;
+                opt.textContent = city;
+                globalSelect.appendChild(opt);
+            });
+            
+            const profile = getCustomerProfile();
+            if (!globalSelectedCity && profile && profile.city) {
+                globalSelectedCity = profile.city.charAt(0).toUpperCase() + profile.city.slice(1);
+            }
+            if (!globalSelectedCity || !customCities.includes(globalSelectedCity)) {
+                globalSelectedCity = customCities[0];
+            }
+            
+            globalSelect.value = globalSelectedCity;
+            if (globalDisplay) globalDisplay.textContent = globalSelectedCity;
+            localStorage.setItem('balojiGlobalCity', globalSelectedCity);
+            
+            globalSelect.addEventListener('change', (e) => {
+                globalSelectedCity = e.target.value;
+                if (globalDisplay) globalDisplay.textContent = globalSelectedCity;
+                localStorage.setItem('balojiGlobalCity', globalSelectedCity);
+                
+                if (citySelect) citySelect.value = globalSelectedCity;
+                
+                renderCheckoutDeliveryCard();
+                updateCartUI(); // Update fees and min orders
+            });
+            
+            if (citySelect && !citySelect.value) {
+                citySelect.value = globalSelectedCity;
+            }
+        }
     }
 }
 
@@ -4679,11 +4739,23 @@ async function placeOrder() {
 
     const subtotal = getCartTotal();
     const cityLower = getCheckoutSelectedCity();
+
+    if (globalSelectedCity && cityLower.toLowerCase() !== globalSelectedCity.toLowerCase()) {
+        showToast(`Your selected city is ${globalSelectedCity}, but your address is in ${cityLower.charAt(0).toUpperCase() + cityLower.slice(1)}. Please switch your city or change your address.`, { type: 'error', duration: 5000 });
+        addressEditing = true;
+        applyCheckoutAddressSelection();
+        const wrap = document.getElementById('checkoutAddressWrap');
+        if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+
     if (!isCheckoutAllowed(subtotal, cityLower)) {
-        if (!isCheckoutAllowed(subtotal, cityLower)) {
-            const minOrder = getMinOrderForCity(cityLower);
+        const minOrder = getMinOrderForCity(cityLower);
+        if (minOrder === Infinity) {
+            showToast(`Sorry, we don't deliver to ${cityLower.charAt(0).toUpperCase() + cityLower.slice(1)} from this location.`, { type: 'error' });
+        } else {
             const remaining = minOrder - subtotal;
-            showToast(`Add ₹${remaining} more — minimum order for delivery outside Kudachi is ₹${minOrder}.`, { type: 'error' });
+            showToast(`Add ₹${remaining} more — minimum order is ₹${minOrder}.`, { type: 'error' });
         }
         return;
     }
