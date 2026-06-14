@@ -485,6 +485,9 @@ function applyMainVenueUi() {
     const btn = document.getElementById('adminHotelsBtn');
     if (btn) btn.hidden = !isMain;
 
+    const dzBtn2 = document.getElementById('adminDeliveryZonesBtn');
+    if (dzBtn2) dzBtn2.hidden = !isMain;
+
     const menuBtn = document.getElementById('adminPartnerMenuBtn');
     if (menuBtn) {
         menuBtn.hidden = !isFoodPartner;
@@ -519,7 +522,7 @@ function applyMainVenueUi() {
     const hotelsModalSub = document.getElementById('adminHotelsModalSub');
     if (hotelsModalSub) {
         hotelsModalSub.textContent = isMain
-            ? 'Baloji Cafe is the main hotel. Create other hotels here and give each its own admin login.'
+            ? 'Baloji is the main hotel. Create other hotels here and give each its own admin login.'
             : 'Hotel details for your property.';
     }
 
@@ -1233,7 +1236,7 @@ function buildOrderCopyText(order) {
     const pm = orderPaymentMethod(order);
 
     const lines = [
-        `Baloji's Cafe — Order #${id}`,
+        `Baloji — Order #${id}`,
         when ? `Time: ${when}` : '',
         name ? `Name: ${name}` : '',
         mobile ? `Mobile: ${mobile}` : '',
@@ -1962,6 +1965,202 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ── Delivery Zones modal ──
+    const dzBtn = document.getElementById('adminDeliveryZonesBtn');
+    const dzModal = document.getElementById('adminDeliveryZonesModal');
+    const dzCloseBtn = document.getElementById('adminDeliveryZonesCloseBtn');
+    const dzListEl = document.getElementById('adminDeliveryZonesList');
+    const dzFormTitle = document.getElementById('adminDzFormTitle');
+    const dzEditId = document.getElementById('adminDzEditId');
+    const dzCity = document.getElementById('adminDzCity');
+    const dzMinOrder = document.getElementById('adminDzMinOrder');
+    const dzDeliveryFee = document.getElementById('adminDzDeliveryFee');
+    const dzFreeAbove = document.getElementById('adminDzFreeAbove');
+    const dzSaveBtn = document.getElementById('adminDzSaveBtn');
+    const dzCancelEditBtn = document.getElementById('adminDzCancelEditBtn');
+    const dzMsg = document.getElementById('adminDzMsg');
+
+    let deliveryZonesCache = [];
+
+    function setDzMessage(text, state) {
+        if (!dzMsg) return;
+        dzMsg.textContent = text || '';
+        if (state) dzMsg.setAttribute('data-state', state);
+        else dzMsg.removeAttribute('data-state');
+    }
+
+    function renderDeliveryZonesTable() {
+        if (!dzListEl) return;
+        if (!deliveryZonesCache.length) {
+            dzListEl.innerHTML = '<p class="admin-dz-empty">No delivery zones configured yet.</p>';
+            return;
+        }
+        const rows = deliveryZonesCache.map((z) => {
+            const cityLabel = z.city === '_default'
+                ? '<span class="dz-city dz-default">_default (all other cities)</span>'
+                : `<span class="dz-city">${escapeHtml(z.city)}</span>`;
+            const freeAboveLabel = z.free_delivery_above != null
+                ? `₹${z.free_delivery_above}`
+                : '—';
+            const enabledLabel = z.enabled ? '✅' : '❌';
+            return `<tr>
+                <td>${cityLabel}</td>
+                <td>₹${z.min_order || 0}</td>
+                <td>₹${z.delivery_fee || 0}</td>
+                <td>${freeAboveLabel}</td>
+                <td>${enabledLabel}</td>
+                <td class="admin-dz-actions">
+                    <button type="button" data-dz-edit="${z.id}">Edit</button>
+                    <button type="button" class="danger" data-dz-delete="${z.id}">Delete</button>
+                </td>
+            </tr>`;
+        });
+        dzListEl.innerHTML = `<table class="admin-dz-table">
+            <thead><tr>
+                <th>City</th><th>Min order</th><th>Delivery fee</th><th>Reduced fee above</th><th>Active</th><th></th>
+            </tr></thead>
+            <tbody>${rows.join('')}</tbody>
+        </table>`;
+    }
+
+    async function fetchDeliveryZones() {
+        const res = await fetch('/api/admin/delivery-zones', {
+            headers: adminHeaders(),
+            cache: 'no-store'
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
+        if (!res.ok) throw new Error(data.error || 'Could not load zones.');
+        deliveryZonesCache = Array.isArray(data.zones) ? data.zones : [];
+        renderDeliveryZonesTable();
+    }
+
+    function resetDzForm() {
+        if (dzEditId) dzEditId.value = '';
+        if (dzCity) dzCity.value = '';
+        if (dzMinOrder) dzMinOrder.value = '0';
+        if (dzDeliveryFee) dzDeliveryFee.value = '0';
+        if (dzFreeAbove) dzFreeAbove.value = '';
+        if (dzFormTitle) dzFormTitle.textContent = 'Add delivery zone';
+        if (dzSaveBtn) dzSaveBtn.textContent = 'Add zone';
+        if (dzCancelEditBtn) dzCancelEditBtn.hidden = true;
+        if (dzCity) dzCity.removeAttribute('disabled');
+        setDzMessage('', null);
+    }
+
+    function fillDzFormForEdit(zone) {
+        if (dzEditId) dzEditId.value = String(zone.id);
+        if (dzCity) { dzCity.value = zone.city; dzCity.setAttribute('disabled', 'true'); }
+        if (dzMinOrder) dzMinOrder.value = String(zone.min_order || 0);
+        if (dzDeliveryFee) dzDeliveryFee.value = String(zone.delivery_fee || 0);
+        if (dzFreeAbove) dzFreeAbove.value = zone.free_delivery_above != null ? String(zone.free_delivery_above) : '';
+        if (dzFormTitle) dzFormTitle.textContent = `Edit zone: ${zone.city}`;
+        if (dzSaveBtn) dzSaveBtn.textContent = 'Save zone';
+        if (dzCancelEditBtn) dzCancelEditBtn.hidden = false;
+        setDzMessage('', null);
+    }
+
+    async function openDeliveryZonesModal() {
+        if (!dzModal || !isMainAdminVenue()) return;
+        dzModal.hidden = false;
+        resetDzForm();
+        setDzMessage('Loading…', null);
+        try {
+            await fetchDeliveryZones();
+            setDzMessage('', null);
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired.');
+            } else {
+                setDzMessage(err.message || 'Could not load.', 'error');
+            }
+        }
+    }
+
+    function closeDeliveryZonesModal() {
+        if (dzModal) dzModal.hidden = true;
+    }
+
+    dzBtn?.addEventListener('click', openDeliveryZonesModal);
+    dzCloseBtn?.addEventListener('click', closeDeliveryZonesModal);
+    dzModal?.addEventListener('click', (e) => {
+        if (e.target === dzModal) closeDeliveryZonesModal();
+    });
+    dzCancelEditBtn?.addEventListener('click', resetDzForm);
+
+    dzSaveBtn?.addEventListener('click', async () => {
+        const city = String(dzCity?.value || '').trim().toLowerCase();
+        if (!city) { setDzMessage('City name is required.', 'error'); return; }
+        const payload = {
+            city,
+            deliveryFee: parseInt(String(dzDeliveryFee?.value || '0'), 10),
+            minOrder: parseInt(String(dzMinOrder?.value || '0'), 10),
+            freeDeliveryAbove: dzFreeAbove?.value ? parseInt(String(dzFreeAbove.value), 10) : null
+        };
+        const editId = dzEditId?.value ? parseInt(dzEditId.value, 10) : null;
+        if (editId) payload.id = editId;
+
+        setBtnLoading(dzSaveBtn, true);
+        setDzMessage('Saving…', null);
+        try {
+            const res = await fetch('/api/admin/delivery-zones', {
+                method: 'POST',
+                headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
+            if (!res.ok) throw new Error(data.error || 'Could not save.');
+            setDzMessage('Saved.', 'success');
+            resetDzForm();
+            await fetchDeliveryZones();
+        } catch (err) {
+            if (err && err.code === 401) {
+                clearAdminCredentials();
+                showAdminGate('Session expired.');
+            } else {
+                setDzMessage(err.message || 'Could not save.', 'error');
+            }
+        } finally {
+            setBtnLoading(dzSaveBtn, false);
+        }
+    });
+
+    dzListEl?.addEventListener('click', async (e) => {
+        const editBtn = e.target.closest('[data-dz-edit]');
+        if (editBtn) {
+            const id = parseInt(editBtn.getAttribute('data-dz-edit'), 10);
+            const zone = deliveryZonesCache.find((z) => z.id === id);
+            if (zone) fillDzFormForEdit(zone);
+            return;
+        }
+        const deleteBtn = e.target.closest('[data-dz-delete]');
+        if (deleteBtn) {
+            const id = parseInt(deleteBtn.getAttribute('data-dz-delete'), 10);
+            if (!confirm('Delete this delivery zone?')) return;
+            setDzMessage('Deleting…', null);
+            try {
+                const res = await fetch(`/api/admin/delivery-zones/${id}`, {
+                    method: 'DELETE',
+                    headers: adminHeaders()
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
+                if (!res.ok) throw new Error(data.error || 'Could not delete.');
+                setDzMessage('Deleted.', 'success');
+                await fetchDeliveryZones();
+            } catch (err) {
+                if (err && err.code === 401) {
+                    clearAdminCredentials();
+                    showAdminGate('Session expired.');
+                } else {
+                    setDzMessage(err.message || 'Could not delete.', 'error');
+                }
+            }
+        }
+    });
+
     const floorConfigBtn = document.getElementById('adminFloorConfigBtn');
     const floorConfigModal = document.getElementById('adminFloorConfigModal');
     const floorConfigCloseBtn = document.getElementById('adminFloorConfigCloseBtn');
@@ -2104,7 +2303,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     hotelCreateBtn?.addEventListener('click', async () => {
         if (!isMainAdminVenue()) {
-            setHotelsMessage('Only Baloji Cafe can create hotels.', 'error');
+            setHotelsMessage('Only Baloji can create hotels.', 'error');
             return;
         }
         const name = String(hotelNameInput?.value || '').trim();
@@ -2708,7 +2907,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.editable === false) {
                 setPartnerMenuMessage('This hotel menu is managed in menu.json.', 'error');
                 if (partnerMenuAddForm) partnerMenuAddForm.hidden = true;
-                partnerMenuList.innerHTML = '<p class="admin-partner-menu-empty">Baloji Cafe menu is edited in menu.json.</p>';
+                partnerMenuList.innerHTML = '<p class="admin-partner-menu-empty">Baloji menu is edited in menu.json.</p>';
                 return;
             }
             if (partnerMenuAddForm) partnerMenuAddForm.hidden = false;
@@ -3057,7 +3256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopyTodaySummary?.addEventListener('click', async () => {
         const data = computeAdminAnalytics(filterOrdersForAdminView(lastOrders));
         const lines = [
-            `Baloji's Cafe — Today summary`,
+            `Baloji — Today summary`,
             `Updated: ${data.updatedAt.toLocaleString()}`,
             `Orders today: ${data.ordersTodayCount} (delivery ${data.ordersTodayDelivery} · floor ${data.ordersTodayKot})`,
             `Settled sales: ${formatMoney(data.settledSalesToday)} (online ${formatMoney(data.settledDeliverySales)} · KOT ${formatMoney(data.settledKotSales)})`,

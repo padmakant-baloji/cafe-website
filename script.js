@@ -1026,8 +1026,9 @@ function initTestimonials() {
 let cart = [];
 let appliedCoupon = null; // { code: string, discount: number, subtotal: number }
 let defaultVenueId = 1;
-let defaultVenueName = "Baloji's Cafe";
+let defaultVenueName = "Baloji";
 let partnerDeliveryFee = 20;
+let deliveryZones = [];
 let menuVenues = [];
 let selectedMenuVenueId = 1;
 
@@ -2121,10 +2122,19 @@ function getCartTotal() {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 }
 
-const MIN_NON_KUDACHI_ORDER_VALUE = 200;
-// Flat delivery charge applied to every order, irrespective of order value.
-const NON_KUDACHI_DELIVERY_FEE = 45;
-const KUDACHI_DELIVERY_FEE = 8;
+// Delivery zones — loaded from server, replaces hardcoded constants.
+// Each zone: { city, minOrder, deliveryFee, freeDeliveryAbove }
+// '_default' is the fallback for any city not explicitly listed.
+
+function findDeliveryZone(cityLower) {
+    if (!deliveryZones.length) {
+        // Fallback if zones not loaded yet
+        return { city: '_default', minOrder: 0, deliveryFee: 8, freeDeliveryAbove: null };
+    }
+    const exact = deliveryZones.find((z) => z.city === cityLower);
+    if (exact) return exact;
+    return deliveryZones.find((z) => z.city === '_default') || deliveryZones[0];
+}
 
 function getNormalizedCustomerCity() {
     return String(currentCustomer?.city || getCustomerProfile()?.city || '').trim().toLowerCase();
@@ -2144,14 +2154,31 @@ function getDeliveryFee(subtotal, cityLower) {
     if (!subtotal) return 0;
     if (isPartnerCart()) return partnerDeliveryFee;
     const city = getEffectiveDeliveryCity(cityLower);
-    return city === 'kudachi' ? KUDACHI_DELIVERY_FEE : NON_KUDACHI_DELIVERY_FEE;
+    const zone = findDeliveryZone(city);
+    let fee = zone.deliveryFee || 0;
+    // If subtotal meets the free_delivery_above threshold, use kudachi zone fee instead
+    if (zone.freeDeliveryAbove != null && subtotal >= zone.freeDeliveryAbove) {
+        if (zone.city === '_default') {
+            const kudachiZone = deliveryZones.find((z) => z.city === 'kudachi');
+            fee = kudachiZone ? kudachiZone.deliveryFee : 8;
+        } else {
+            fee = 0;
+        }
+    }
+    return fee;
+}
+
+function getMinOrderForCity(cityLower) {
+    const zone = findDeliveryZone(getEffectiveDeliveryCity(cityLower));
+    return zone.minOrder || 0;
 }
 
 function isCheckoutAllowed(subtotal, cityLower) {
     if (isPartnerCart()) return subtotal > 0;
     if (!cityLower) return true;
-    if (cityLower === 'kudachi') return subtotal > 0;
-    return subtotal >= MIN_NON_KUDACHI_ORDER_VALUE;
+    const minOrder = getMinOrderForCity(cityLower);
+    if (minOrder > 0 && subtotal > 0 && subtotal < minOrder) return false;
+    return subtotal > 0;
 }
 
 function setCouponFeedback(message, type = 'info') {
@@ -2269,10 +2296,11 @@ function renderCartDeliveryNote() {
     const cityLower = getNormalizedCustomerCity();
     el.classList.remove('delivery-note--error');
 
-    if (subtotal && cityLower && cityLower !== 'kudachi' && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
-        const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
+    if (subtotal && cityLower && !isCheckoutAllowed(subtotal, cityLower)) {
+        const minOrder = getMinOrderForCity(cityLower);
+        const remaining = minOrder - subtotal;
         el.classList.add('delivery-note--error');
-        el.innerHTML = `Minimum order outside <strong>Kudachi</strong> is <strong>₹${MIN_NON_KUDACHI_ORDER_VALUE}</strong>. Add <strong>₹${remaining}</strong> more to checkout.`;
+        el.innerHTML = `Minimum order outside <strong>Kudachi</strong> is <strong>₹${minOrder}</strong>. Add <strong>₹${remaining}</strong> more to checkout.`;
         el.hidden = false;
         return;
     }
@@ -2329,9 +2357,10 @@ function renderCheckoutTotals() {
             noteEl.innerHTML = `Ordering from <strong>${escapeHtml(venueName)}</strong>`;
             noteEl.classList.add('checkout-delivery-note--hotel');
             noteEl.hidden = false;
-        } else if (cityLower && cityLower !== 'kudachi' && subtotal > 0 && subtotal < MIN_NON_KUDACHI_ORDER_VALUE) {
-            const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
-            noteEl.textContent = `Minimum order outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}. Add ₹${remaining} more to place your order.`;
+        } else if (cityLower && !isCheckoutAllowed(subtotal, cityLower)) {
+            const minOrder = getMinOrderForCity(cityLower);
+            const remaining = minOrder - subtotal;
+            noteEl.textContent = `Minimum order outside Kudachi is ₹${minOrder}. Add ₹${remaining} more to place your order.`;
             noteEl.hidden = false;
         } else {
             noteEl.textContent = '';
@@ -3355,6 +3384,7 @@ async function loadMenu() {
                 defaultVenueId = Number(payload.defaultVenueId) || 1;
                 defaultVenueName = payload.defaultVenueName || defaultVenueName;
                 partnerDeliveryFee = Number(payload.partnerDeliveryFee) || 20;
+                deliveryZones = Array.isArray(payload.deliveryZones) ? payload.deliveryZones : [];
                 selectedMenuVenueId = defaultVenueId;
                 menuVenues = Array.isArray(payload.venues) && payload.venues.length
                     ? payload.venues.map((venue) => ({
@@ -3378,7 +3408,7 @@ async function loadMenu() {
             const data = await jsonRes.json();
             if (data && Array.isArray(data.categories) && data.categories.length) {
                 defaultVenueId = 1;
-                defaultVenueName = "Baloji's Cafe";
+                defaultVenueName = "Baloji";
                 selectedMenuVenueId = defaultVenueId;
                 menuVenues = deriveMenuVenues(data.categories);
                 menuData = data;
@@ -3391,7 +3421,7 @@ async function loadMenu() {
     } catch (error) {
         console.warn('Could not load menu, using embedded data:', error);
         defaultVenueId = 1;
-        defaultVenueName = "Baloji's Cafe";
+        defaultVenueName = "Baloji";
         selectedMenuVenueId = defaultVenueId;
         menuVenues = deriveMenuVenues(fallbackMenuData.categories || []);
         menuData = fallbackMenuData;
@@ -4261,9 +4291,10 @@ function initCartModal() {
             const subtotal = getCartTotal();
             const cityLower = getNormalizedCustomerCity();
             if (!isCheckoutAllowed(subtotal, cityLower)) {
-                if (cityLower !== 'kudachi') {
-                    const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
-                    showToast(`Add ₹${remaining} more — minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}.`, { type: 'error' });
+                if (!isCheckoutAllowed(subtotal, cityLower)) {
+                    const minOrder = getMinOrderForCity(cityLower);
+                    const remaining = minOrder - subtotal;
+                    showToast(`Add ₹${remaining} more — minimum order for delivery outside Kudachi is ₹${minOrder}.`, { type: 'error' });
                 } else {
                     showToast('Add more items to your cart to continue.', { type: 'error' });
                 }
@@ -4626,9 +4657,10 @@ async function placeOrder() {
     const subtotal = getCartTotal();
     const cityLower = getCheckoutSelectedCity();
     if (!isCheckoutAllowed(subtotal, cityLower)) {
-        if (cityLower !== 'kudachi') {
-            const remaining = MIN_NON_KUDACHI_ORDER_VALUE - subtotal;
-            showToast(`Add ₹${remaining} more — minimum order for delivery outside Kudachi is ₹${MIN_NON_KUDACHI_ORDER_VALUE}.`, { type: 'error' });
+        if (!isCheckoutAllowed(subtotal, cityLower)) {
+            const minOrder = getMinOrderForCity(cityLower);
+            const remaining = minOrder - subtotal;
+            showToast(`Add ₹${remaining} more — minimum order for delivery outside Kudachi is ₹${minOrder}.`, { type: 'error' });
         }
         return;
     }

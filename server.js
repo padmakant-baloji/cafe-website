@@ -42,6 +42,7 @@ const { validateCoupon } = require('./lib/coupon-service');
 const { getStoreStatus, setStoreStatus, getPublicStorefrontStatus } = require('./lib/store-status');
 const { resolveAdminVenue, authenticateAdminUser, getFloorConfig, setFloorConfig, resolvePublicVenue, venuePublicPayload, listVenuesForAdmin, createVenueByMain, updateVenueAccessByMain } = require('./lib/venue-service');
 const { getAggregatedCustomerMenu, getAdminMenuForVenue, saveAdminMenuForVenue } = require('./lib/menu-service');
+const { listDeliveryZones, upsertDeliveryZone, deleteDeliveryZone } = require('./lib/delivery-zone-service');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -786,6 +787,46 @@ app.post('/api/admin/login', async (req, res) => {
     } catch (err) {
         console.error('admin login:', err.message);
         return res.status(500).json({ error: 'Could not sign in.' });
+    }
+});
+
+app.get('/api/admin/delivery-zones', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const venueId = req.adminVenue.isDefault ? null : req.adminVenue.id;
+        const zones = await listDeliveryZones(venueId);
+        res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        return res.json({ ok: true, zones });
+    } catch (err) {
+        console.error('admin delivery-zones get:', err.message);
+        return res.status(500).json({ error: 'Could not load delivery zones.' });
+    }
+});
+
+app.post('/api/admin/delivery-zones', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const venueId = req.adminVenue.isDefault ? null : req.adminVenue.id;
+        const zone = await upsertDeliveryZone(venueId, req.body || {});
+        return res.json({ ok: true, zone });
+    } catch (err) {
+        const code = err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) console.error('admin delivery-zones post:', err.message);
+        return res.status(code).json({ error: err.message || 'Could not save delivery zone.' });
+    }
+});
+
+app.delete('/api/admin/delivery-zones/:id', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const id = parseInt(String(req.params.id), 10);
+        if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid zone id.' });
+        const result = await deleteDeliveryZone(id);
+        return res.json({ ok: true, ...result });
+    } catch (err) {
+        const code = err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) console.error('admin delivery-zones delete:', err.message);
+        return res.status(code).json({ error: err.message || 'Could not delete delivery zone.' });
     }
 });
 
