@@ -3370,6 +3370,28 @@ function applyStorefrontMenuFallback() {
     syncOrderingWindowUI();
 }
 
+function updateCityDropdown() {
+    const citySelect = document.getElementById('customerCity');
+    if (!citySelect || !Array.isArray(deliveryZones) || deliveryZones.length === 0) return;
+    
+    const customCities = deliveryZones
+        .map(z => z.city)
+        .filter(c => c && c !== '_default' && c.trim() !== '');
+        
+    if (customCities.length > 0) {
+        const firstOption = citySelect.options[0];
+        citySelect.innerHTML = '';
+        citySelect.appendChild(firstOption);
+        customCities.forEach(city => {
+            const opt = document.createElement('option');
+            const titleCaseCity = city.charAt(0).toUpperCase() + city.slice(1);
+            opt.value = titleCaseCity;
+            opt.textContent = titleCaseCity;
+            citySelect.appendChild(opt);
+        });
+    }
+}
+
 async function loadMenu() {
     setMenuLoading(true);
     try {
@@ -3399,6 +3421,7 @@ async function loadMenu() {
                     : deriveMenuVenues(payload.categories || []);
                 menuData = { categories: payload.categories };
                 buildHotelFilterTabs();
+                updateCityDropdown();
                 renderMenu();
                 return;
             }

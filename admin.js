@@ -1997,7 +1997,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const rows = deliveryZonesCache.map((z) => {
             const cityLabel = z.city === '_default'
-                ? '<span class="dz-city dz-default">_default (all other cities)</span>'
+                ? '<span class="dz-city dz-default">Other Cities</span>'
                 : `<span class="dz-city">${escapeHtml(z.city)}</span>`;
             const freeAboveLabel = z.free_delivery_above != null
                 ? `₹${z.free_delivery_above}`
