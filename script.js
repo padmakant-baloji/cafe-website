@@ -1029,7 +1029,7 @@ let appliedCoupon = null; // { code: string, discount: number, subtotal: number 
 let defaultVenueId = 1;
 let defaultVenueName = "Baloji";
 let partnerDeliveryFee = 20;
-let deliveryZones = [];
+let deliveryZonesMap = { 'default': [] };
 let menuVenues = [];
 let selectedMenuVenueId = 1;
 
@@ -2127,8 +2127,8 @@ function getCartTotal() {
 // Each zone: { city, minOrder, deliveryFee, freeDeliveryAbove }
 // '_default' is the fallback for any city not explicitly listed.
 
-function findDeliveryZone(cityLower) {
-    const vId = cart.length > 0 ? cart[0].venueId : defaultVenueId;
+function findDeliveryZone(cityLower, explicitVenueId = null) {
+    const vId = explicitVenueId != null ? explicitVenueId : (cart.length > 0 ? cart[0].venueId : defaultVenueId);
     const vKey = vId == null || vId === defaultVenueId ? 'default' : String(vId);
     
     let zones = [];
@@ -3393,11 +3393,18 @@ function updateCityDropdown() {
     const globalSelect = document.getElementById('globalCitySelect');
     const globalDisplay = document.getElementById('globalCityDisplay');
     
-    if (!Array.isArray(deliveryZones) || deliveryZones.length === 0) return;
+    if (!deliveryZonesMap || Object.keys(deliveryZonesMap).length === 0) return;
     
-    const customCities = deliveryZones
-        .map(z => z.city)
-        .filter(c => c && c !== '_default' && c.trim() !== '')
+    const allCities = new Set();
+    for (const key in deliveryZonesMap) {
+        deliveryZonesMap[key].forEach(z => {
+            if (z.city && z.city !== '_default' && z.city.trim() !== '') {
+                allCities.add(z.city.trim());
+            }
+        });
+    }
+    const customCities = Array.from(allCities)
+        .sort()
         .map(c => c.charAt(0).toUpperCase() + c.slice(1));
         
     if (customCities.length > 0) {
@@ -3443,6 +3450,12 @@ function updateCityDropdown() {
                 
                 renderCheckoutDeliveryCard();
                 updateCartUI(); // Update fees and min orders
+                
+                // Re-render hotels and menu
+                buildHotelFilterTabs();
+                if (typeof renderMenu === 'function') {
+                    renderMenu(document.getElementById('menuSearchInput')?.value || '');
+                }
             });
             
             if (citySelect && !citySelect.value) {
@@ -3466,7 +3479,7 @@ async function loadMenu() {
                 defaultVenueId = Number(payload.defaultVenueId) || 1;
                 defaultVenueName = payload.defaultVenueName || defaultVenueName;
                 partnerDeliveryFee = Number(payload.partnerDeliveryFee) || 20;
-                deliveryZones = Array.isArray(payload.deliveryZones) ? payload.deliveryZones : [];
+                deliveryZonesMap = payload.deliveryZonesMap || { 'default': [] };
                 selectedMenuVenueId = defaultVenueId;
                 menuVenues = Array.isArray(payload.venues) && payload.venues.length
                     ? payload.venues.map((venue) => ({
@@ -3673,9 +3686,28 @@ function buildHotelFilterTabs() {
         list.innerHTML = '';
         return;
     }
+    
+    const cityLower = (globalSelectedCity || '').toLowerCase();
+    const availableVenues = menuVenues.filter((venue) => {
+        if (!cityLower) return true;
+        return findDeliveryZone(cityLower, venue.id) !== null;
+    });
+
+    if (availableVenues.length <= 1) {
+        container.hidden = true;
+        list.innerHTML = '';
+        if (availableVenues.length === 1 && Number(selectedMenuVenueId) !== Number(availableVenues[0].id)) {
+            selectedMenuVenueId = availableVenues[0].id;
+        }
+        return;
+    }
+
+    if (!availableVenues.some((v) => Number(v.id) === Number(selectedMenuVenueId))) {
+        selectedMenuVenueId = availableVenues[0].id;
+    }
 
     container.hidden = false;
-    list.innerHTML = menuVenues
+    list.innerHTML = availableVenues
         .map((venue) => {
             const active = Number(selectedMenuVenueId) === Number(venue.id);
             const closed = !isVenueOrderingOpen(venue);
