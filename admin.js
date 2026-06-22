@@ -56,7 +56,7 @@ async function failAdminBoot(message) {
         return false;
     }
     clearAdminCredentials();
-    showAdminGate(message);
+    window.location.href = '/admin-login' + (message ? '?error=' + encodeURIComponent(message) : '');
     hideNewOrderPopup();
     pendingPopupQueue = [];
     pendingPopupQueueIds = new Set();

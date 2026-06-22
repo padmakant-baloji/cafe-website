@@ -733,6 +733,170 @@ app.get('/api/admin/grocery/low-stock', requireAdmin, async (req, res) => {
     }
 });
 
+app.post('/api/admin/grocery/pos-order', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const body = req.body || {};
+        
+        // 1. Get venue
+        const venueId = groceryTargetVenueId(req) || req.adminVenue.id;
+        
+        // 2. Validate items
+        const { validateAndPriceGroceryOrder } = require('./lib/grocery-service');
+        const priced = await validateAndPriceGroceryOrder({
+            storeId: venueId,
+            items: body.items,
+            total: body.total
+        });
+        
+        // 3. Connect to DB to deduct stock and insert order atomically
+        const { getPool } = require('./lib/db');
+        const pool = await getPool();
+        const client = await pool.connect();
+        let order;
+        try {
+            await client.query('BEGIN');
+
+            for (const item of priced.normalizedItems) {
+                const { rowCount } = await client.query(
+                    `UPDATE grocery_products
+                     SET stock_qty = stock_qty - $3, updated_at = NOW()
+                     WHERE id = $1 AND venue_id = $2 AND stock_qty >= $3 AND enabled = TRUE`,
+                    [item.productId, venueId, item.quantity]
+                );
+                if (rowCount !== 1) {
+                    throw new Error(`Item out of stock or insufficient quantity: ${item.name}`);
+                }
+            }
+
+            const { rows } = await client.query(
+                `INSERT INTO orders (customer_mobile, status, items, subtotal, delivery_fee, discount, coupon_code, total, delivery_address, venue_id, channel)
+                 VALUES ($1, 'completed', $2::jsonb, $3, $4, $5, $6, $7, $8::jsonb, $9, 'walk_in')
+                 RETURNING id, customer_mobile, status, items, subtotal, delivery_fee, discount, coupon_code, total, delivery_address, created_at, updated_at, venue_id, channel`,
+                [
+                    body.customerMobile || '8888888888', // Default walk-in mobile
+                    JSON.stringify(priced.normalizedItems),
+                    priced.subtotal,
+                    priced.deliveryFee,
+                    priced.discount,
+                    null,
+                    priced.total,
+                    JSON.stringify({ label: 'POS', addressLine: 'Walk-in Store Purchase', city: '' }),
+                    venueId
+                ]
+            );
+            order = rows[0];
+
+            await client.query('COMMIT');
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
+
+        return res.json({ ok: true, orderId: order.id });
+    } catch (err) {
+        return sendGroceryError(res, err, 'Could not complete POS order.');
+    }
+});
+
+// ─── Grocery Staff CRUD ───────────────────────────────────
+
+app.get('/api/admin/grocery/staff', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const { resolveGroceryAdminVenue } = require('./lib/grocery-service');
+        const venue = await resolveGroceryAdminVenue(req.adminVenue, groceryTargetVenueId(req));
+        const { rows } = await require('./lib/db').query(
+            `SELECT id, venue_id, name, phone, role, pin, enabled, created_at, updated_at
+             FROM grocery_staff WHERE venue_id = $1 ORDER BY name ASC`,
+            [venue.id]
+        );
+        return res.json({ ok: true, staff: rows.map(r => ({
+            id: Number(r.id), venueId: Number(r.venue_id),
+            name: r.name, phone: r.phone || '', role: r.role,
+            pin: r.pin || '', enabled: r.enabled !== false,
+            createdAt: r.created_at, updatedAt: r.updated_at
+        })) });
+    } catch (err) { return sendGroceryError(res, err, 'Could not load staff.'); }
+});
+
+app.post('/api/admin/grocery/staff', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const { resolveGroceryAdminVenue } = require('./lib/grocery-service');
+        const venue = await resolveGroceryAdminVenue(req.adminVenue, groceryTargetVenueId(req));
+        const b = req.body || {};
+        const name = String(b.name || '').trim().slice(0, 120);
+        if (!name) return res.status(400).json({ error: 'Name is required.' });
+        const phone = String(b.phone || '').trim().slice(0, 15);
+        const validRoles = ['owner', 'manager', 'cashier', 'inventory'];
+        const role = validRoles.includes(b.role) ? b.role : 'cashier';
+        const pin = String(b.pin || '').trim().slice(0, 6);
+        const enabled = b.enabled !== false;
+        const { rows } = await require('./lib/db').query(
+            `INSERT INTO grocery_staff (venue_id, name, phone, role, pin, enabled)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, venue_id, name, phone, role, pin, enabled, created_at, updated_at`,
+            [venue.id, name, phone, role, pin, enabled]
+        );
+        const r = rows[0];
+        return res.json({ ok: true, staff: {
+            id: Number(r.id), venueId: Number(r.venue_id),
+            name: r.name, phone: r.phone, role: r.role,
+            pin: r.pin, enabled: r.enabled,
+            createdAt: r.created_at, updatedAt: r.updated_at
+        } });
+    } catch (err) { return sendGroceryError(res, err, 'Could not add staff.'); }
+});
+
+app.patch('/api/admin/grocery/staff/:id', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const { resolveGroceryAdminVenue } = require('./lib/grocery-service');
+        const venue = await resolveGroceryAdminVenue(req.adminVenue, groceryTargetVenueId(req));
+        const id = parseInt(String(req.params.id), 10);
+        if (!id) return res.status(400).json({ error: 'Invalid staff id.' });
+        const b = req.body || {};
+        const name = String(b.name || '').trim().slice(0, 120);
+        if (!name) return res.status(400).json({ error: 'Name is required.' });
+        const phone = String(b.phone || '').trim().slice(0, 15);
+        const validRoles = ['owner', 'manager', 'cashier', 'inventory'];
+        const role = validRoles.includes(b.role) ? b.role : 'cashier';
+        const pin = String(b.pin || '').trim().slice(0, 6);
+        const enabled = b.enabled !== false;
+        const { rows } = await require('./lib/db').query(
+            `UPDATE grocery_staff SET name=$2, phone=$3, role=$4, pin=$5, enabled=$6, updated_at=NOW()
+             WHERE id=$1 AND venue_id=$7
+             RETURNING id, venue_id, name, phone, role, pin, enabled, created_at, updated_at`,
+            [id, name, phone, role, pin, enabled, venue.id]
+        );
+        if (!rows[0]) return res.status(404).json({ error: 'Staff not found.' });
+        const r = rows[0];
+        return res.json({ ok: true, staff: {
+            id: Number(r.id), venueId: Number(r.venue_id),
+            name: r.name, phone: r.phone, role: r.role,
+            pin: r.pin, enabled: r.enabled,
+            createdAt: r.created_at, updatedAt: r.updated_at
+        } });
+    } catch (err) { return sendGroceryError(res, err, 'Could not update staff.'); }
+});
+
+app.delete('/api/admin/grocery/staff/:id', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const { resolveGroceryAdminVenue } = require('./lib/grocery-service');
+        const venue = await resolveGroceryAdminVenue(req.adminVenue, groceryTargetVenueId(req));
+        const id = parseInt(String(req.params.id), 10);
+        if (!id) return res.status(400).json({ error: 'Invalid staff id.' });
+        await require('./lib/db').query(
+            `DELETE FROM grocery_staff WHERE id = $1 AND venue_id = $2`, [id, venue.id]
+        );
+        return res.json({ ok: true });
+    } catch (err) { return sendGroceryError(res, err, 'Could not delete staff.'); }
+});
+
 app.get('/api/admin/session', requireAdmin, (req, res) => {
     return res.json({
         ok: true,
@@ -850,8 +1014,16 @@ app.get('/login', (req, res) => {
     res.sendFile(path.join(ROOT, 'login.html'));
 });
 
+app.get('/admin-login', (req, res) => {
+    res.sendFile(path.join(ROOT, 'admin-login.html'));
+});
+
 app.get('/menu', (req, res) => {
     res.sendFile(path.join(ROOT, 'index.html'));
+});
+
+app.get('/grocery-admin', (req, res) => {
+    res.sendFile(path.join(ROOT, 'grocery-admin.html'));
 });
 
 app.get('/orders', (req, res) => {

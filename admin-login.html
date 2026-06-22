@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="theme-color" content="#15803d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Admin Sign In — Baloji</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .login-card {
+            width: min(100%, 24rem);
+            background: rgba(30, 41, 59, 0.92);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 1.5rem 1.25rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+        }
+        h1 {
+            margin: 0 0 0.35rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .lead {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin: 0 0 1.25rem;
+            line-height: 1.45;
+        }
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #94a3b8;
+            margin-bottom: 0.35rem;
+        }
+        input {
+            width: 100%;
+            padding: 0.65rem 0.75rem;
+            border-radius: 10px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #f1f5f9;
+            font: inherit;
+            font-size: 1rem;
+            margin-bottom: 0.85rem;
+        }
+        input:focus {
+            outline: none;
+            border-color: #16a34a;
+        }
+        button {
+            width: 100%;
+            margin-top: 0.35rem;
+            border: none;
+            border-radius: 10px;
+            background: #16a34a;
+            color: #fff;
+            min-height: 44px;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:disabled { opacity: 0.65; cursor: not-allowed; }
+        .error {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: #fca5a5;
+        }
+    </style>
+</head>
+<body>
+    <main class="login-card">
+        <h1>Baloji Admin</h1>
+        <p class="lead">Sign in to manage your hotel or grocery store.</p>
+
+        <form id="loginForm" onsubmit="doLogin(event)">
+            <label for="adminUser">Username</label>
+            <input type="text" id="adminUser" required autocomplete="username" placeholder="Enter username">
+            
+            <label for="adminPass">Password</label>
+            <input type="password" id="adminPass" required autocomplete="current-password" placeholder="Enter password">
+            
+            <button type="submit" id="submitBtn">Sign In</button>
+        </form>
+
+        <p class="error" id="errorMsg" hidden></p>
+    </main>
+
+    <script>
+        // Check if there's an error message in URL
+        const params = new URLSearchParams(window.location.search);
+        const errMsg = params.get('error');
+        if (errMsg) {
+            document.getElementById('errorMsg').textContent = errMsg;
+            document.getElementById('errorMsg').hidden = false;
+        }
+
+        async function doLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const errorMsg = document.getElementById('errorMsg');
+            const user = document.getElementById('adminUser').value.trim();
+            const pass = document.getElementById('adminPass').value;
+
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+            errorMsg.hidden = true;
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user, pass })
+                });
+                const data = await res.json();
+                
+                if (res.ok && data.token) {
+                    localStorage.setItem('balojiAdminToken', data.token);
+                    if (data.venue && data.venue.venueType === 'grocery') {
+                        window.location.href = '/grocery-admin';
+                    } else {
+                        window.location.href = '/admin';
+                    }
+                } else {
+                    errorMsg.textContent = data.error || 'Invalid credentials';
+                    errorMsg.hidden = false;
+                }
+            } catch (err) {
+                errorMsg.textContent = 'Network error. Please try again.';
+                errorMsg.hidden = false;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            }
+        }
+    </script>
+</body>
+</html>

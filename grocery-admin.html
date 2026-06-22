@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#0f172a">
+    <title>Grocery Store — Admin Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+/* ─── Reset & Tokens ───────────────────────────────────── */
+:root {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --surface-alt: #f8f9fb;
+    --surface-hover: #f1f3f6;
+    --border: #e3e6ec;
+    --border-light: #eef0f4;
+    --text: #0f172a;
+    --text-secondary: #475569;
+    --text-tertiary: #94a3b8;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-soft: rgba(37,99,235,0.08);
+    --primary-ring: rgba(37,99,235,0.25);
+    --success: #16a34a;
+    --success-soft: rgba(22,163,74,0.08);
+    --danger: #dc2626;
+    --danger-soft: rgba(220,38,38,0.06);
+    --warning: #d97706;
+    --warning-soft: rgba(217,119,6,0.08);
+    --teal: #0d9488;
+    --teal-soft: rgba(13,148,136,0.08);
+    --purple: #7c3aed;
+    --purple-soft: rgba(124,58,237,0.06);
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 18px;
+    --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+    --shadow: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+    --shadow-md: 0 4px 16px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04);
+    --shadow-lg: 0 10px 32px rgba(15,23,42,0.08), 0 4px 8px rgba(15,23,42,0.04);
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+    --transition: 0.15s cubic-bezier(0.4,0,0.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { height: 100%; overflow: hidden; }
+
+body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Sidebar ──────────────────────────────────────────── */
+.sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+}
+
+.sidebar-brand {
+    padding: 1.25rem 1.25rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.sidebar-brand-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--primary), #7c3aed);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+}
+
+.sidebar-brand-text {
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: #f1f5f9;
+    letter-spacing: -0.02em;
+}
+
+.sidebar-brand-text small {
+    display: block;
+    font-weight: 500;
+    font-size: 0.65rem;
+    color: #64748b;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-top: 1px;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 0.75rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius);
+    color: #94a3b8;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition);
+    border: 1px solid transparent;
+    user-select: none;
+}
+
+.sidebar-link:hover {
+    background: rgba(255,255,255,0.05);
+    color: #e2e8f0;
+}
+
+.sidebar-link.active {
+    background: rgba(37,99,235,0.12);
+    color: #60a5fa;
+    border-color: rgba(37,99,235,0.15);
+}
+
+.sidebar-link .icon { font-size: 1.1rem; width: 1.5rem; text-align: center; }
+
+.sidebar-bottom {
+    padding: 0.75rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.sidebar-link.logout-link { color: #ef4444; }
+.sidebar-link.logout-link:hover { background: rgba(239,68,68,0.1); }
+
+/* ─── Main Layout ──────────────────────────────────────── */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.topbar {
+    height: 56px;
+    min-height: 56px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    gap: 1rem;
+}
+
+.topbar-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text);
+}
+
+.topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.topbar-clock {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+.view { display: none; flex: 1; overflow: hidden; }
+.view.active { display: flex; }
+
+/* ─── POS (Billing) View ───────────────────────────────── */
+.pos-layout {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    overflow: hidden;
+}
+
+.pos-catalog {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+}
+
+.pos-toolbar {
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.pos-search-wrap {
+    flex: 1;
+    position: relative;
+}
+
+.pos-search-wrap .search-icon {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
+    pointer-events: none;
+}
+
+.pos-search {
+    width: 100%;
+    padding: 0.6rem 0.75rem 0.6rem 2.4rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: 0.875rem;
+    color: var(--text);
+    background: var(--surface-alt);
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.pos-search:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-ring);
+    background: var(--surface);
+}
+
+.pos-search::placeholder { color: var(--text-tertiary); }
+
+.pos-cat-pills {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.pos-cat-pills::-webkit-scrollbar { display: none; }
+
+.cat-pill {
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    transition: all var(--transition);
+    user-select: none;
+}
+
+.cat-pill:hover { border-color: var(--primary); color: var(--primary); }
+.cat-pill.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.pos-grid {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 0.75rem;
+    align-content: start;
+    background: var(--bg);
+}
+
+.pos-item {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 0.85rem;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    position: relative;
+    user-select: none;
+}
+
+.pos-item:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.pos-item:active {
+    transform: scale(0.97);
+    box-shadow: none;
+}
+
+.pos-item.oos {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.pos-item-name {
+    font-weight: 600;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    color: var(--text);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.pos-item-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem;
+}
+
+.pos-item-price {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--primary);
+}
+
+.pos-item-stock {
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+.pos-item-stock.low { color: var(--danger); font-weight: 700; }
+
+.pos-item-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--primary);
+    color: #fff;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+}
+
+.pos-item.in-cart .pos-item-badge { display: flex; }
+
+/* ─── POS: Cart Panel ──────────────────────────────────── */
+.pos-cart {
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+}
+
+.pos-cart-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pos-cart-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.pos-cart-count {
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--primary-soft);
+    color: var(--primary);
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+}
+
+.pos-cart-clear {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--danger);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition);
+}
+
+.pos-cart-clear:hover { background: var(--danger-soft); }
+
+.pos-cart-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.pos-cart-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 0.5rem;
+    color: var(--text-tertiary);
+    padding: 2rem;
+}
+
+.pos-cart-empty .empty-icon { font-size: 2.5rem; opacity: 0.4; }
+.pos-cart-empty p { font-size: 0.85rem; font-weight: 500; }
+
+.cart-line {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border-light);
+    align-items: center;
+    transition: background var(--transition);
+}
+
+.cart-line:hover { background: var(--surface-alt); }
+
+.cart-line-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cart-line-name {
+    font-weight: 600;
+    font-size: 0.825rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cart-line-price {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.cart-line-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.cart-qty-btn {
+    width: 28px; height: 28px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    transition: all var(--transition);
+    font-family: inherit;
+}
+
+.cart-qty-btn:hover { border-color: var(--primary); color: var(--primary); }
+.cart-qty-btn.remove:hover { border-color: var(--danger); color: var(--danger); }
+
+.cart-qty-val {
+    font-weight: 700;
+    font-size: 0.85rem;
+    min-width: 1.75rem;
+    text-align: center;
+}
+
+.cart-line-total {
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-align: right;
+    min-width: 3.5rem;
+}
+
+/* ─── POS: Footer ──────────────────────────────────────── */
+.pos-cart-footer {
+    border-top: 1px solid var(--border);
+    padding: 1rem 1.25rem;
+    background: var(--surface-alt);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.pos-summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.825rem;
+    color: var(--text-secondary);
+}
+
+.pos-summary-row .label { font-weight: 500; }
+.pos-summary-row .value { font-weight: 700; }
+
+.pos-summary-row.total {
+    font-size: 1.15rem;
+    color: var(--text);
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border);
+    margin-top: 0.25rem;
+}
+
+.pos-summary-row.total .value { font-weight: 900; color: var(--primary); }
+
+.pos-payment-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.pay-method-btn {
+    padding: 0.65rem;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: all var(--transition);
+    color: var(--text-secondary);
+}
+
+.pay-method-btn:hover { border-color: var(--primary); }
+
+.pay-method-btn.active {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    color: var(--primary);
+}
+
+.pos-checkout-btn {
+    width: 100%;
+    padding: 0.85rem;
+    border-radius: var(--radius);
+    border: none;
+    background: linear-gradient(135deg, var(--primary), #4f46e5);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition);
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.pos-checkout-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(37,99,235,0.3); }
+.pos-checkout-btn:active { transform: translateY(0); }
+.pos-checkout-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ─── Inventory & Packaging View ───────────────────────── */
+.inv-layout {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.inv-toolbar {
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.inv-search {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.55rem 0.85rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: 0.85rem;
+    background: var(--surface-alt);
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.inv-search:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
+
+.inv-filters {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.inv-filter-btn {
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+
+.inv-filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+.inv-filter-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+.btn-add {
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius);
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: background var(--transition);
+    white-space: nowrap;
+}
+
+.btn-add:hover { background: var(--primary-hover); }
+
+.inv-table-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.inv-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.inv-table th {
+    position: sticky;
+    top: 0;
+    background: var(--surface-alt);
+    padding: 0.7rem 1rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    z-index: 1;
+    white-space: nowrap;
+}
+
+.inv-table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+}
+
+.inv-table tr:hover td { background: var(--surface-hover); }
+.inv-table tr:last-child td { border-bottom: none; }
+
+.inv-name {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.inv-sku {
+    font-size: 0.75rem;
+    font-family: 'SFMono-Regular', 'Consolas', monospace;
+    background: var(--surface-alt);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
+}
+
+.stock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.stock-badge.in-stock { background: var(--success-soft); color: var(--success); }
+.stock-badge.low-stock { background: var(--warning-soft); color: var(--warning); }
+.stock-badge.out-stock { background: var(--danger-soft); color: var(--danger); }
+
+.inv-actions {
+    display: flex;
+    gap: 0.35rem;
+    position: relative;
+}
+
+.inv-btn {
+    padding: 0.35rem 0.65rem;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+
+.inv-btn:hover { border-color: var(--primary); color: var(--primary); }
+.inv-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+/* Quick Actions Dropdown */
+.qa-wrap { position: relative; }
+
+.qa-trigger {
+    width: 28px; height: 28px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: all var(--transition);
+}
+
+.qa-trigger:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+
+.qa-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    min-width: 180px;
+    z-index: 50;
+    padding: 4px;
+    animation: qa-in 0.12s ease;
+}
+
+.qa-menu.open { display: block; }
+
+@keyframes qa-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+.qa-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition);
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+}
+
+.qa-item:hover { background: var(--primary-soft); color: var(--primary); }
+.qa-item.danger:hover { background: var(--danger-soft); color: var(--danger); }
+.qa-item .qa-icon { font-size: 0.95rem; width: 1.2rem; text-align: center; }
+.qa-sep { height: 1px; background: var(--border-light); margin: 3px 0.5rem; }
+
+/* Stock set modal input */
+.stock-set-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.stock-set-input {
+    width: 80px;
+    padding: 0.4rem 0.5rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: 0.85rem;
+    text-align: center;
+    font-weight: 700;
+}
+
+.stock-set-input:focus { outline: none; border-color: var(--primary); }
+
+/* Carry Bag Toggle in POS */
+.pos-addon-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--border-light);
+}
+
+.pos-addon-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 38px; height: 20px;
+    cursor: pointer;
+}
+
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+.toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 999px;
+    transition: background var(--transition);
+}
+
+.toggle-switch input:checked + .toggle-track { background: var(--primary); }
+
+.toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform var(--transition);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
+
+.inv-stock-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.stock-adjust-btn {
+    width: 24px; height: 24px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: all var(--transition);
+}
+
+.stock-adjust-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+.stock-qty-display {
+    font-weight: 700;
+    font-size: 0.85rem;
+    min-width: 2.5rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ─── Barcode View ─────────────────────────────────────── */
+.barcode-layout {
+    flex-direction: column;
+    padding: 1.5rem;
+    overflow-y: auto;
+    background: var(--bg);
+}
+
+.bc-controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
+}
+
+.bc-field { display: flex; flex-direction: column; gap: 0.35rem; }
+.bc-field label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+}
+
+.bc-field select, .bc-field input {
+    padding: 0.55rem 0.75rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: 0.85rem;
+    min-width: 240px;
+    background: var(--surface);
+}
+
+.bc-field select:focus, .bc-field input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.bc-btn {
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    color: var(--text-secondary);
+}
+
+.bc-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+.bc-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.bc-btn.primary:hover { background: var(--primary-hover); }
+
+.bc-preview-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.bc-label-card {
+    background: #fff;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    text-align: center;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    width: 260px;
+}
+
+.bc-label-card.visible { display: flex; }
+
+.bc-label-name { font-weight: 700; font-size: 0.9rem; }
+.bc-label-price { font-weight: 900; font-size: 1.1rem; color: var(--text); }
+.bc-label-mrp { font-size: 0.7rem; color: var(--text-tertiary); text-decoration: line-through; }
+
+/* ─── Reports View ─────────────────────────────────────── */
+.reports-layout {
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background: var(--bg);
+    gap: 1.5rem;
+}
+
+.reports-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-value.primary { color: var(--primary); }
+.stat-value.danger { color: var(--danger); }
+
+.reports-table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.reports-table-header {
+    padding: 1rem 1.25rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--border);
+}
+
+/* ─── Modal ────────────────────────────────────────────── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.5);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal-panel {
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    width: 100%;
+    max-width: 480px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    animation: modal-in 0.25s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes modal-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-head {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal-head h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.modal-close {
+    width: 30px; height: 30px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--surface-alt);
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+}
+
+.modal-close:hover { background: var(--danger-soft); color: var(--danger); }
+
+.modal-body {
+    padding: 1.25rem 1.5rem;
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+.field { margin-bottom: 0.85rem; }
+.field label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    margin-bottom: 0.35rem;
+}
+
+.field input, .field select {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font: inherit;
+    font-size: 0.875rem;
+    background: var(--surface);
+    transition: border-color var(--transition);
+}
+
+.field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-ring);
+}
+
+.field-row { display: flex; gap: 0.75rem; }
+.field-row .field { flex: 1; }
+
+.modal-foot {
+    padding: 1rem 1.5rem;
+    background: var(--surface-alt);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.modal-btn {
+    padding: 0.55rem 1.15rem;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--transition);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+}
+
+.modal-btn:hover { background: var(--surface-hover); }
+.modal-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.modal-btn.primary:hover { background: var(--primary-hover); }
+
+/* ─── Bill Receipt Modal ───────────────────────────────── */
+.receipt {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    padding: 1.25rem;
+    text-align: center;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    background: #fff;
+    margin: 0.5rem 0;
+}
+
+.receipt hr {
+    border: none;
+    border-top: 1px dashed #999;
+    margin: 0.5rem 0;
+}
+
+.receipt-items { text-align: left; }
+.receipt-items .ri { display: flex; justify-content: space-between; padding: 2px 0; }
+.receipt .total-line { font-weight: 900; font-size: 1rem; }
+
+/* ─── Toast ────────────────────────────────────────────── */
+.toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: #0f172a;
+    color: #f1f5f9;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-lg);
+    z-index: 9999;
+    animation: toast-in 0.3s ease, toast-out 0.3s ease 2.5s forwards;
+    pointer-events: none;
+}
+
+@keyframes toast-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toast-out { from { opacity: 1; } to { opacity: 0; transform: translateY(10px); } }
+
+/* ─── Empty State ──────────────────────────────────────── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-tertiary);
+    gap: 0.5rem;
+}
+
+.empty-state .icon { font-size: 2.5rem; opacity: 0.4; }
+.empty-state p { font-size: 0.9rem; font-weight: 500; }
+
+/* ─── Print Styles ─────────────────────────────────────── */
+@media print {
+    body * { visibility: hidden; }
+    #printArea, #printArea * { visibility: visible; }
+    #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+}
+
+/* ─── Packaging View ───────────────────────────────────── */
+.pkg-summary-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: var(--bg);
+}
+
+.pkg-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.pkg-stat-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+}
+
+.pkg-stat-value {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-top: 0.2rem;
+}
+
+.pkg-stat-value.warn { color: var(--warning); }
+.pkg-stat-value.ok { color: var(--success); }
+
+.pkg-hint {
+    padding: 0.65rem 1.5rem;
+    font-size: 0.78rem;
+    color: var(--text-tertiary);
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">🛒</div>
+        <div class="sidebar-brand-text">
+            Grocery
+            <small>Admin Dashboard</small>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="sidebar-link active" data-view="billing">
+            <span class="icon">🧾</span> Billing
+        </div>
+        <div class="sidebar-link" data-view="inventory">
+            <span class="icon">📦</span> Inventory
+        </div>
+        <div class="sidebar-link" data-view="packaging">
+            <span class="icon">🥡</span> Packaging
+        </div>
+        <div class="sidebar-link" data-view="barcodes">
+            <span class="icon">🏷️</span> Barcodes
+        </div>
+        <div class="sidebar-link" data-view="staff">
+            <span class="icon">👥</span> Staff
+        </div>
+        <div class="sidebar-link" data-view="reports">
+            <span class="icon">📊</span> Reports
+        </div>
+    </nav>
+    <div class="sidebar-bottom">
+        <div class="sidebar-link logout-link" onclick="logout()">
+            <span class="icon">🚪</span> Sign Out
+        </div>
+    </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+    <div class="topbar">
+        <div class="topbar-title" id="topbarTitle">Billing</div>
+        <div class="topbar-right">
+            <div class="topbar-clock" id="topbarClock"></div>
+        </div>
+    </div>
+
+    <!-- ═══ BILLING VIEW ═══ -->
+    <div id="v-billing" class="view active">
+        <div class="pos-layout">
+            <div class="pos-catalog">
+                <div class="pos-toolbar">
+                    <div class="pos-search-wrap">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="pos-search" id="posSearch" placeholder="Search product or scan barcode…" autofocus>
+                    </div>
+                    <div class="pos-cat-pills" id="posCatPills"></div>
+                </div>
+                <div class="pos-grid" id="posGrid"></div>
+            </div>
+            <div class="pos-cart">
+                <div class="pos-cart-header">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span class="pos-cart-title">Current Bill</span>
+                        <span class="pos-cart-count" id="cartCount">0</span>
+                    </div>
+                    <button class="pos-cart-clear" id="cartClearBtn" onclick="clearCart()">Clear All</button>
+                </div>
+                <div class="pos-cart-body" id="cartBody">
+                    <div class="pos-cart-empty">
+                        <div class="empty-icon">🛒</div>
+                        <p>Tap a product to add</p>
+                    </div>
+                </div>
+                <div class="pos-cart-footer">
+                    <div class="pos-addon-row" id="carryBagRow" style="display:none;">
+                        <span class="pos-addon-label">🛍️ Carry Bag</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="carryBagToggle" onchange="toggleCarryBag()">
+                            <span class="toggle-track"></span>
+                        </label>
+                    </div>
+                    <div class="pos-summary-row">
+                        <span class="label">Items</span>
+                        <span class="value" id="cartItemCount">0</span>
+                    </div>
+                    <div class="pos-summary-row" id="bagChargeRow" style="display:none;">
+                        <span class="label">Carry Bag</span>
+                        <span class="value" id="bagChargeAmt">₹0</span>
+                    </div>
+                    <div class="pos-summary-row total">
+                        <span class="label">TOTAL</span>
+                        <span class="value" id="cartTotal">₹0</span>
+                    </div>
+                    <div class="pos-payment-row">
+                        <button class="pay-method-btn active" data-method="cash" onclick="selectPayment('cash')">💵 Cash</button>
+                        <button class="pay-method-btn" data-method="upi" onclick="selectPayment('upi')">📱 UPI</button>
+                    </div>
+                    <button class="pos-checkout-btn" id="checkoutBtn" onclick="checkout()" disabled>
+                        Complete Sale
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ INVENTORY VIEW ═══ -->
+    <div id="v-inventory" class="view">
+        <div class="inv-layout">
+            <div class="inv-toolbar">
+                <input type="text" class="inv-search" id="invSearch" placeholder="Search by name, SKU…">
+                <div class="inv-filters">
+                    <button class="inv-filter-btn active" data-filter="all" onclick="setInvFilter('all')">All</button>
+                    <button class="inv-filter-btn" data-filter="low" onclick="setInvFilter('low')">⚠️ Low Stock</button>
+                    <button class="inv-filter-btn" data-filter="out" onclick="setInvFilter('out')">🚫 Out</button>
+                </div>
+                <button class="btn-add" onclick="openProductModal()">+ Add Product</button>
+            </div>
+            <div class="inv-table-wrap">
+                <table class="inv-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Taxes (%)</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ PACKAGING VIEW ═══ -->
+    <div id="v-packaging" class="view">
+        <div class="inv-layout">
+            <div class="inv-toolbar">
+                <div style="flex:1;">
+                    <div style="font-weight:700; font-size:0.95rem;">Packaging & Consumables</div>
+                    <div style="font-size:0.75rem; color:var(--text-tertiary); margin-top:2px;">Materials consumed during order packing — bags, boxes, tape, etc.</div>
+                </div>
+                <button class="btn-add" onclick="openProductModal(null, true)">+ Add Material</button>
+            </div>
+            <div class="pkg-summary-bar" id="pkgSummaryBar"></div>
+            <div class="pkg-hint">💡 Tip: Enable "Carry Bag" toggle in billing to auto-charge customers. Stock is deducted from the first carry-bag material here.</div>
+            <div class="inv-table-wrap">
+                <table class="inv-table">
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Type</th>
+                            <th>Cost / Unit</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pkgTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ BARCODE VIEW ═══ -->
+    <div id="v-barcodes" class="view barcode-layout">
+        <div class="bc-controls">
+            <div class="bc-field" style="flex:1;">
+                <label>Select Product</label>
+                <select id="bcProductSelect"><option value="">Choose a product…</option></select>
+            </div>
+            <div class="bc-field">
+                <label>Copies</label>
+                <input type="number" id="bcCopies" value="1" min="1" max="50" style="min-width:80px;">
+            </div>
+            <button class="bc-btn primary" onclick="generateBarcode()">Generate</button>
+            <button class="bc-btn" onclick="printBarcode()">🖨️ Print</button>
+        </div>
+        <div id="printArea">
+            <div class="bc-preview-area" id="bcPreviewArea"></div>
+        </div>
+    </div>
+
+    <!-- ═══ STAFF VIEW ═══ -->
+    <div id="v-staff" class="view">
+        <div class="inv-layout">
+            <div class="inv-toolbar">
+                <div style="flex:1;">
+                    <div style="font-weight:700; font-size:0.95rem;">Store Staff</div>
+                    <div style="font-size:0.75rem; color:var(--text-tertiary); margin-top:2px;">Manage cashiers, managers, and their PINs for POS access</div>
+                </div>
+                <button class="btn-add" onclick="openStaffModal()">+ Add Staff</button>
+            </div>
+            <div class="inv-table-wrap">
+                <table class="inv-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Phone</th>
+                            <th>PIN</th>
+                            <th>Status</th>
+                            <th style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ REPORTS VIEW ═══ -->
+    <div id="v-reports" class="view reports-layout">
+        <div class="reports-stats">
+            <div class="stat-card">
+                <div class="stat-label">Today's Revenue</div>
+                <div class="stat-value primary" id="repRevenue">₹0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Transactions</div>
+                <div class="stat-value" id="repTxns">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg. Bill Value</div>
+                <div class="stat-value" id="repAvg">₹0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Low Stock Alerts</div>
+                <div class="stat-value danger" id="repLowStock">0</div>
+            </div>
+        </div>
+        <div class="reports-table-card">
+            <div class="reports-table-header">Recent Transactions</div>
+            <div style="overflow-x:auto;">
+                <table class="inv-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Time</th>
+                            <th>Type</th>
+                            <th>Items</th>
+                            <th style="text-align:right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="repTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Product Modal ═══ -->
+<div class="modal-overlay" id="productModal">
+    <div class="modal-panel">
+        <div class="modal-head">
+            <h3 id="modalTitle">Add Product</h3>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="fId">
+            <input type="hidden" id="fIsPackaging">
+            <div class="field">
+                <label>Product Name</label>
+                <input type="text" id="fName" required placeholder="e.g. Toor Dal 1kg">
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>SKU / Barcode</label>
+                    <input type="text" id="fSku" placeholder="e.g. 8901234567890">
+                </div>
+                <div class="field">
+                    <label>Category</label>
+                    <select id="fCategory">
+                        <option value="">None</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Selling Price (₹)</label>
+                    <input type="number" id="fPrice" required placeholder="0">
+                </div>
+                <div class="field">
+                    <label>MRP (₹)</label>
+                    <input type="number" id="fMrp" placeholder="0">
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>SGST (%)</label>
+                    <input type="number" id="fSgst" placeholder="0" min="0" max="100">
+                </div>
+                <div class="field">
+                    <label>CGST (%)</label>
+                    <input type="number" id="fCgst" placeholder="0" min="0" max="100">
+                </div>
+                <div class="field">
+                    <label>IGST (%)</label>
+                    <input type="number" id="fIgst" placeholder="0" min="0" max="100">
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Stock Qty</label>
+                    <input type="number" id="fStock" required placeholder="0">
+                </div>
+                <div class="field">
+                    <label>Low Stock Alert</label>
+                    <input type="number" id="fLowStock" value="5">
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Unit</label>
+                    <select id="fUnit">
+                        <option value="pcs">Pieces</option>
+                        <option value="kg">Kilograms</option>
+                        <option value="g">Grams</option>
+                        <option value="l">Liters</option>
+                        <option value="ml">Milliliters</option>
+                        <option value="pack">Pack</option>
+                        <option value="dozen">Dozen</option>
+                        <option value="bundle">Bundle</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Unit Value</label>
+                    <input type="number" id="fUnitValue" value="1" min="1">
+                </div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="modal-btn" onclick="closeModal()">Cancel</button>
+            <button class="modal-btn primary" onclick="saveProduct()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Receipt Modal ═══ -->
+<div class="modal-overlay" id="receiptModal">
+    <div class="modal-panel" style="max-width:360px;">
+        <div class="modal-head">
+            <h3>🧾 Sale Complete</h3>
+            <button class="modal-close" onclick="closeReceipt()">✕</button>
+        </div>
+        <div class="modal-body" id="receiptBody"></div>
+        <div class="modal-foot">
+            <button class="modal-btn" onclick="closeReceipt()">Done</button>
+            <button class="modal-btn primary" onclick="printReceipt()">🖨️ Print</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Staff Modal ═══ -->
+<div class="modal-overlay" id="staffModal">
+    <div class="modal-panel" style="max-width:400px;">
+        <div class="modal-head">
+            <h3 id="staffModalTitle">Add Staff</h3>
+            <button class="modal-close" onclick="closeStaffModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="sId">
+            <div class="field">
+                <label>Full Name</label>
+                <input type="text" id="sName" required placeholder="e.g. Ramesh">
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Role</label>
+                    <select id="sRole">
+                        <option value="cashier">Cashier</option>
+                        <option value="manager">Manager</option>
+                        <option value="inventory">Inventory Clerk</option>
+                        <option value="owner">Owner</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Phone</label>
+                    <input type="text" id="sPhone" placeholder="Optional">
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Login PIN (4-6 digits)</label>
+                    <input type="password" id="sPin" required placeholder="****" maxlength="6">
+                </div>
+                <div class="field" style="display:flex; align-items:flex-end;">
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; height:38px; margin:0; padding:0 0.5rem; background:var(--surface-alt); border-radius:var(--radius-sm); width:100%; font-size:0.8rem; text-transform:none; font-weight:600; color:var(--text); border:1.5px solid var(--border);">
+                        <input type="checkbox" id="sEnabled" checked style="width:auto; margin:0;"> Active Account
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="modal-btn" onclick="closeStaffModal()">Cancel</button>
+            <button class="modal-btn primary" onclick="saveStaff()">Save Staff</button>
+        </div>
+    </div>
+</div>
+
+<script src="grocery-admin.js"></script>
+</body>
+</html>
