@@ -3,6 +3,16 @@
 // ============================================
 const DISCOUNT_PERCENT = 20;
 function getDiscountedPrice(price) {
+    let isMainVenue = true; // default to true if venues aren't loaded
+    if (typeof menuVenues !== 'undefined' && Array.isArray(menuVenues) && typeof selectedMenuVenueId !== 'undefined') {
+        const venue = menuVenues.find(v => Number(v.id) === Number(selectedMenuVenueId));
+        if (venue && !venue.isMain) {
+            isMainVenue = false;
+        }
+    }
+    if (!isMainVenue) {
+        return price;
+    }
     return Math.round(price * (1 - DISCOUNT_PERCENT / 100));
 }
 
@@ -1759,7 +1769,7 @@ function buildCartLineName(item, selectedSize, selectedAddons = []) {
 }
 
 function buildCartLinePrice(item, selectedSize, selectedAddons = []) {
-    let basePrice = selectedSize ? (selectedSize.onlinePrice || selectedSize.price) : (item.onlinePrice || item.price);
+    let basePrice = selectedSize ? (selectedSize.customerPrice ?? selectedSize.price) : (item.customerPrice ?? item.price);
     let totalPrice = getDiscountedPrice(basePrice);
     selectedAddons.forEach((addon) => {
         totalPrice += addon.price;
@@ -2313,9 +2323,13 @@ function renderCartDeliveryNote() {
 
     if (subtotal && cityLower && !isCheckoutAllowed(subtotal, cityLower)) {
         const minOrder = getMinOrderForCity(cityLower);
-        const remaining = minOrder - subtotal;
         el.classList.add('delivery-note--error');
-        el.innerHTML = `Minimum order outside <strong>Kudachi</strong> is <strong>₹${minOrder}</strong>. Add <strong>₹${remaining}</strong> more to checkout.`;
+        if (minOrder === Infinity) {
+            el.innerHTML = `Delivery is not available to <strong>${escapeHtml(cityLower)}</strong> from this location.`;
+        } else {
+            const remaining = minOrder - subtotal;
+            el.innerHTML = `Minimum order outside <strong>Kudachi</strong> is <strong>₹${minOrder}</strong>. Add <strong>₹${remaining}</strong> more to checkout.`;
+        }
         el.hidden = false;
         return;
     }
@@ -2374,8 +2388,12 @@ function renderCheckoutTotals() {
             noteEl.hidden = false;
         } else if (cityLower && !isCheckoutAllowed(subtotal, cityLower)) {
             const minOrder = getMinOrderForCity(cityLower);
-            const remaining = minOrder - subtotal;
-            noteEl.textContent = `Minimum order outside Kudachi is ₹${minOrder}. Add ₹${remaining} more to place your order.`;
+            if (minOrder === Infinity) {
+                noteEl.textContent = `Delivery is not available to ${cityLower} from this location.`;
+            } else {
+                const remaining = minOrder - subtotal;
+                noteEl.textContent = `Minimum order outside Kudachi is ₹${minOrder}. Add ₹${remaining} more to place your order.`;
+            }
             noteEl.hidden = false;
         } else {
             noteEl.textContent = '';
@@ -3398,6 +3416,13 @@ function updateCityDropdown() {
             }
         });
     }
+    if (Array.isArray(menuVenues)) {
+        menuVenues.forEach(v => {
+            if (v.city && v.city.trim() !== '') {
+                allCities.add(v.city.trim());
+            }
+        });
+    }
     const customCities = Array.from(allCities)
         .sort()
         .map(c => c.charAt(0).toUpperCase() + c.slice(1));
@@ -3685,7 +3710,12 @@ function buildHotelFilterTabs() {
     const cityLower = (globalSelectedCity || '').toLowerCase();
     const availableVenues = menuVenues.filter((venue) => {
         if (!cityLower) return true;
-        return findDeliveryZone(cityLower, venue.id) !== null;
+        if (venue.city && venue.city.trim().toLowerCase() === cityLower) return true;
+
+        const vKey = venue.id == null || venue.isMain ? 'default' : String(venue.id);
+        const zones = (typeof deliveryZonesMap === 'object' && deliveryZonesMap !== null) ? (deliveryZonesMap[vKey] || deliveryZonesMap['default'] || []) : [];
+        const hasExplicitZone = zones.some(z => z.city && z.city.toLowerCase() === cityLower);
+        return hasExplicitZone;
     });
 
     if (availableVenues.length <= 1) {
@@ -4144,27 +4174,33 @@ function createMenuItem(item, categoryId) {
     menuItem.dataset.venueId = String(item.venueId ?? defaultVenueId);
 
     let priceHTML = '';
+    if (item.sizes && typeof item.sizes === 'object' && !Array.isArray(item.sizes)) {
+        item.sizes = Object.entries(item.sizes).map(([k, v]) => ({ ...v, label: k }));
+    }
+
     const hasSizes = item.sizes && item.sizes.length > 0;
 
     function getItemOnlinePrice(itm) {
-        return itm.onlinePrice != null ? itm.onlinePrice : itm.price;
+        return itm.customerPrice != null ? itm.customerPrice : itm.price;
     }
 
     if (hasSizes) {
         const minPrice = Math.min(...item.sizes.map(s => getItemOnlinePrice(s)));
         const discountedMin = getDiscountedPrice(minPrice);
+        const hideOriginal = minPrice === discountedMin ? 'hidden' : '';
         priceHTML = `
             <p class="price price--multi">
-                <span class="price-original">From ₹${minPrice}</span>
+                <span class="price-original" ${hideOriginal}>From ₹${minPrice}</span>
                 <span class="price-main">From ₹${discountedMin}</span>
             </p>
         `;
     } else {
         const p = getItemOnlinePrice(item);
         const discountedPrice = getDiscountedPrice(p);
+        const hideOriginal = p === discountedPrice ? 'hidden' : '';
         priceHTML = `
             <p class="price">
-                <span class="price-original">₹${p}</span>
+                <span class="price-original" ${hideOriginal}>₹${p}</span>
                 <span class="price-main">₹${discountedPrice}</span>
             </p>
         `;
@@ -4176,11 +4212,15 @@ function createMenuItem(item, categoryId) {
                 <div class="size-chips" role="group" aria-labelledby="size-hint-${item.id}"></div>
                 <div class="menu-item-size-lines" aria-live="polite"></div>
             </div>`
-        : `<div class="menu-item-actions menu-item-actions--simple">
+        : (() => {
+            const dp = getDiscountedPrice(getItemOnlinePrice(item));
+            const p = getItemOnlinePrice(item);
+            const hideOriginal = p === dp ? 'hidden' : '';
+            return `<div class="menu-item-actions menu-item-actions--simple">
                 <div class="menu-cart-control">
                     <button type="button" class="order-btn order-btn--primary-add menu-cart-add" data-item-id="${item.id}">
                         <span class="order-btn-label">Add</span>
-                        <span class="order-btn-price"><span class="order-btn-price-original">₹${getItemOnlinePrice(item)}</span> ₹${getDiscountedPrice(getItemOnlinePrice(item))}</span>
+                        <span class="order-btn-price"><span class="order-btn-price-original" ${hideOriginal}>₹${p}</span> ₹${dp}</span>
                     </button>
                     <div class="menu-cart-qty-bar" hidden aria-hidden="true" role="group">
                         <button type="button" class="menu-qty-minus" aria-label="Decrease quantity">−</button>
@@ -4190,6 +4230,7 @@ function createMenuItem(item, categoryId) {
                 </div>
                 <div class="menu-item-addon-lines" aria-live="polite"></div>
             </div>`;
+        })();
 
     menuItem.innerHTML = `
         <div class="discount-badge-wrap">
@@ -4228,6 +4269,9 @@ function createMenuItem(item, categoryId) {
             const origPr = document.createElement('span');
             origPr.className = 'size-chip-price-original';
             origPr.textContent = `₹${sizePrice}`;
+            if (sizePrice === discountedSizePrice) {
+                origPr.hidden = true;
+            }
             const pr = document.createElement('span');
             pr.className = 'size-chip-price';
             pr.textContent = `₹${discountedSizePrice}`;
@@ -4418,12 +4462,12 @@ function initCartModal() {
             const subtotal = getCartTotal();
             const cityLower = getNormalizedCustomerCity();
             if (!isCheckoutAllowed(subtotal, cityLower)) {
-                if (!isCheckoutAllowed(subtotal, cityLower)) {
-                    const minOrder = getMinOrderForCity(cityLower);
+                const minOrder = getMinOrderForCity(cityLower);
+                if (minOrder === Infinity) {
+                    showToast(`Delivery is not available to ${cityLower} from this location.`, { type: 'error' });
+                } else {
                     const remaining = minOrder - subtotal;
                     showToast(`Add ₹${remaining} more — minimum order for delivery outside Kudachi is ₹${minOrder}.`, { type: 'error' });
-                } else {
-                    showToast('Add more items to your cart to continue.', { type: 'error' });
                 }
                 return;
             }
@@ -4977,13 +5021,15 @@ function initPromoModal() {
     const closeBtn = document.getElementById('promoCloseBtn');
     const ctaBtn = document.getElementById('promoCtaBtn');
 
-    if (!modal || !closeBtn || !ctaBtn) return;
+    if (!modal || !closeBtn || !ctaBtn || modal.hasAttribute('data-shown')) return;
 
     // Only show promo modal for Kudachi
-    const city = String(currentCustomer?.city || '').trim().toLowerCase();
-    if (city !== 'kudachi') {
+    const userCity = String(currentCustomer?.city || globalSelectedCity || '').trim().toLowerCase();
+    if (userCity !== 'kudachi') {
         return;
     }
+
+    modal.setAttribute('data-shown', 'true');
 
     setTimeout(() => {
         modal.removeAttribute('hidden');

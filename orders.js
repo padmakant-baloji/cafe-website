@@ -170,6 +170,7 @@ function showOrdersLoadingState() {
 }
 
 function renderMyOrders(orders) {
+    window.currentOrdersList = orders;
     const list = document.getElementById('ordersList');
     if (!list) return;
 
@@ -218,11 +219,9 @@ function renderMyOrders(orders) {
 
             let payButtonHtml = '';
             if (order.paymentStatus === 'pending' && order.venuePaymentQrCode && status !== 'cancelled' && status !== 'rejected') {
-                const qrUrl = encodeURIComponent(order.venuePaymentQrCode);
-                const venueContact = encodeURIComponent(order.venueContactMobile || '');
                 payButtonHtml = `
                     <div style="margin-top: 1rem; border-top: 1px dashed rgba(148, 163, 184, 0.4); padding-top: 0.75rem;">
-                        <button type="button" class="btn btn-primary" onclick="openCustomerQrModal('${qrUrl}', '${venueContact}', '${order.id}')" style="width:100%; background:#059669; color:#fff;">Pay via QR Code</button>
+                        <button type="button" class="btn btn-primary" onclick="openCustomerQrModal('${order.id}')" style="width:100%; background:#059669; color:#fff;">Pay via QR Code</button>
                     </div>
                 `;
             }
@@ -332,21 +331,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     fetchMyOrders();
 });
 
-window.openCustomerQrModal = function(qrUrl, venueContact, orderId) {
+window.openCustomerQrModal = function(orderId) {
+    const order = (window.currentOrdersList || []).find(o => String(o.id) === String(orderId));
+    if (!order) return;
+    
     const modal = document.getElementById('customerQrModal');
     const img = document.getElementById('customerQrImg');
     const btn = document.getElementById('customerQrWhatsappBtn');
     
     if (modal && img) {
-        img.src = decodeURIComponent(qrUrl);
+        img.src = order.venuePaymentQrCode;
         modal.hidden = false;
         
         btn.onclick = function() {
-            const contact = decodeURIComponent(venueContact).replace(/\D/g, '');
+            const contact = String(order.venueContactMobile || '').replace(/\D/g, '');
             if (contact) {
                 let formattedContact = contact;
                 if (formattedContact.length === 10) formattedContact = '91' + formattedContact;
-                const message = encodeURIComponent(`Hello, I have made the payment for Order #${orderId}. Here is the screenshot.`);
+                const message = encodeURIComponent(`Hello, I have made the payment for Order #${order.id}. Here is the screenshot.`);
                 window.open(`https://wa.me/${formattedContact}?text=${message}`, '_blank');
             } else {
                 alert('Restaurant contact number is not available for WhatsApp.');

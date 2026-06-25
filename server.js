@@ -266,7 +266,8 @@ app.post('/api/order', requireCustomer, async (req, res) => {
             created_at: order.created_at,
             venueName: order.venueName || '',
             venueContactMobile: order.venueContactMobile || '',
-            venueHoursText: order.venueHoursText || ''
+            venueHoursText: order.venueHoursText || '',
+            venuePaymentQrCode: order.venuePaymentQrCode || ''
         });
     } catch (err) {
         const code =
