@@ -1,6 +1,6 @@
 {
-    "name": "baloji_cafe",
-    "short_name": "baloji_cafe",
+    "name": "quickkart_cafe",
+    "short_name": "quickkart_cafe",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

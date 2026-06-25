@@ -1,4 +1,4 @@
-# baloji_cafe
+# quickkart_cafe
 
 A new Flutter project.
 

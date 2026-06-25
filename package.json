@@ -1,8 +1,8 @@
 {
-  "name": "balojis-cafe-website",
+  "name": "quickkarts-cafe-website",
   "private": true,
   "version": "1.0.0",
-  "description": "Baloji's Cafe order site with email orders",
+  "description": "QuickKart's Cafe order site with email orders",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",

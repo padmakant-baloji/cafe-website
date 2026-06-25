@@ -1,7 +1,7 @@
 'use strict';
 
-const ADMIN_STORAGE_KEY = 'balojiAdminCredentials';
-const LS_FLOOR_KEY_PREFIX = 'balojiFloorSessions';
+const ADMIN_STORAGE_KEY = 'quickkartAdminCredentials';
+const LS_FLOOR_KEY_PREFIX = 'quickkartFloorSessions';
 /** Max rows in the inline KOT name dropdown (full menu is ~80 items; do not cap at 28). */
 const KOT_SUGGEST_MAX = 200;
 
@@ -71,15 +71,15 @@ function adminSessionHooks() {
 }
 
 function adminHeaders(extra = {}) {
-    return window.balojiAdminAuth.adminAuthHeaders(extra);
+    return window.quickkartAdminAuth.adminAuthHeaders(extra);
 }
 
 function clearCreds() {
-    window.balojiAdminAuth.clearAdminToken();
+    window.quickkartAdminAuth.clearAdminToken();
 }
 
 function hasAdminSession() {
-    return !!window.balojiAdminAuth.loadAdminToken();
+    return !!window.quickkartAdminAuth.loadAdminToken();
 }
 
 function showToast(msg, ms = 2600) {
@@ -152,7 +152,7 @@ function floorMeta(order) {
 
 function isMainKotVenue(venue) {
     if (!venue) return true;
-    return Boolean(venue.isMain || venue.isDefault || venue.slug === 'balojicafe');
+    return Boolean(venue.isMain || venue.isDefault || venue.slug === 'quickkartcafe');
 }
 
 function resetKotMenuCache() {
@@ -828,7 +828,7 @@ async function postFloorCommit(payload) {
 
 async function verifyAdmin(user, pass) {
     try {
-        return await window.balojiAdminAuth.adminLogin(user, pass, adminSessionHooks());
+        return await window.quickkartAdminAuth.adminLogin(user, pass, adminSessionHooks());
     } catch (e) {
         if (e && e.message) throw e;
         return null;
@@ -1219,7 +1219,7 @@ function buildKotReceiptHtml(order, kot) {
             : meta.slot && meta.slot.startsWith('parcel:')
               ? `Parcel ${meta.slot.split(':')[1]}`
               : meta.slot || '—';
-    const venueName = (currentVenue && currentVenue.name) || "Baloji";
+    const venueName = (currentVenue && currentVenue.name) || "QuickKart";
     const venueAddress = getKotPrintAddress(currentVenue);
     const kotTit = kot.label && String(kot.label).trim() ? kot.label : `KOT #${kot.seq || ''}`;
     const printedAt = new Date().toLocaleString('en-IN', {
@@ -1283,7 +1283,7 @@ function buildKotReceiptHtml(order, kot) {
             <span>${formatRupee(lineTotal)}</span>
         </div>
         <footer class="kot-print-footer">Thank you! Visit again</footer>
-        <div class="kot-print-delivery"><strong>Home delivery - www.balojicafe.com</strong></div>
+        <div class="kot-print-delivery"><strong>Home delivery - www.quickkartcafe.com</strong></div>
     </div>`;
 }
 
@@ -2448,7 +2448,7 @@ function renderKotMenuBrowser(panel, lineBox) {
     if (panel.dataset.rendered === '1') return;
     panel.dataset.rendered = '1';
     if (!menuFlat.length) {
-        panel.innerHTML = window.balojiAdminAuth.loaderHtml('Loading menu…', { compact: true });
+        panel.innerHTML = window.quickkartAdminAuth.loaderHtml('Loading menu…', { compact: true });
         return;
     }
     const byCat = new Map();
@@ -2695,7 +2695,7 @@ function setFloorDataLoading(loading, message = 'Loading tables…') {
                 loader.className = 'floor-grid-loader';
                 wrap.appendChild(loader);
             }
-            loader.innerHTML = window.balojiAdminAuth.loaderHtml(message, { compact: true });
+            loader.innerHTML = window.quickkartAdminAuth.loaderHtml(message, { compact: true });
         } else if (loader) {
             loader.remove();
         }
@@ -2714,7 +2714,7 @@ function showFloorBoot(message = 'Restoring session…') {
     const boot = document.getElementById('floorBoot');
     if (!boot) return;
     boot.hidden = false;
-    boot.innerHTML = window.balojiAdminAuth.loaderHtml(message, { panel: true });
+    boot.innerHTML = window.quickkartAdminAuth.loaderHtml(message, { panel: true });
 }
 
 function hideFloorBoot() {
@@ -2802,7 +2802,7 @@ initFloorDrawerDelegates();
 
 (async function init() {
     try {
-        const hasToken = window.balojiAdminAuth.loadAdminToken();
+        const hasToken = window.quickkartAdminAuth.loadAdminToken();
         const hasLegacy = !!localStorage.getItem(ADMIN_STORAGE_KEY);
         if (!hasToken && !hasLegacy) {
             showGate('');
@@ -2812,9 +2812,9 @@ initFloorDrawerDelegates();
         showApp();
         setFloorDataLoading(true, 'Loading tables…');
 
-        const session = await window.balojiAdminAuth.ensureAdminSession(adminSessionHooks()).catch(() => null);
+        const session = await window.quickkartAdminAuth.ensureAdminSession(adminSessionHooks()).catch(() => null);
         if (!session) {
-            if (floorManualLoginDone || window.balojiAdminAuth.loadAdminToken()) {
+            if (floorManualLoginDone || window.quickkartAdminAuth.loadAdminToken()) {
                 setFloorDataLoading(false);
                 return;
             }

@@ -1,4 +1,4 @@
-package com.balojicafe.baloji_cafe
+package com.quickkartcafe.quickkart_cafe
 
 import io.flutter.embedding.android.FlutterActivity
 

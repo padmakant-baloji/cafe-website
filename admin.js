@@ -1,9 +1,9 @@
 'use strict';
 
-const DEFAULT_ADMIN_USER = 'balojicafe';
+const DEFAULT_ADMIN_USER = 'quickkartcafe';
 const DEFAULT_ADMIN_PASS = 'admin';
-const SESSION_STORAGE_SEEN = 'balojiAdminSeenPendingIds';
-const SESSION_STORAGE_LAST_ORDER = 'balojiAdminLastOrderId';
+const SESSION_STORAGE_SEEN = 'quickkartAdminSeenPendingIds';
+const SESSION_STORAGE_LAST_ORDER = 'quickkartAdminLastOrderId';
 let currentVenue = null;
 let floorConfig = { tableCount: 7, parcelCount: 5 };
 let managedHotels = [];
@@ -52,7 +52,7 @@ let newOrderPopupOrderId = null;
 let adminManualLoginDone = false;
 
 async function failAdminBoot(message) {
-    if (adminManualLoginDone || window.balojiAdminAuth.loadAdminToken()) {
+    if (adminManualLoginDone || window.quickkartAdminAuth.loadAdminToken()) {
         return false;
     }
     clearAdminCredentials();
@@ -83,21 +83,21 @@ function adminSessionHooks() {
 }
 
 function adminHeaders(extra = {}) {
-    return window.balojiAdminAuth.adminAuthHeaders(extra);
+    return window.quickkartAdminAuth.adminAuthHeaders(extra);
 }
 
 function clearAdminCredentials() {
-    window.balojiAdminAuth.clearAdminToken();
+    window.quickkartAdminAuth.clearAdminToken();
 }
 
 function hasAdminSession() {
-    return !!window.balojiAdminAuth.loadAdminToken();
+    return !!window.quickkartAdminAuth.loadAdminToken();
 }
 
 function setAdminOrderListLoading(message, options = {}) {
     const listEl = document.getElementById('adminOrderList');
     if (!listEl) return;
-    window.balojiAdminAuth.setSectionLoader(listEl, message || 'Loading orders…', {
+    window.quickkartAdminAuth.setSectionLoader(listEl, message || 'Loading orders…', {
         overlay: options.overlay
     });
 }
@@ -105,7 +105,7 @@ function setAdminOrderListLoading(message, options = {}) {
 function setAdminTabsLoading(message, options = {}) {
     const tabsEl = document.getElementById('adminTabs');
     if (!tabsEl) return;
-    window.balojiAdminAuth.setSectionLoader(tabsEl, message || 'Loading filters…', {
+    window.quickkartAdminAuth.setSectionLoader(tabsEl, message || 'Loading filters…', {
         overlay: options.overlay
     });
 }
@@ -113,21 +113,21 @@ function setAdminTabsLoading(message, options = {}) {
 function setAdminAnalyticsLoading(message, options = {}) {
     const analyticsEl = document.getElementById('adminDesktopAnalytics');
     if (!analyticsEl) return;
-    window.balojiAdminAuth.setSectionLoader(analyticsEl, message || 'Updating analytics…', {
+    window.quickkartAdminAuth.setSectionLoader(analyticsEl, message || 'Updating analytics…', {
         overlay: options.overlay !== false
     });
 }
 
 function clearAdminOrderListLoading() {
-    window.balojiAdminAuth.clearSectionLoader(document.getElementById('adminOrderList'));
+    window.quickkartAdminAuth.clearSectionLoader(document.getElementById('adminOrderList'));
 }
 
 function clearAdminTabsLoading() {
-    window.balojiAdminAuth.clearSectionLoader(document.getElementById('adminTabs'));
+    window.quickkartAdminAuth.clearSectionLoader(document.getElementById('adminTabs'));
 }
 
 function clearAdminAnalyticsLoading() {
-    window.balojiAdminAuth.clearSectionLoader(document.getElementById('adminDesktopAnalytics'));
+    window.quickkartAdminAuth.clearSectionLoader(document.getElementById('adminDesktopAnalytics'));
 }
 
 function setAdminDashboardLoading(message, options = {}) {
@@ -391,7 +391,7 @@ async function saveStoreStatus(acceptingOrders, reason) {
 
 async function verifyAdminCredentials(user, pass) {
     try {
-        return await window.balojiAdminAuth.adminLogin(user, pass, adminSessionHooks());
+        return await window.quickkartAdminAuth.adminLogin(user, pass, adminSessionHooks());
     } catch {
         return null;
     }
@@ -522,7 +522,7 @@ function applyMainVenueUi() {
     const hotelsModalSub = document.getElementById('adminHotelsModalSub');
     if (hotelsModalSub) {
         hotelsModalSub.textContent = isMain
-            ? 'Baloji is the main hotel. Create other hotels here and give each its own admin login.'
+            ? 'QuickKart is the main hotel. Create other hotels here and give each its own admin login.'
             : 'Hotel details for your property.';
     }
 
@@ -1108,6 +1108,17 @@ function buildDeliveryOrderArticleHtml(o) {
     const when = o.created_at ? new Date(o.created_at).toLocaleString() : '';
     const deliveryAddress = formatDeliveryAddress(o.delivery_address);
     const payPill = o.status === 'completed' ? formatPaymentPillHtml(o) : '';
+    
+    let paymentStatusBadge = '';
+    let markPaidBtn = '';
+    if (o.payment_status === 'completed') {
+        paymentStatusBadge = '<span class="admin-order-status" style="background:#dcfce7;color:#166534;">Payment: Completed</span>';
+    } else {
+        paymentStatusBadge = '<span class="admin-order-status" style="background:#fee2e2;color:#991b1b;">Payment: Pending</span>';
+        if (o.status !== 'cancelled' && o.status !== 'rejected') {
+            markPaidBtn = `<button type="button" class="admin-btn admin-btn--prep" data-action="mark_paid" data-id="${id}" style="background:#16a34a;color:#fff;">Mark Paid</button>`;
+        }
+    }
 
     return `
                 <article class="admin-order admin-order--${escapeHtml(o.status)}" data-order-id="${id}">
@@ -1116,6 +1127,7 @@ function buildDeliveryOrderArticleHtml(o) {
                         <span class="admin-order-head-badges">
                             ${!isFoodPartnerVenue() && isGroceryOrder(o) ? '<span class="admin-order-status" style="background:#7c3aed;color:#fff;">🛒 Grocery</span>' : ''}
                             ${payPill}
+                            ${paymentStatusBadge}
                             <span class="admin-order-status admin-order-status--${escapeHtml(o.status)}">${escapeHtml(statusLabel(o.status))}</span>
                         </span>
                     </header>
@@ -1135,7 +1147,7 @@ function buildDeliveryOrderArticleHtml(o) {
                     </div>
                     <div class="admin-order-items">${itemsHtml}</div>
                     <div class="admin-order-total">Total: ₹${Number(o.total) || 0}</div>
-                    <div class="admin-order-actions">${actions}</div>
+                    <div class="admin-order-actions">${actions}${markPaidBtn}</div>
                 </article>
             `;
 }
@@ -1236,7 +1248,7 @@ function buildOrderCopyText(order) {
     const pm = orderPaymentMethod(order);
 
     const lines = [
-        `Baloji — Order #${id}`,
+        `QuickKart — Order #${id}`,
         when ? `Time: ${when}` : '',
         name ? `Name: ${name}` : '',
         mobile ? `Mobile: ${mobile}` : '',
@@ -1895,6 +1907,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const venueProfileSaveBtn = document.getElementById('adminVenueProfileSaveBtn');
     const venueProfileMsg = document.getElementById('adminVenueProfileMsg');
 
+    const venueProfileQrCode = document.getElementById('adminVenueProfileQrCode');
+    const venueProfileQrPreview = document.getElementById('adminVenueProfileQrPreview');
+    let qrCodeBase64 = null;
+
+    venueProfileQrCode?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+            qrCodeBase64 = null;
+            if (venueProfileQrPreview) venueProfileQrPreview.style.display = 'none';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const MAX_SIZE = 400;
+                if (width > MAX_SIZE || height > MAX_SIZE) {
+                    if (width > height) {
+                        height = Math.round((height * MAX_SIZE) / width);
+                        width = MAX_SIZE;
+                    } else {
+                        width = Math.round((width * MAX_SIZE) / height);
+                        height = MAX_SIZE;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                qrCodeBase64 = canvas.toDataURL('image/jpeg', 0.85);
+                if (venueProfileQrPreview) {
+                    venueProfileQrPreview.src = qrCodeBase64;
+                    venueProfileQrPreview.style.display = 'block';
+                }
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
     function setVenueProfileMessage(text, state) {
         if (!venueProfileMsg) return;
         venueProfileMsg.textContent = text || '';
@@ -1906,6 +1961,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (venueProfileContact) venueProfileContact.value = currentVenue?.contactMobile || '';
         if (venueProfileHours) venueProfileHours.value = currentVenue?.hoursText || '';
         if (venueProfileAddress) venueProfileAddress.value = currentVenue?.addressLine || '';
+        qrCodeBase64 = currentVenue?.paymentQrCode || null;
+        if (venueProfileQrCode) venueProfileQrCode.value = '';
+        if (venueProfileQrPreview) {
+            if (qrCodeBase64) {
+                venueProfileQrPreview.src = qrCodeBase64;
+                venueProfileQrPreview.style.display = 'block';
+            } else {
+                venueProfileQrPreview.src = '';
+                venueProfileQrPreview.style.display = 'none';
+            }
+        }
     }
 
     function openVenueProfileModal() {
@@ -1936,14 +2002,19 @@ document.addEventListener('DOMContentLoaded', () => {
         setBtnLoading(venueProfileSaveBtn, true);
         setVenueProfileMessage('Saving…', null);
         try {
+            const bodyPayload = {
+                contactMobile: String(venueProfileContact?.value || '').trim(),
+                hoursText: String(venueProfileHours?.value || '').trim(),
+                addressLine: String(venueProfileAddress?.value || '').trim()
+            };
+            if (qrCodeBase64 !== null) {
+                bodyPayload.paymentQrCode = qrCodeBase64;
+            }
+
             const res = await fetch('/api/admin/venue-profile', {
                 method: 'PUT',
                 headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contactMobile: String(venueProfileContact?.value || '').trim(),
-                    hoursText: String(venueProfileHours?.value || '').trim(),
-                    addressLine: String(venueProfileAddress?.value || '').trim()
-                })
+                body: JSON.stringify(bodyPayload)
             });
             const data = await res.json().catch(() => ({}));
             if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
@@ -2303,7 +2374,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     hotelCreateBtn?.addEventListener('click', async () => {
         if (!isMainAdminVenue()) {
-            setHotelsMessage('Only Baloji can create hotels.', 'error');
+            setHotelsMessage('Only QuickKart can create hotels.', 'error');
             return;
         }
         const name = String(hotelNameInput?.value || '').trim();
@@ -2907,7 +2978,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.editable === false) {
                 setPartnerMenuMessage('This hotel menu is managed in menu.json.', 'error');
                 if (partnerMenuAddForm) partnerMenuAddForm.hidden = true;
-                partnerMenuList.innerHTML = '<p class="admin-partner-menu-empty">Baloji menu is edited in menu.json.</p>';
+                partnerMenuList.innerHTML = '<p class="admin-partner-menu-empty">QuickKart menu is edited in menu.json.</p>';
                 return;
             }
             if (partnerMenuAddForm) partnerMenuAddForm.hidden = false;
@@ -3236,7 +3307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTabsAndActiveList(lastOrders);
     });
 
-    const DENSITY_KEY = 'balojiAdminDensity';
+    const DENSITY_KEY = 'quickkartAdminDensity';
     const applyDensity = (value) => {
         const compact = value === 'compact';
         document.body.classList.toggle('admin-density-compact', compact);
@@ -3256,7 +3327,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopyTodaySummary?.addEventListener('click', async () => {
         const data = computeAdminAnalytics(filterOrdersForAdminView(lastOrders));
         const lines = [
-            `Baloji — Today summary`,
+            `QuickKart — Today summary`,
             `Updated: ${data.updatedAt.toLocaleString()}`,
             `Orders today: ${data.ordersTodayCount} (delivery ${data.ordersTodayDelivery} · floor ${data.ordersTodayKot})`,
             `Settled sales: ${formatMoney(data.settledSalesToday)} (online ${formatMoney(data.settledDeliverySales)} · KOT ${formatMoney(data.settledKotSales)})`,
@@ -3578,8 +3649,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const initAdmin = async () => {
         if (
-            !window.balojiAdminAuth.loadAdminToken() &&
-            !localStorage.getItem('balojiAdminCredentials')
+            !window.quickkartAdminAuth.loadAdminToken() &&
+            !localStorage.getItem('quickkartAdminCredentials')
         ) {
             await failAdminBoot('');
             return;
@@ -3589,10 +3660,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let session = null;
         try {
-            session = await window.balojiAdminAuth.ensureAdminSession(adminSessionHooks());
+            session = await window.quickkartAdminAuth.ensureAdminSession(adminSessionHooks());
         } catch (err) {
             if (adminManualLoginDone) return;
-            if (window.balojiAdminAuth.loadAdminToken()) {
+            if (window.quickkartAdminAuth.loadAdminToken()) {
                 showAdminGate(err.message || 'Could not verify session. Try refresh.');
                 return;
             }
@@ -3607,8 +3678,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!session) {
             if (adminManualLoginDone) return;
-            if (window.balojiAdminAuth.loadAdminToken()) {
-                session = await window.balojiAdminAuth
+            if (window.quickkartAdminAuth.loadAdminToken()) {
+                session = await window.quickkartAdminAuth
                     .fetchAdminSession(adminSessionHooks())
                     .catch(() => null);
             }

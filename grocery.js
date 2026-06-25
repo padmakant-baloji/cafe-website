@@ -2,14 +2,14 @@
 
 /**
  * Grocery (Instamart-style) storefront module.
- * Self-contained: owns its own cart (localStorage `balojiGroceryCart`), rendering,
+ * Self-contained: owns its own cart (localStorage `quickkartGroceryCart`), rendering,
  * and checkout, so the existing food flow in script.js stays untouched.
  */
 (function () {
-    const TOKEN_KEY = 'balojiCustomerToken';
-    const PROFILE_KEY = 'balojiCustomerProfile';
-    const MODE_KEY = 'balojiOrderMode';
-    const CART_KEY = 'balojiGroceryCart';
+    const TOKEN_KEY = 'quickkartCustomerToken';
+    const PROFILE_KEY = 'quickkartCustomerProfile';
+    const MODE_KEY = 'quickkartOrderMode';
+    const CART_KEY = 'quickkartGroceryCart';
 
     const PLACEHOLDER = 'images/placeholder-icon.svg';
 

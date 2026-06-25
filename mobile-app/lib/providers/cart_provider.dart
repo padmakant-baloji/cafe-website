@@ -102,9 +102,9 @@ class CartProvider extends ChangeNotifier {
     final city = profile?['city']?.toString().toLowerCase().trim() ?? '';
     final isKudachi = city == 'kudachi';
 
-    final isBaloji = _items.isNotEmpty && _items.first.venueName.toLowerCase().contains('baloji');
+    final isQuickKart = _items.isNotEmpty && _items.first.venueName.toLowerCase().contains('quickkart');
 
-    if (isBaloji || _items.isEmpty) {
+    if (isQuickKart || _items.isEmpty) {
       return 8.0;
     } else {
       return isKudachi ? 20.0 : 40.0;

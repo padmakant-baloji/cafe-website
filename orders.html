@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
-    <title>Track Your Orders — Baloji | Food &amp; Grocery Delivery</title>
-    <meta name="description" content="Track your food and grocery delivery orders in real time. Live order status from Baloji — Belgaum, Belagavi, Kudachi &amp; nearby areas.">
-    <link rel="canonical" href="https://www.balojicafe.com/orders">
+    <title>Track Your Orders — QuickKart | Food &amp; Grocery Delivery</title>
+    <meta name="description" content="Track your food and grocery delivery orders in real time. Live order status from QuickKart — Belgaum, Belagavi, Kudachi &amp; nearby areas.">
+    <link rel="canonical" href="https://www.quickkartcafe.com/orders">
     <meta name="theme-color" content="#15803d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Baloji">
+    <meta name="apple-mobile-web-app-title" content="QuickKart">
     <link rel="icon" type="image/png" sizes="192x192" href="/images/logo/pwa-192.png?v=2">
     <link rel="icon" type="image/png" sizes="512x512" href="/images/logo/pwa-512.png?v=2">
     <link rel="apple-touch-icon" href="/images/logo/apple-touch-icon.png?v=2" sizes="180x180">
@@ -23,13 +23,13 @@
     <link rel="stylesheet" href="/styles.css?v=21">
 </head>
 <body class="order-app app-mobile app-five-tabs">
-    <div id="appSplash" class="app-splash" role="status" aria-label="Loading Baloji">
+    <div id="appSplash" class="app-splash" role="status" aria-label="Loading QuickKart">
         <div class="app-splash-inner">
             <span class="app-splash-badge">
                 <span class="app-splash-ring" aria-hidden="true"></span>
                 <img src="/images/logo/logo-small.png" alt="" class="app-splash-logo" width="96" height="96" fetchpriority="high" decoding="async">
             </span>
-            <span class="app-splash-name">Baloji</span>
+            <span class="app-splash-name">QuickKart</span>
             <span class="app-splash-tag">Pure veg · Kudachi</span>
             <span class="app-splash-dots" aria-hidden="true"><i></i><i></i><i></i></span>
         </div>
@@ -53,12 +53,12 @@
     <div class="app-shell">
         <div class="app-topbar" id="navbar" role="banner">
             <div class="app-topbar-inner">
-                <a href="/menu#home" class="app-brand" aria-label="Baloji — Home">
+                <a href="/menu#home" class="app-brand" aria-label="QuickKart — Home">
                     <span class="app-brand-logo-wrap">
                         <img src="/images/logo/pwa-192.png?v=2" alt="" class="app-brand-logo" width="40" height="40" decoding="async">
                     </span>
                     <span class="app-brand-text">
-                        <span class="app-brand-name">Baloji</span>
+                        <span class="app-brand-name">QuickKart</span>
                         <span class="app-brand-sub">Kudachi · Pure Veg</span>
                     </span>
                 </a>
@@ -94,9 +94,20 @@
         </section>
     </div>
 
+    <div id="customerQrModal" class="pwa-install" hidden style="z-index: 10000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
+        <div class="pwa-install-inner" style="background: #fff; padding: 1.5rem; border-radius: 12px; width: 90%; max-width: 400px; text-align: center;">
+            <div class="pwa-install-title" style="margin-bottom: 1rem;">Pay via QR Code</div>
+            <img id="customerQrImg" src="" alt="Payment QR Code" style="width: 100%; max-width: 250px; margin: 0 auto 1rem; display: block; border-radius: 8px;">
+            <div class="pwa-install-actions" style="flex-direction: column; gap: 0.5rem;">
+                <button type="button" class="btn btn-primary" id="customerQrWhatsappBtn" style="background: #25D366; color: #fff; border: none; width: 100%;">Send Screenshot via WhatsApp</button>
+                <button type="button" class="btn btn-secondary" id="customerQrCloseBtn" style="width: 100%;">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div id="pwaInstallBanner" class="pwa-install" hidden>
         <div class="pwa-install-inner">
-            <div class="pwa-install-title">Install Baloji</div>
+            <div class="pwa-install-title">Install QuickKart</div>
             <div class="pwa-install-sub">Open the menu faster from your home screen.</div>
             <div class="pwa-install-actions">
                 <button type="button" class="btn btn-primary" id="pwaInstallBtn">Install</button>

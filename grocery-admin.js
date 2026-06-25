@@ -5,7 +5,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 const S = {
-    token: localStorage.getItem('balojiAdminToken') || '',
+    token: localStorage.getItem('quickkartAdminToken') || '',
     products: [],
     categories: [],
     staff: [],
@@ -61,13 +61,13 @@ async function init() {
         if (!res.ok) throw new Error('bad');
         await loadData();
     } catch {
-        localStorage.removeItem('balojiAdminToken');
+        localStorage.removeItem('quickkartAdminToken');
         window.location.href = '/admin-login';
     }
 }
 
 function logout() {
-    localStorage.removeItem('balojiAdminToken');
+    localStorage.removeItem('quickkartAdminToken');
     window.location.href = '/admin-login';
 }
 

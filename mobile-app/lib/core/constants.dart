@@ -2,14 +2,14 @@ class AppConstants {
   AppConstants._();
 
   // API
-  static const String apiBaseUrl = 'https://www.balojicafe.com';
+  static const String apiBaseUrl = 'https://www.quickkartcafe.com';
 
   // Storage keys
-  static const String tokenKey = 'balojiCustomerToken';
-  static const String profileKey = 'balojiCustomerProfile';
-  static const String foodCartKey = 'balojiFoodCart';
-  static const String groceryCartKey = 'balojiGroceryCart';
-  static const String orderModeKey = 'balojiOrderMode';
+  static const String tokenKey = 'quickkartCustomerToken';
+  static const String profileKey = 'quickkartCustomerProfile';
+  static const String foodCartKey = 'quickkartFoodCart';
+  static const String groceryCartKey = 'quickkartGroceryCart';
+  static const String orderModeKey = 'quickkartOrderMode';
 
   // Cities
   static const List<String> cities = [
@@ -27,7 +27,7 @@ class AppConstants {
   static const double minGroceryOrder = 49.0;
 
   // Branding
-  static const String appName = "Baloji";
+  static const String appName = "QuickKart";
   static const String tagline = 'Pure veg · Kudachi';
   static const String whatsappNumber = '+919876543210';
 }

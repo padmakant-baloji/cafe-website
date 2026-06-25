@@ -1,7 +1,7 @@
 'use strict';
 
-const SESSION_STORAGE_KEY = 'balojiCustomerToken';
-const CUSTOMER_PROFILE_KEY = 'balojiCustomerProfile';
+const SESSION_STORAGE_KEY = 'quickkartCustomerToken';
+const CUSTOMER_PROFILE_KEY = 'quickkartCustomerProfile';
 
 function getCustomerToken() {
     return localStorage.getItem(SESSION_STORAGE_KEY);

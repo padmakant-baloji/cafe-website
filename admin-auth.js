@@ -1,14 +1,14 @@
 'use strict';
 
 /** Signed admin session token — shared across /admin and /admin/tables. */
-const ADMIN_TOKEN_KEY = 'balojiAdminToken';
+const ADMIN_TOKEN_KEY = 'quickkartAdminToken';
 /** @deprecated Legacy password storage; migrated to token on next login. */
-const LEGACY_CREDS_KEY = 'balojiAdminCredentials';
+const LEGACY_CREDS_KEY = 'quickkartAdminCredentials';
 
 function injectAdminLoaderStyles() {
-    if (document.getElementById('balojiAdminLoaderStyles')) return;
+    if (document.getElementById('quickkartAdminLoaderStyles')) return;
     const style = document.createElement('style');
-    style.id = 'balojiAdminLoaderStyles';
+    style.id = 'quickkartAdminLoaderStyles';
     style.textContent = `
         .app-loader {
             display: flex;
@@ -378,7 +378,7 @@ async function ensureAdminSession(hooks = {}) {
     }
 }
 
-window.balojiAdminAuth = {
+window.quickkartAdminAuth = {
     ADMIN_TOKEN_KEY,
     loadAdminToken,
     saveAdminToken,

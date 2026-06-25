@@ -7,7 +7,7 @@ const path = require('path');
 const sharp = require('sharp');
 
 const ROOT = path.join(__dirname, '..');
-const SRC = path.join(ROOT, 'images/logo/logo-baloji cafe.png');
+const SRC = path.join(ROOT, 'images/logo/logo-quickkart cafe.png');
 const OUT_DIR = path.join(ROOT, 'images/logo');
 /** #15803d — matches manifest theme_color */
 const BG = { r: 21, g: 128, b: 61, alpha: 1 };

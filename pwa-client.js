@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const dismissedKey = 'balojiPwaInstallDismissed';
+    const dismissedKey = 'quickkartPwaInstallDismissed';
     if (localStorage.getItem(dismissedKey) === '1') {
         hideBanner();
         return;

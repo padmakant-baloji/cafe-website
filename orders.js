@@ -1,7 +1,7 @@
 'use strict';
 
-const SESSION_STORAGE_KEY = 'balojiCustomerToken';
-const CUSTOMER_PROFILE_KEY = 'balojiCustomerProfile';
+const SESSION_STORAGE_KEY = 'quickkartCustomerToken';
+const CUSTOMER_PROFILE_KEY = 'quickkartCustomerProfile';
 function getCustomerToken() {
     return localStorage.getItem(SESSION_STORAGE_KEY);
 }
@@ -142,11 +142,15 @@ function normalizeMyOrder(o) {
     const status = String(o.status ?? '')
         .trim()
         .toLowerCase();
+    const paymentStatus = String(o.payment_status ?? '')
+        .trim()
+        .toLowerCase();
     const created_at = o.created_at ?? o.createdAt ?? null;
     const updated_at = o.updated_at ?? o.updatedAt ?? null;
     const venueName = String(o.venueName ?? o.venue_name ?? '').trim();
     const venueContactMobile = String(o.venueContactMobile ?? o.venue_contact_mobile ?? '').trim();
-    return { ...o, status, created_at, updated_at, venueName, venueContactMobile };
+    const venuePaymentQrCode = String(o.venuePaymentQrCode ?? o.venue_payment_qr_code ?? '').trim();
+    return { ...o, status, paymentStatus, created_at, updated_at, venueName, venueContactMobile, venuePaymentQrCode };
 }
 
 function normalizeMyOrders(orders) {
@@ -207,11 +211,30 @@ function renderMyOrders(orders) {
             const stLower = String(status).trim().toLowerCase();
             const contactBlock = buildOrderContactBlock(order, stLower);
 
+            let paymentBadge = '';
+            if (order.paymentStatus === 'completed') {
+                paymentBadge = `<span class="my-order-status" style="background:#dcfce7;color:#166534;margin-left:0.5rem;">Payment: Completed</span>`;
+            }
+
+            let payButtonHtml = '';
+            if (order.paymentStatus === 'pending' && order.venuePaymentQrCode && status !== 'cancelled' && status !== 'rejected') {
+                const qrUrl = encodeURIComponent(order.venuePaymentQrCode);
+                const venueContact = encodeURIComponent(order.venueContactMobile || '');
+                payButtonHtml = `
+                    <div style="margin-top: 1rem; border-top: 1px dashed rgba(148, 163, 184, 0.4); padding-top: 0.75rem;">
+                        <button type="button" class="btn btn-primary" onclick="openCustomerQrModal('${qrUrl}', '${venueContact}', '${order.id}')" style="width:100%; background:#059669; color:#fff;">Pay via QR Code</button>
+                    </div>
+                `;
+            }
+
             return `
                 <article class="my-order-card my-order-card--${escapeHtml(status)}">
                     <div class="my-order-card-inner">
                         <header class="my-order-card-top">
-                            <span class="my-order-status my-order-status--${escapeHtml(status)}">${escapeHtml(formatOrderStatus(status))}</span>
+                            <div>
+                                <span class="my-order-status my-order-status--${escapeHtml(status)}">${escapeHtml(formatOrderStatus(status))}</span>
+                                ${paymentBadge}
+                            </div>
                             <time class="my-order-placed"${placedDtIso ? ` datetime="${escapeHtml(placedDtIso)}"` : ''}>${escapeHtml(placedLabel)}</time>
                         </header>
                         ${contactBlock}
@@ -223,6 +246,7 @@ function renderMyOrders(orders) {
                             <span class="my-order-total-label">Total</span>
                             <span class="my-order-total-amt">₹${Number(order.total) || 0}</span>
                         </div>
+                        ${payButtonHtml}
                     </div>
                 </article>
             `;
@@ -306,4 +330,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     fetchMyOrders();
+});
+
+window.openCustomerQrModal = function(qrUrl, venueContact, orderId) {
+    const modal = document.getElementById('customerQrModal');
+    const img = document.getElementById('customerQrImg');
+    const btn = document.getElementById('customerQrWhatsappBtn');
+    
+    if (modal && img) {
+        img.src = decodeURIComponent(qrUrl);
+        modal.hidden = false;
+        
+        btn.onclick = function() {
+            const contact = decodeURIComponent(venueContact).replace(/\D/g, '');
+            if (contact) {
+                let formattedContact = contact;
+                if (formattedContact.length === 10) formattedContact = '91' + formattedContact;
+                const message = encodeURIComponent(`Hello, I have made the payment for Order #${orderId}. Here is the screenshot.`);
+                window.open(`https://wa.me/${formattedContact}?text=${message}`, '_blank');
+            } else {
+                alert('Restaurant contact number is not available for WhatsApp.');
+            }
+        };
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const closeBtn = document.getElementById('customerQrCloseBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            const modal = document.getElementById('customerQrModal');
+            if (modal) modal.hidden = true;
+        });
+    }
 });

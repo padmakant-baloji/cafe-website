@@ -65,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Enjoy a massive 20% discount on all Baloji Cafe items.',
+                'Enjoy a massive 20% discount on all QuickKart Cafe items.',
                 style: TextStyle(
                   fontSize: 16,
                   color: AppTheme.textSecondary,
@@ -308,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Baloji's Cafe",
+                      "QuickKart's Cafe",
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
                     ),
                     Text(
@@ -364,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildGiantCard(
-                    title: 'Baloji\nMart',
+                    title: 'QuickKart\nMart',
                     subtitle: 'Insta delivery',
                     icon: Icons.shopping_basket_rounded,
                     gradient: const LinearGradient(

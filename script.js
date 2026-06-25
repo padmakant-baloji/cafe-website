@@ -25,9 +25,9 @@ const navLinks = document.querySelectorAll('a.app-tab[href^="#"], a.nav-link[hre
 // ============================================
 // Session & My orders (Neon backend)
 // ============================================
-const SESSION_STORAGE_KEY = 'balojiCustomerToken';
-const CUSTOMER_PROFILE_KEY = 'balojiCustomerProfile';
-let globalSelectedCity = localStorage.getItem('balojiGlobalCity') || '';
+const SESSION_STORAGE_KEY = 'quickkartCustomerToken';
+const CUSTOMER_PROFILE_KEY = 'quickkartCustomerProfile';
+let globalSelectedCity = localStorage.getItem('quickkartGlobalCity') || '';
 
 function getCustomerToken() {
     return localStorage.getItem(SESSION_STORAGE_KEY);
@@ -1035,7 +1035,7 @@ function initTestimonials() {
 let cart = [];
 let appliedCoupon = null; // { code: string, discount: number, subtotal: number }
 let defaultVenueId = 1;
-let defaultVenueName = "Baloji";
+let defaultVenueName = "QuickKart";
 let partnerDeliveryFee = 20;
 let deliveryZonesMap = { 'default': [] };
 let menuVenues = [];
@@ -1565,7 +1565,7 @@ function initStoreStatus() {
 
 // Load cart from localStorage
 function loadCart() {
-    const savedCart = localStorage.getItem('balojiCart');
+    const savedCart = localStorage.getItem('quickkartCart');
     if (savedCart) {
         cart = JSON.parse(savedCart).map((row) => ({
             ...row,
@@ -1578,7 +1578,7 @@ function loadCart() {
 
 // Save cart to localStorage
 function saveCart() {
-    localStorage.setItem('balojiCart', JSON.stringify(cart));
+    localStorage.setItem('quickkartCart', JSON.stringify(cart));
 }
 
 /** Override with absolute URL if the order API is hosted separately (set on window before script.js). */
@@ -3434,12 +3434,12 @@ function updateCityDropdown() {
             
             globalSelect.value = globalSelectedCity;
             if (globalDisplay) globalDisplay.textContent = globalSelectedCity;
-            localStorage.setItem('balojiGlobalCity', globalSelectedCity);
+            localStorage.setItem('quickkartGlobalCity', globalSelectedCity);
             
             globalSelect.addEventListener('change', (e) => {
                 globalSelectedCity = e.target.value;
                 if (globalDisplay) globalDisplay.textContent = globalSelectedCity;
-                localStorage.setItem('balojiGlobalCity', globalSelectedCity);
+                localStorage.setItem('quickkartGlobalCity', globalSelectedCity);
                 
                 if (citySelect) citySelect.value = globalSelectedCity;
                 
@@ -3499,7 +3499,7 @@ async function loadMenu() {
             const data = await jsonRes.json();
             if (data && Array.isArray(data.categories) && data.categories.length) {
                 defaultVenueId = 1;
-                defaultVenueName = "Baloji";
+                defaultVenueName = "QuickKart";
                 selectedMenuVenueId = defaultVenueId;
                 menuVenues = deriveMenuVenues(data.categories);
                 menuData = data;
@@ -3512,7 +3512,7 @@ async function loadMenu() {
     } catch (error) {
         console.warn('Could not load menu, using embedded data:', error);
         defaultVenueId = 1;
-        defaultVenueName = "Baloji";
+        defaultVenueName = "QuickKart";
         selectedMenuVenueId = defaultVenueId;
         menuVenues = deriveMenuVenues(fallbackMenuData.categories || []);
         menuData = fallbackMenuData;
@@ -4682,6 +4682,33 @@ function showOrderSuccessModal(_placedAtMs, venueInfo = {}) {
         }
     }
 
+    const qrBlock = document.getElementById('orderSuccessQrBlock');
+    const qrImg = document.getElementById('orderSuccessQrImg');
+    const qrBtn = document.getElementById('orderSuccessWhatsappBtn');
+    
+    if (qrBlock && qrImg && qrBtn) {
+        if (venueInfo.venuePaymentQrCode) {
+            qrImg.src = venueInfo.venuePaymentQrCode;
+            qrBlock.hidden = false;
+            
+            qrBtn.onclick = function() {
+                const contact = contactMobile.replace(/\D/g, '');
+                if (contact) {
+                    let formattedContact = contact;
+                    if (formattedContact.length === 10) formattedContact = '91' + formattedContact;
+                    const message = encodeURIComponent(`Hello, I have made the payment for Order #${venueInfo.orderId || ''}. Here is the screenshot.`);
+                    window.open(`https://wa.me/${formattedContact}?text=${message}`, '_blank');
+                } else {
+                    alert('Restaurant contact number is not available for WhatsApp.');
+                }
+            };
+        } else {
+            qrBlock.hidden = true;
+            qrImg.src = '';
+            qrBtn.onclick = null;
+        }
+    }
+
     successModal.classList.add('active');
     successModal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -4892,7 +4919,9 @@ async function placeOrder() {
         showOrderSuccessModal(createdMs, {
             venueName: data.venueName || orderVenue?.name,
             venueContactMobile: data.venueContactMobile || orderVenue?.contactMobile,
-            venueHoursText: data.venueHoursText || orderVenue?.hoursText
+            venueHoursText: data.venueHoursText || orderVenue?.hoursText,
+            venuePaymentQrCode: data.venuePaymentQrCode || orderVenue?.paymentQrCode,
+            orderId: data.id || data.order_id || data.orderId
         });
     } catch (err) {
         const hint =

@@ -13,8 +13,8 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const KEYSTORE = path.join(ROOT, 'android-twa', 'android-release.keystore');
-const ALIAS = 'balojicafe';
-const PACKAGE_ID = 'com.balojicafe.app';
+const ALIAS = 'quickkartcafe';
+const PACKAGE_ID = 'com.quickkartcafe.app';
 const ASSETLINKS = path.join(ROOT, '.well-known', 'assetlinks.json');
 const JAVA_ENV_SH = path.join(__dirname, 'android-java-env.sh');
 
@@ -85,7 +85,7 @@ function writeAssetLinks(fingerprint) {
   console.log(`Fingerprint: ${fingerprint}`);
   console.log('');
   console.log('Deploy the site, then verify:');
-  console.log('  https://www.balojicafe.com/.well-known/assetlinks.json');
+  console.log('  https://www.quickkartcafe.com/.well-known/assetlinks.json');
   console.log('');
   console.log('Play Store: if you use Google Play App Signing, also add the');
   console.log('App signing certificate SHA-256 from Play Console → Setup → App signing.');

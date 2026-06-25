@@ -1,6 +1,6 @@
-# Baloji's Cafe Website 🍕☕
+# QuickKart's Cafe Website 🍕☕
 
-A stunning, modern, and fully responsive website for Baloji's Cafe featuring a cinematic hero section, interactive menu, food gallery, testimonials, and contact information.
+A stunning, modern, and fully responsive website for QuickKart's Cafe featuring a cinematic hero section, interactive menu, food gallery, testimonials, and contact information.
 
 ## 🎨 Features
 
@@ -156,7 +156,7 @@ Update contact details in the HTML:
 
 ## 📝 License
 
-This project is created for Baloji's Cafe. All rights reserved.
+This project is created for QuickKart's Cafe. All rights reserved.
 
 ## 🙏 Credits
 
@@ -166,6 +166,6 @@ This project is created for Baloji's Cafe. All rights reserved.
 
 ---
 
-**Built with ❤️ for Baloji's Cafe**
+**Built with ❤️ for QuickKart's Cafe**
 
 *Eat. Sip. Repeat.*

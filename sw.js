@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
-const PRECACHE = 'baloji-pwa-cache-v21';
-const RUNTIME = 'baloji-pwa-runtime-v17';
+const PRECACHE = 'quickkart-pwa-cache-v21';
+const RUNTIME = 'quickkart-pwa-runtime-v17';
 
 self.addEventListener('install', (event) => {
   const assets = [
@@ -49,7 +49,10 @@ self.addEventListener('activate', (event) => {
         await Promise.all(
           keys.map((k) => {
             if (k === PRECACHE || k === RUNTIME) return Promise.resolve();
-            if (k.startsWith('baloji-pwa-cache-') || k.startsWith('baloji-pwa-runtime-')) {
+            if (
+              k.startsWith('quickkart-pwa-cache-') || k.startsWith('quickkart-pwa-runtime-') ||
+              k.startsWith('baloji-pwa-cache-') || k.startsWith('baloji-pwa-runtime-')
+            ) {
               return caches.delete(k);
             }
             return Promise.resolve();

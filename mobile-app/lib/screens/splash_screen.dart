@@ -122,7 +122,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     ),
                     const SizedBox(height: 24),
                     const Text(
-                      "Baloji's Cafe",
+                      "QuickKart's Cafe",
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
