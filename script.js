@@ -1,4 +1,12 @@
 // ============================================
+// Global Discount Configuration
+// ============================================
+const DISCOUNT_PERCENT = 20;
+function getDiscountedPrice(price) {
+    return Math.round(price * (1 - DISCOUNT_PERCENT / 100));
+}
+
+// ============================================
 // DOM Elements
 // ============================================
 const navbar = document.getElementById('navbar');
@@ -1751,7 +1759,8 @@ function buildCartLineName(item, selectedSize, selectedAddons = []) {
 }
 
 function buildCartLinePrice(item, selectedSize, selectedAddons = []) {
-    let totalPrice = selectedSize ? selectedSize.price : item.price;
+    let basePrice = selectedSize ? selectedSize.price : item.price;
+    let totalPrice = getDiscountedPrice(basePrice);
     selectedAddons.forEach((addon) => {
         totalPrice += addon.price;
     });
@@ -2167,20 +2176,8 @@ function getEffectiveDeliveryCity(cityLower) {
 
 function getDeliveryFee(subtotal, cityLower) {
     if (!subtotal) return 0;
-    const city = getEffectiveDeliveryCity(cityLower);
-    const zone = findDeliveryZone(city);
-    if (!zone) return 0;
-    
-    let fee = zone.deliveryFee || 0;
-    if (zone.freeDeliveryAbove != null && subtotal >= zone.freeDeliveryAbove) {
-        if (zone.city === '_default') {
-            const kudachiZone = findDeliveryZone('kudachi');
-            fee = kudachiZone ? kudachiZone.deliveryFee : 8;
-        } else {
-            fee = 0;
-        }
-    }
-    return fee;
+    // Flat ₹8 delivery fee for all cities
+    return 8;
 }
 
 function getMinOrderForCity(cityLower) {
@@ -4153,15 +4150,19 @@ function createMenuItem(item, categoryId) {
 
     if (hasSizes) {
         const minPrice = Math.min(...item.sizes.map(s => s.price));
+        const discountedMin = getDiscountedPrice(minPrice);
         priceHTML = `
             <p class="price price--multi">
-                <span class="price-main">From ₹${minPrice}</span>
+                <span class="price-original">From ₹${minPrice}</span>
+                <span class="price-main">From ₹${discountedMin}</span>
             </p>
         `;
     } else {
+        const discountedPrice = getDiscountedPrice(item.price);
         priceHTML = `
             <p class="price">
-                <span class="price-main">₹${item.price}</span>
+                <span class="price-original">₹${item.price}</span>
+                <span class="price-main">₹${discountedPrice}</span>
             </p>
         `;
     }
@@ -4176,7 +4177,7 @@ function createMenuItem(item, categoryId) {
                 <div class="menu-cart-control">
                     <button type="button" class="order-btn order-btn--primary-add menu-cart-add" data-item-id="${item.id}">
                         <span class="order-btn-label">Add</span>
-                        <span class="order-btn-price">₹${item.price}</span>
+                        <span class="order-btn-price"><span class="order-btn-price-original">₹${item.price}</span> ₹${getDiscountedPrice(item.price)}</span>
                     </button>
                     <div class="menu-cart-qty-bar" hidden aria-hidden="true" role="group">
                         <button type="button" class="menu-qty-minus" aria-label="Decrease quantity">−</button>
@@ -4188,7 +4189,10 @@ function createMenuItem(item, categoryId) {
             </div>`;
 
     menuItem.innerHTML = `
-        ${buildMenuItemImageHtml(item, categoryId)}
+        <div class="discount-badge-wrap">
+            ${buildMenuItemImageHtml(item, categoryId)}
+            <span class="discount-badge">${DISCOUNT_PERCENT}% OFF</span>
+        </div>
         <div class="menu-item-content">
             <div class="menu-item-header">
                 <div class="menu-item-title-wrap">
@@ -4204,6 +4208,7 @@ function createMenuItem(item, categoryId) {
     if (hasSizes) {
         const chipsWrap = menuItem.querySelector('.size-chips');
         item.sizes.forEach((size) => {
+            const discountedSizePrice = getDiscountedPrice(size.price);
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'size-chip';
@@ -4211,15 +4216,18 @@ function createMenuItem(item, categoryId) {
             btn.dataset.price = String(size.price);
             btn.setAttribute(
                 'aria-label',
-                `Add ${item.name}, ${size.label} size, ${size.price} rupees`
+                `Add ${item.name}, ${size.label} size, ${discountedSizePrice} rupees (${DISCOUNT_PERCENT}% off)`
             );
             const lab = document.createElement('span');
             lab.className = 'size-chip-label';
             lab.textContent = size.label;
+            const origPr = document.createElement('span');
+            origPr.className = 'size-chip-price-original';
+            origPr.textContent = `₹${size.price}`;
             const pr = document.createElement('span');
             pr.className = 'size-chip-price';
-            pr.textContent = `₹${size.price}`;
-            btn.append(lab, pr);
+            pr.textContent = `₹${discountedSizePrice}`;
+            btn.append(lab, origPr, pr);
             chipsWrap.appendChild(btn);
         });
     }
@@ -4929,6 +4937,38 @@ function initLazyLoading() {
 }
 
 // ============================================
+// Promo Modal
+// ============================================
+function initPromoModal() {
+    const modal = document.getElementById('promoModal');
+    const closeBtn = document.getElementById('promoCloseBtn');
+    const ctaBtn = document.getElementById('promoCtaBtn');
+
+    if (!modal || !closeBtn || !ctaBtn) return;
+
+    setTimeout(() => {
+        modal.removeAttribute('hidden');
+    }, 1500);
+
+    const closePromo = () => {
+        modal.setAttribute('hidden', '');
+    };
+
+    closeBtn.addEventListener('click', closePromo);
+    ctaBtn.addEventListener('click', () => {
+        closePromo();
+        const menuSection = document.getElementById('menu');
+        if (menuSection) {
+            menuSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closePromo();
+    });
+}
+
+// ============================================
 // Initialize Everything
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
@@ -4949,6 +4989,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initMobileMenu();
     initSmoothScroll();
     initActiveNavLink();
+    initPromoModal();
     initHeroSection();
     loadMenu(); // Load menu from JSON first
     initMenuCategories();

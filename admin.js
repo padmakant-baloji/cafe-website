@@ -3600,6 +3600,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (session && session.venue && session.venue.venueType === 'grocery') {
+            window.location.href = '/grocery-admin';
+            return;
+        }
+
         if (!session) {
             if (adminManualLoginDone) return;
             if (window.balojiAdminAuth.loadAdminToken()) {

@@ -1694,6 +1694,20 @@ body {
     </div>
 </div>
 
+<!-- ═══ Duplicate Scanner Modal ═══ -->
+<div class="modal-overlay" id="duplicateScannerModal">
+    <div class="modal-panel" style="max-width:400px;">
+        <div class="modal-head">
+            <h3>Select Item to Add</h3>
+            <button class="modal-close" onclick="document.getElementById('duplicateScannerModal').classList.remove('open')">✕</button>
+        </div>
+        <div class="modal-body" id="duplicateScannerBody"></div>
+        <div class="modal-foot">
+            <button class="modal-btn" onclick="document.getElementById('duplicateScannerModal').classList.remove('open')">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <script src="grocery-admin.js"></script>
 </body>
 </html>

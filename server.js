@@ -746,7 +746,8 @@ app.post('/api/admin/grocery/pos-order', requireAdmin, async (req, res) => {
         const priced = await validateAndPriceGroceryOrder({
             storeId: venueId,
             items: body.items,
-            total: body.total
+            total: body.total,
+            isPos: true
         });
         
         // 3. Connect to DB to deduct stock and insert order atomically

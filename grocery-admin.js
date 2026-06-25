@@ -79,6 +79,30 @@ async function loadData() {
     setInterval(updateClock, 30000);
 
     $('posSearch').addEventListener('input', renderPosGrid);
+    $('posSearch').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const q = e.target.value.toLowerCase().trim();
+            if (!q) return;
+
+            let matches = displayProducts().filter(p => p.enabled !== false && p.sku && p.sku.toLowerCase() === q);
+            if (matches.length === 0) {
+                matches = displayProducts().filter(p => p.enabled !== false && p.name && p.name.toLowerCase() === q);
+            }
+
+            if (matches.length === 1) {
+                addToCart(matches[0].id);
+                e.target.value = '';
+                renderPosGrid();
+                toast(`Added ${matches[0].name}`);
+            } else if (matches.length > 1) {
+                showDuplicateScannerPopup(matches);
+            } else {
+                toast('No exact match found for scanned code');
+            }
+        }
+    });
+
     $('invSearch').addEventListener('input', renderInventory);
 
     // Close any open quick-action menus on outside click
@@ -228,6 +252,29 @@ function renderPosGrid() {
     }).join('');
 }
 
+function showDuplicateScannerPopup(items) {
+    const body = $('duplicateScannerBody');
+    body.innerHTML = items.map(p => {
+        return `<div class="pos-item" style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid var(--border); cursor:pointer; margin-bottom:0.5rem; border-radius:var(--radius); background:var(--bg);" onclick="selectScannedDuplicate(${p.id})">
+            <div>
+                <div style="font-weight:600; color:var(--text);">${escHtml(p.name)}</div>
+                <div style="font-size:0.8rem; color:var(--text-secondary);">SKU: ${escHtml(p.sku || 'N/A')} &nbsp;·&nbsp; Stock: ${p.stockQty}</div>
+            </div>
+            <div style="font-weight:700; color:var(--primary);">${rupee(p.price)}</div>
+        </div>`;
+    }).join('');
+    $('duplicateScannerModal').classList.add('open');
+}
+
+function selectScannedDuplicate(id) {
+    addToCart(id);
+    $('duplicateScannerModal').classList.remove('open');
+    $('posSearch').value = '';
+    renderPosGrid();
+    const p = S.products.find(x => x.id === id);
+    if (p) toast(`Added ${p.name}`);
+}
+
 // ─── Cart Logic ───────────────────────────────────────────
 
 function addToCart(id) {
@@ -334,8 +381,13 @@ async function checkout() {
     const total = cartTotal();
     const bagCharge = S.carryBagEnabled ? S.carryBagPrice : 0;
     const grandTotal = total + bagCharge;
+    const payloadItems = S.cart.map(i => ({ productId: i.id, quantity: i.qty, name: i.name }));
+    if (S.carryBagEnabled && S.carryBagMaterial) {
+        payloadItems.push({ productId: S.carryBagMaterial.id, quantity: 1, name: S.carryBagMaterial.name });
+    }
+
     const payload = {
-        items: S.cart.map(i => ({ productId: i.id, quantity: i.qty, name: i.name })),
+        items: payloadItems,
         total: grandTotal,
         paymentMethod: S.paymentMethod,
         customerMobile: undefined,

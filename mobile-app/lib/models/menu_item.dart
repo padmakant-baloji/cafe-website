@@ -109,10 +109,21 @@ class MenuItem {
   });
 
   factory MenuItem.fromJson(Map<String, dynamic> json) {
+    final venueName = (json['venueName'] ?? '').toString();
+    final isBaloji = venueName.toLowerCase().contains('baloji') || (json['venueId'] == null);
+
     List<MenuSize> sizes = [];
     if (json['sizes'] is List) {
       sizes = (json['sizes'] as List)
-          .map((s) => s is Map<String, dynamic> ? MenuSize.fromJson(s) : null)
+          .map((s) {
+            if (s is Map<String, dynamic>) {
+              final size = MenuSize.fromJson(s);
+              return isBaloji 
+                  ? MenuSize(label: size.label, price: (size.price * 0.8).roundToDouble())
+                  : size;
+            }
+            return null;
+          })
           .whereType<MenuSize>()
           .toList();
     }
@@ -128,6 +139,9 @@ class MenuItem {
     double? price;
     if (json['price'] != null) {
       price = (json['price'] is num) ? (json['price'] as num).toDouble() : double.tryParse(json['price'].toString());
+      if (price != null && isBaloji) {
+        price = (price * 0.8).roundToDouble();
+      }
     }
 
     return MenuItem(
@@ -137,7 +151,7 @@ class MenuItem {
       alt: (json['alt'] ?? '').toString(),
       price: price,
       venueId: json['venueId'] != null ? int.tryParse(json['venueId'].toString()) : null,
-      venueName: (json['venueName'] ?? '').toString(),
+      venueName: venueName,
       sizes: sizes,
       addons: addons,
     );
