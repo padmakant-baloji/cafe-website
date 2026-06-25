@@ -2515,10 +2515,71 @@ document.addEventListener('DOMContentLoaded', () => {
     const partnerMenuMsg = document.getElementById('adminPartnerMenuMsg');
     const partnerMenuModalTitle = document.getElementById('adminPartnerMenuModalTitle');
     const partnerMenuModalSub = document.getElementById('adminPartnerMenuModalSub');
+    const partnerMenuItemImage = document.getElementById('adminPartnerMenuItemImage');
+    const partnerMenuItemImagePreview = document.getElementById('adminPartnerMenuItemImagePreview');
+    const partnerMenuItemImagePreviewImg = document.getElementById('adminPartnerMenuItemImagePreviewImg');
+    const partnerMenuItemImageClear = document.getElementById('adminPartnerMenuItemImageClear');
     let partnerMenuVenueId = null;
     let partnerMenuCategories = [];
     let partnerMenuVenueName = '';
     let partnerMenuEditing = null;
+    let partnerMenuPendingImageBase64 = null;
+
+    function compressMenuItemImage(file, maxDim = 400) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+                        else { w = Math.round(w * maxDim / h); h = maxDim; }
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/webp', 0.75));
+                };
+                img.onerror = () => reject(new Error('Invalid image'));
+                img.src = reader.result;
+            };
+            reader.onerror = () => reject(new Error('Could not read file'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function showMenuItemImagePreview(src) {
+        if (partnerMenuItemImagePreview && partnerMenuItemImagePreviewImg) {
+            partnerMenuItemImagePreviewImg.src = src;
+            partnerMenuItemImagePreview.style.display = 'inline-block';
+        }
+    }
+
+    function clearMenuItemImage() {
+        partnerMenuPendingImageBase64 = null;
+        if (partnerMenuItemImage) partnerMenuItemImage.value = '';
+        if (partnerMenuItemImagePreview) partnerMenuItemImagePreview.style.display = 'none';
+        if (partnerMenuItemImagePreviewImg) partnerMenuItemImagePreviewImg.src = '';
+    }
+
+    partnerMenuItemImage?.addEventListener('change', async () => {
+        const file = partnerMenuItemImage.files?.[0];
+        if (!file) return;
+        try {
+            partnerMenuPendingImageBase64 = await compressMenuItemImage(file);
+            showMenuItemImagePreview(partnerMenuPendingImageBase64);
+        } catch {
+            setPartnerMenuMessage('Could not load image.', 'error');
+            clearMenuItemImage();
+        }
+    });
+
+    partnerMenuItemImageClear?.addEventListener('click', () => {
+        partnerMenuPendingImageBase64 = '__clear__';
+        clearMenuItemImage();
+    });
 
     function slugifyMenuId(text) {
         return (
@@ -2721,6 +2782,7 @@ document.addEventListener('DOMContentLoaded', () => {
         partnerMenuAddForm?.reset();
         if (partnerMenuHalfFullToggle) partnerMenuHalfFullToggle.checked = false;
         syncPartnerMenuPricingFields();
+        clearMenuItemImage();
     }
 
     function findPartnerMenuItemRef(categoryId, itemId) {
@@ -2770,6 +2832,12 @@ document.addEventListener('DOMContentLoaded', () => {
         delete updated.basePrice;
         Object.assign(updated, pricing);
 
+        if (partnerMenuPendingImageBase64 === '__clear__') {
+            updated.image = '';
+        } else if (partnerMenuPendingImageBase64) {
+            updated.image = partnerMenuPendingImageBase64;
+        }
+
         const targetCat = findOrCreatePartnerCategory(partnerMenuCategories, values.categoryName);
         if (!targetCat.items) targetCat.items = [];
         targetCat.items.push(updated);
@@ -2808,6 +2876,12 @@ document.addEventListener('DOMContentLoaded', () => {
             partnerMenuItemPrice.value = price != null ? String(price) : '';
             if (partnerMenuItemHalfPrice) partnerMenuItemHalfPrice.value = '';
             if (partnerMenuItemFullPrice) partnerMenuItemFullPrice.value = '';
+        }
+
+        clearMenuItemImage();
+        if (ref.item.image && ref.item.image !== 'images/placeholder-icon.svg') {
+            partnerMenuPendingImageBase64 = null;
+            showMenuItemImagePreview(ref.item.image);
         }
 
         setPartnerMenuMessage('', null);
@@ -3042,14 +3116,17 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             const cat = findOrCreatePartnerCategory(partnerMenuCategories, categoryName);
             if (!cat.items) cat.items = [];
-            cat.items.push({
+            const newItem = {
                 id: makeUniquePartnerItemId(partnerMenuCategories, name),
                 name,
                 alt: name,
-                image: 'images/placeholder-icon.svg',
+                image: partnerMenuPendingImageBase64 && partnerMenuPendingImageBase64 !== '__clear__'
+                    ? partnerMenuPendingImageBase64
+                    : 'images/placeholder-icon.svg',
                 enabled: true,
                 ...pricing
-            });
+            };
+            cat.items.push(newItem);
         }
 
         setBtnLoading(partnerMenuAddBtn, true);

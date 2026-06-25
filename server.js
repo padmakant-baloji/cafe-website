@@ -48,7 +48,7 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const ROOT = __dirname;
 
-app.use(express.json({ limit: '256kb' }));
+app.use(express.json({ limit: '5mb' }));
 
 async function requireAdmin(req, res, next) {
     try {
