@@ -1115,7 +1115,7 @@ function buildDeliveryOrderArticleHtml(o) {
     }
     
     if (o.payment_screenshot) {
-        screenshotBtn = `<button type="button" class="admin-btn admin-btn--copy" onclick="openAdminScreenshotModal(this)" data-screenshot="${escapeHtml(o.payment_screenshot)}" style="background:#2563EB;color:#fff;border-color:#2563EB;">View Screenshot</button>`;
+        screenshotBtn = `<button type="button" class="admin-btn admin-btn--screenshot" data-action="view_screenshot" data-id="${id}">View screenshot</button>`;
     } else if (o.payment_status !== 'completed' && o.status !== 'cancelled' && o.status !== 'rejected') {
         screenshotBtn = `<span style="font-size: 0.75rem; color: #94a3b8; padding: 0.25rem 0.5rem;">Screenshot pending</span>`;
     }
@@ -1182,7 +1182,7 @@ function buildKotOrderArticleHtml(o) {
 
     let screenshotBtn = '';
     if (o.payment_screenshot) {
-        screenshotBtn = `<button type="button" class="admin-btn admin-btn--copy" onclick="openAdminScreenshotModal(this)" data-screenshot="${escapeHtml(o.payment_screenshot)}" style="background:#2563EB;color:#fff;border-color:#2563EB;">View Screenshot</button>`;
+        screenshotBtn = `<button type="button" class="admin-btn admin-btn--screenshot" data-action="view_screenshot" data-id="${id}">View screenshot</button>`;
     } else if (o.payment_status !== 'completed' && o.status !== 'cancelled' && o.status !== 'rejected') {
         screenshotBtn = `<span style="font-size: 0.75rem; color: #94a3b8; padding: 0.25rem 0.5rem;">Screenshot pending</span>`;
     }
@@ -3262,6 +3262,77 @@ document.addEventListener('DOMContentLoaded', () => {
         if (payModalUpiBtn) payModalUpiBtn.disabled = false;
     }
 
+    const screenshotModalEl = document.getElementById('adminScreenshotModal');
+    const screenshotImgEl = document.getElementById('adminScreenshotImg');
+    const screenshotLoadingEl = document.getElementById('adminScreenshotLoading');
+    const screenshotErrorEl = document.getElementById('adminScreenshotError');
+    const screenshotSubtitleEl = document.getElementById('adminScreenshotSubtitle');
+    const screenshotOpenLinkEl = document.getElementById('adminScreenshotOpenLink');
+    const screenshotCloseBtn = document.getElementById('adminScreenshotClose');
+    const screenshotDoneBtn = document.getElementById('adminScreenshotDoneBtn');
+
+    function setScreenshotModalState(state) {
+        if (screenshotLoadingEl) screenshotLoadingEl.hidden = state !== 'loading';
+        if (screenshotErrorEl) screenshotErrorEl.hidden = state !== 'error';
+        if (screenshotImgEl) screenshotImgEl.hidden = state !== 'ready';
+        if (screenshotOpenLinkEl) screenshotOpenLinkEl.hidden = state !== 'ready';
+    }
+
+    function hideAdminScreenshotModal() {
+        if (!screenshotModalEl) return;
+        screenshotModalEl.hidden = true;
+        if (screenshotImgEl) {
+            screenshotImgEl.onload = null;
+            screenshotImgEl.onerror = null;
+            screenshotImgEl.removeAttribute('src');
+        }
+        if (screenshotOpenLinkEl) screenshotOpenLinkEl.setAttribute('href', '#');
+        setScreenshotModalState('loading');
+    }
+
+    function showAdminScreenshotModal(orderId) {
+        if (!screenshotModalEl || !screenshotImgEl) return;
+
+        const order = (lastOrders || []).find((o) => String(o.id) === String(orderId));
+        const src = String(order?.payment_screenshot || '').trim();
+
+        if (screenshotSubtitleEl) {
+            screenshotSubtitleEl.textContent = order
+                ? `Order #${order.id} · ${order.name || 'Customer'} · ₹${Number(order.total) || 0}`
+                : `Order #${orderId}`;
+        }
+
+        setScreenshotModalState('loading');
+        screenshotModalEl.hidden = false;
+
+        if (!src) {
+            setScreenshotModalState('error');
+            return;
+        }
+
+        screenshotImgEl.onload = () => setScreenshotModalState('ready');
+        screenshotImgEl.onerror = () => setScreenshotModalState('error');
+        screenshotImgEl.removeAttribute('src');
+        screenshotImgEl.src = src;
+        if (screenshotOpenLinkEl) screenshotOpenLinkEl.href = src;
+        if (screenshotImgEl.complete && screenshotImgEl.naturalWidth > 0) {
+            setScreenshotModalState('ready');
+        }
+    }
+
+    window.openAdminScreenshotModal = showAdminScreenshotModal;
+
+    screenshotCloseBtn?.addEventListener('click', hideAdminScreenshotModal);
+    screenshotDoneBtn?.addEventListener('click', hideAdminScreenshotModal);
+    screenshotModalEl?.addEventListener('click', (e) => {
+        if (e.target === screenshotModalEl) hideAdminScreenshotModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && screenshotModalEl && !screenshotModalEl.hidden) {
+            hideAdminScreenshotModal();
+        }
+    });
+
     function showCompletePayModal(orderId) {
         if (!payModalEl) return;
         const order = (lastOrders || []).find((o) => String(o.id) === String(orderId));
@@ -3689,6 +3760,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (action === 'view_screenshot') {
+            showAdminScreenshotModal(id);
+            return;
+        }
+
         setBtnLoading(btn, true);
         try {
             await patchOrder(id, action);
@@ -3789,10 +3865,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.printAdminOrderReceipt = function(orderId) {
-        const order = allOrdersMap.get(orderId);
+        const order = (lastOrders || []).find((o) => String(o.id) === String(orderId));
         if (!order) return;
 
         const styles = `
+        @page { size: 72mm auto; margin: 0; }
         body { font-family: -apple-system, sans-serif; margin: 0; padding: 2mm; background: #fff; color: #000; width: 72mm; }
         .kot-print-sheet { width: 100%; box-sizing: border-box; }
         .kot-print-header { text-align: center; margin-bottom: 2mm; }
@@ -3816,7 +3893,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .kot-print-delivery { text-align: center; font-size: 14px; font-weight: 700; line-height: 1.4; margin-top: 1.5mm; }
         `;
 
-        const venueName = (adminState.adminVenue && adminState.adminVenue.name) || "QuickKart";
+        const venueName = (currentVenue && currentVenue.name) || 'QuickKart';
         const printedAt = new Date().toLocaleString('en-IN', {
             day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
         });
@@ -3884,32 +3961,16 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         doc.close();
 
-        setTimeout(() => {
-            frame.contentWindow.focus();
-            frame.contentWindow.print();
-        }, 500);
+        const win = frame.contentWindow;
+        if (!win) return;
+
+        const runPrint = () => {
+            win.focus();
+            win.print();
+        };
+
+        requestAnimationFrame(() => requestAnimationFrame(runPrint));
     };
 
     initAdmin();
-});
-
-// Admin Screenshot Modal Logic
-document.addEventListener('DOMContentLoaded', () => {
-    const screenshotModal = document.getElementById('adminScreenshotModal');
-    const screenshotImg = document.getElementById('adminScreenshotImg');
-    const screenshotClose = document.getElementById('adminScreenshotClose');
-
-    window.openAdminScreenshotModal = function(btn) {
-        if (!screenshotModal || !screenshotImg) return;
-        screenshotImg.src = btn.getAttribute('data-screenshot') || '';
-        screenshotModal.hidden = false;
-        screenshotModal.style.display = 'flex';
-    };
-
-    if (screenshotClose && screenshotModal) {
-        screenshotClose.addEventListener('click', () => {
-            screenshotModal.hidden = true;
-            screenshotModal.style.display = 'none';
-        });
-    }
 });

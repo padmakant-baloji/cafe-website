@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
-const PRECACHE = 'quickkart-pwa-cache-v21';
-const RUNTIME = 'quickkart-pwa-runtime-v17';
+const PRECACHE = 'quickkart-pwa-cache-v22';
+const RUNTIME = 'quickkart-pwa-runtime-v18';
 
 self.addEventListener('install', (event) => {
   const assets = [
@@ -9,6 +9,8 @@ self.addEventListener('install', (event) => {
     '/menu',
     '/orders',
     '/profile',
+    '/login',
+    '/privacy-policy',
     '/download',
     '/styles.css',
     '/pwa-client.js',
@@ -17,6 +19,7 @@ self.addEventListener('install', (event) => {
     '/download.js',
     '/orders.js',
     '/profile.js',
+    '/login.js',
     '/script.js',
     '/grocery.js',
     '/sw.js',

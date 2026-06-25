@@ -220,8 +220,9 @@ function renderMyOrders(orders) {
             let payButtonHtml = '';
             if (order.paymentStatus === 'pending' && order.venuePaymentQrCode && status !== 'cancelled' && status !== 'rejected') {
                 payButtonHtml = `
-                    <div style="margin-top: 1rem; border-top: 1px dashed rgba(148, 163, 184, 0.4); padding-top: 0.75rem;">
-                        <button type="button" class="btn btn-primary" onclick="openCustomerQrModal('${order.id}')" style="width:100%; background:#059669; color:#fff;">Pay via QR Code</button>
+                    <div class="my-order-pay">
+                        <p class="my-order-pay-label">UPI payment pending</p>
+                        <button type="button" class="my-order-pay-btn" onclick="openCustomerQrModal('${order.id}')">Pay via QR</button>
                     </div>
                 `;
             }
@@ -344,10 +345,10 @@ window.openCustomerQrModal = function(orderId) {
     if (modal && img) {
         img.src = order.venuePaymentQrCode;
         modal.hidden = false;
-        modal.style.display = 'flex';
         
         if (uploadBtn && uploadInput) {
-            uploadBtn.textContent = 'Upload Screenshot';
+            uploadBtn.textContent = 'Upload screenshot';
+            uploadBtn.classList.remove('is-success');
             uploadBtn.disabled = false;
             
             // Clean up previous event listeners
@@ -399,9 +400,9 @@ window.openCustomerQrModal = function(orderId) {
                             });
                             
                             if (res.ok) {
-                                newUploadBtn.textContent = 'Screenshot Uploaded';
-                                newUploadBtn.style.background = '#059669'; // Green success
-                                order.payment_screenshot = base64; // Update local state
+                                newUploadBtn.textContent = 'Uploaded ✓';
+                                newUploadBtn.classList.add('is-success');
+                                order.payment_screenshot = base64;
                             } else {
                                 newUploadBtn.textContent = 'Upload Failed. Try Again';
                                 newUploadBtn.disabled = false;
@@ -436,15 +437,16 @@ window.openCustomerQrModal = function(orderId) {
     }
 };
 
+function closeCustomerQrModal() {
+    const modal = document.getElementById('customerQrModal');
+    if (modal) modal.hidden = true;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('customerQrModal');
     const closeBtn = document.getElementById('customerQrCloseBtn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            const modal = document.getElementById('customerQrModal');
-            if (modal) {
-                modal.hidden = true;
-                modal.style.display = 'none';
-            }
-        });
-    }
+    closeBtn?.addEventListener('click', closeCustomerQrModal);
+    modal?.addEventListener('click', (e) => {
+        if (e.target === modal) closeCustomerQrModal();
+    });
 });

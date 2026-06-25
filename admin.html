@@ -1009,6 +1009,7 @@
         .admin-btn--out { background: #7c3aed; color: #fff; }
         .admin-btn--complete { background: #15803d; color: #fff; }
         .admin-btn--copy { background: var(--surface-muted); color: var(--text); border: 1px solid var(--card-border); }
+        .admin-btn--screenshot { background: #2563eb; color: #fff; border: 1px solid #2563eb; }
         .admin-toast {
             position: fixed;
             bottom: 1.25rem;
@@ -1798,7 +1799,8 @@
             .admin-modal-card,
             #adminHotelsModal .admin-modal-card,
             #adminPartnerMenuModal .admin-modal-card,
-            #adminGroceryModal .admin-modal-card {
+            #adminGroceryModal .admin-modal-card,
+            #adminScreenshotModal .admin-modal-card {
                 width: 100%;
                 max-width: 100%;
                 max-height: 94vh;
@@ -1831,7 +1833,84 @@
             .admin-modal-card,
             #adminHotelsModal .admin-modal-card,
             #adminPartnerMenuModal .admin-modal-card,
-            #adminGroceryModal .admin-modal-card { animation: none; }
+            #adminGroceryModal .admin-modal-card,
+            #adminScreenshotModal .admin-modal-card { animation: none; }
+        }
+
+        #adminScreenshotModal .admin-modal-card {
+            width: min(100%, 28rem);
+            max-height: min(94vh, 640px);
+            display: flex;
+            flex-direction: column;
+            padding-bottom: calc(1.05rem + env(safe-area-inset-bottom, 0px));
+        }
+        .admin-screenshot-viewport {
+            flex: 1 1 auto;
+            min-height: 12rem;
+            max-height: min(58vh, 480px);
+            overflow: auto;
+            background: #f8fafc;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.65rem;
+            -webkit-overflow-scrolling: touch;
+        }
+        .admin-screenshot-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+        }
+        .admin-screenshot-state {
+            margin: 0;
+            padding: 2rem 1rem;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+        .admin-screenshot-state--loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.65rem;
+        }
+        .admin-screenshot-spinner {
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 2px solid #cbd5e1;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: admin-btn-spin 0.7s linear infinite;
+        }
+        .admin-screenshot-actions {
+            display: flex;
+            gap: 0.55rem;
+            margin-top: 0.85rem;
+            flex-shrink: 0;
+        }
+        .admin-screenshot-actions .admin-btn,
+        .admin-screenshot-actions .admin-screenshot-open {
+            flex: 1;
+            min-height: 2.5rem;
+            text-align: center;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .admin-screenshot-open {
+            background: var(--surface-muted);
+            color: var(--text);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            font: inherit;
+            font-weight: 700;
+            font-size: 0.875rem;
         }
 
         /* =====================================================
@@ -3159,19 +3238,31 @@
         </div>
     </div>
 
-    <div id="adminScreenshotModal" class="admin-modal-overlay" hidden>
-        <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="adminScreenshotTitle" style="max-width: 450px;">
-            <header class="admin-modal-header">
-                <h2 id="adminScreenshotTitle" class="admin-modal-title">Payment Screenshot</h2>
-                <button type="button" class="admin-modal-close" id="adminScreenshotClose" aria-label="Close modal">×</button>
-            </header>
-            <div style="padding: 1rem; text-align: center;">
-                <img id="adminScreenshotImg" src="" alt="Payment Screenshot" style="max-width: 100%; border-radius: 8px;">
+    <div id="adminScreenshotModal" class="admin-modal" hidden>
+        <div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminScreenshotTitle">
+            <div class="admin-modal-head">
+                <div>
+                    <div class="admin-modal-title" id="adminScreenshotTitle">Payment screenshot</div>
+                    <div class="admin-modal-sub" id="adminScreenshotSubtitle">Customer payment proof</div>
+                </div>
+                <button type="button" id="adminScreenshotClose" class="admin-popup-close" aria-label="Close">Close</button>
+            </div>
+            <div class="admin-screenshot-viewport" id="adminScreenshotViewport">
+                <p class="admin-screenshot-state admin-screenshot-state--loading" id="adminScreenshotLoading">
+                    <span class="admin-screenshot-spinner" aria-hidden="true"></span>
+                    Loading screenshot…
+                </p>
+                <p class="admin-screenshot-state" id="adminScreenshotError" hidden>Screenshot not available for this order.</p>
+                <img id="adminScreenshotImg" class="admin-screenshot-img" src="" alt="Payment screenshot proof" hidden>
+            </div>
+            <div class="admin-screenshot-actions">
+                <a id="adminScreenshotOpenLink" class="admin-screenshot-open" href="#" target="_blank" rel="noopener noreferrer" hidden>Open full size</a>
+                <button type="button" id="adminScreenshotDoneBtn" class="admin-btn admin-btn--accept">Done</button>
             </div>
         </div>
     </div>
 
     <script src="/admin-auth.js?v=6"></script>
-    <script src="/admin.js?v=36"></script>
+    <script src="/admin.js?v=37"></script>
 </body>
 </html>

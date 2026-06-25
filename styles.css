@@ -8796,6 +8796,193 @@ body.session-gate-open {
     letter-spacing: -0.02em;
 }
 
+.my-order-pay {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed rgba(148, 163, 184, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+}
+
+.my-order-pay-label {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #64748b;
+    line-height: 1.35;
+}
+
+.my-order-pay-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 2rem;
+    padding: 0.35rem 0.75rem;
+    border: none;
+    border-radius: 999px;
+    background: #059669;
+    color: #fff;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(5, 150, 105, 0.25);
+}
+
+.my-order-pay-btn:active {
+    transform: scale(0.98);
+}
+
+/* Payment QR modal (orders + checkout success) */
+.payment-qr-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+}
+
+.payment-qr-modal:not([hidden]) {
+    display: flex;
+}
+
+.payment-qr-modal__panel {
+    position: relative;
+    width: min(100%, 22rem);
+    background: #fff;
+    border-radius: 16px;
+    padding: 1rem 1rem 0.85rem;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    text-align: center;
+}
+
+.payment-qr-modal__close {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.45rem;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.payment-qr-modal__title {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.payment-qr-modal__hint {
+    margin: 0 0 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: #64748b;
+}
+
+.payment-qr-modal__img {
+    width: min(100%, 11.5rem);
+    margin: 0 auto 0.85rem;
+    display: block;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.payment-qr-modal__actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.55rem;
+}
+
+.payment-qr-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 2rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.payment-qr-btn--upload {
+    background: #2563eb;
+    color: #fff;
+    border-color: #2563eb;
+}
+
+.payment-qr-btn--upload.is-success {
+    background: #059669;
+    border-color: #059669;
+}
+
+.payment-qr-btn--whatsapp {
+    background: #ecfdf5;
+    color: #15803d;
+    border-color: #bbf7d0;
+}
+
+.payment-qr-btn--whatsapp svg {
+    flex-shrink: 0;
+}
+
+.payment-qr-btn--ghost {
+    width: 100%;
+    margin-top: 0.15rem;
+    background: transparent;
+    color: #64748b;
+    border: none;
+    font-weight: 600;
+}
+
+.payment-qr-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.order-success-qr-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    margin-top: 0.35rem;
+}
+
+.order-success-qr {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed rgba(148, 163, 184, 0.35);
+}
+
+.order-success-qr-label {
+    margin: 0 0 0.5rem;
+    font-weight: 600;
+    color: #059669;
+}
+
 .my-order-cancel {
     margin-top: 0.75rem;
     padding-top: 0.75rem;
