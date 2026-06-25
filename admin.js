@@ -52,18 +52,8 @@ let newOrderPopupOrderId = null;
 let adminManualLoginDone = false;
 
 async function failAdminBoot(message) {
-    if (adminManualLoginDone || window.quickkartAdminAuth.loadAdminToken()) {
-        return false;
-    }
     clearAdminCredentials();
     window.location.href = '/admin-login' + (message ? '?error=' + encodeURIComponent(message) : '');
-    hideNewOrderPopup();
-    pendingPopupQueue = [];
-    pendingPopupQueueIds = new Set();
-    const listEl = document.getElementById('adminOrderList');
-    if (listEl) {
-        listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
-    }
     return true;
 }
 
@@ -490,7 +480,7 @@ function applyMainVenueUi() {
 
     const menuBtn = document.getElementById('adminPartnerMenuBtn');
     if (menuBtn) {
-        menuBtn.hidden = !isFoodPartner;
+        menuBtn.hidden = isGrocery;
         menuBtn.setAttribute('data-tip', 'Hotel menu');
         menuBtn.setAttribute('aria-label', 'Edit hotel menu');
     }
@@ -504,7 +494,7 @@ function applyMainVenueUi() {
 
     const profileBtn = document.getElementById('adminVenueProfileBtn');
     if (profileBtn) {
-        profileBtn.hidden = isMain;
+        profileBtn.hidden = isGrocery;
         profileBtn.setAttribute('data-tip', isGrocery ? 'Store info' : 'Hotel info');
         profileBtn.setAttribute('aria-label', isGrocery ? 'Edit store info' : 'Edit hotel info');
         profileBtn.textContent = isGrocery ? '🏪' : '🏨';
@@ -3710,17 +3700,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     logoutBtn?.addEventListener('click', () => {
-        adminManualLoginDone = false;
         clearAdminCredentials();
-        currentVenue = null;
-        hasGroceryStores = false;
-        applyMainVenueUi();
-        hideNewOrderPopup();
-        pendingPopupQueue = [];
-        pendingPopupQueueIds = new Set();
-        showAdminGate('Signed out.');
-        listEl.innerHTML = '<p class="admin-empty">Login required to view orders.</p>';
-        if (tabsEl) tabsEl.innerHTML = '';
+        window.location.href = '/admin-login';
     });
 
     authForm?.addEventListener('submit', async (event) => {
@@ -3738,9 +3719,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearAdminCredentials();
                 showAdminGate('Invalid admin credentials. Please try again.');
             } else {
-                adminManualLoginDone = true;
-                hideAdminGate();
-                await loadAdminDashboard('Loading orders…');
+                window.location.reload();
             }
         } finally {
             setBtnLoading(authSubmit, false);
@@ -3764,7 +3743,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             if (adminManualLoginDone) return;
             if (window.quickkartAdminAuth.loadAdminToken()) {
-                showAdminGate(err.message || 'Could not verify session. Try refresh.');
+                await failAdminBoot(err.message || 'Could not verify session. Please log in again.');
                 return;
             }
             await failAdminBoot(err.message || 'Could not verify session.');
@@ -3788,6 +3767,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         }
+        if (adminManualLoginDone) return;
+        await loadAdminDashboard('Loading orders…');
     };
 
     window.printAdminOrderReceipt = function(orderId) {
@@ -3890,10 +3871,6 @@ document.addEventListener('DOMContentLoaded', () => {
             frame.contentWindow.focus();
             frame.contentWindow.print();
         }, 500);
-    };
-
-        if (adminManualLoginDone) return;
-        await loadAdminDashboard('Loading orders…');
     };
 
     initAdmin();
