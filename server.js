@@ -281,6 +281,39 @@ app.post('/api/order', requireCustomer, async (req, res) => {
     }
 });
 
+app.patch('/api/orders/:id/screenshot', requireCustomer, async (req, res) => {
+    try {
+        await ensureSchema();
+        const orderId = parseId(req.params.id);
+        if (Number.isNaN(orderId)) {
+            return res.status(400).json({ error: 'Invalid order id.' });
+        }
+        
+        const { paymentScreenshot } = req.body || {};
+        if (!paymentScreenshot || typeof paymentScreenshot !== 'string') {
+            return res.status(400).json({ error: 'Invalid screenshot.' });
+        }
+        
+        const { query } = require('./lib/db.js');
+        // ensure customer owns order
+        const { rows } = await query(
+            `UPDATE orders SET payment_screenshot = $1
+             WHERE id = $2 AND customer_mobile = $3
+             RETURNING id, payment_screenshot`,
+            [paymentScreenshot, orderId, req.customerSession.mobile]
+        );
+        
+        if (rows.length === 0) {
+             return res.status(404).json({ error: 'Order not found or unauthorized.' });
+        }
+        
+        return res.json({ ok: true });
+    } catch (err) {
+        console.error('upload screenshot error:', err.message);
+        return res.status(500).json({ error: 'Could not upload screenshot.' });
+    }
+});
+
 app.post('/api/orders/:id/cancel', requireCustomer, async (req, res) => {
     try {
         await ensureSchema();

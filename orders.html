@@ -94,11 +94,13 @@
         </section>
     </div>
 
-    <div id="customerQrModal" class="pwa-install" hidden style="z-index: 10000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
+    <div id="customerQrModal" class="pwa-install" hidden style="z-index: 10000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
         <div class="pwa-install-inner" style="background: #fff; padding: 1.5rem; border-radius: 12px; width: 90%; max-width: 400px; text-align: center;">
             <div class="pwa-install-title" style="margin-bottom: 1rem;">Pay via QR Code</div>
             <img id="customerQrImg" src="" alt="Payment QR Code" style="width: 100%; max-width: 250px; margin: 0 auto 1rem; display: block; border-radius: 8px;">
             <div class="pwa-install-actions" style="flex-direction: column; gap: 0.5rem;">
+                <input type="file" id="customerQrUploadInput" accept="image/*" style="display:none;">
+                <button type="button" class="btn btn-primary" id="customerQrUploadBtn" style="background: #2563EB; color: #fff; border: none; width: 100%;">Upload Screenshot</button>
                 <button type="button" class="btn btn-primary" id="customerQrWhatsappBtn" style="background: #25D366; color: #fff; border: none; width: 100%;">Send Screenshot via WhatsApp</button>
                 <button type="button" class="btn btn-secondary" id="customerQrCloseBtn" style="width: 100%;">Close</button>
             </div>
@@ -140,7 +142,7 @@
     </nav>
 
     <script src="/header-status.js?v=1" defer></script>
-    <script src="/orders.js?v=16" defer></script>
+    <script src="/orders.js?v=17" defer></script>
     <script src="/review-prompt.js" defer></script>
     <script src="/pwa-client.js" defer></script>
 </body>

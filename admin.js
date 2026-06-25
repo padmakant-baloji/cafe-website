@@ -922,6 +922,8 @@ function renderAdminAnalytics(orders) {
     if (headerCashEl) headerCashEl.textContent = formatMoney(data.cashSettledToday);
     const headerUpiEl = document.getElementById('adminHeaderUpiSale');
     if (headerUpiEl) headerUpiEl.textContent = formatMoney(data.upiSettledToday);
+    
+
 
     const updatedEl = document.getElementById('adminAnalyticsUpdatedAt');
     if (updatedEl) updatedEl.textContent = `Updated ${data.updatedAt.toLocaleTimeString()}`;
@@ -1101,6 +1103,8 @@ function buildDeliveryOrderArticleHtml(o) {
     
     let paymentStatusBadge = '';
     let markPaidBtn = '';
+    let screenshotBtn = '';
+    
     if (o.payment_status === 'completed') {
         paymentStatusBadge = '<span class="admin-order-status" style="background:#dcfce7;color:#166534;">Payment: Completed</span>';
     } else {
@@ -1108,6 +1112,12 @@ function buildDeliveryOrderArticleHtml(o) {
         if (o.status !== 'cancelled' && o.status !== 'rejected') {
             markPaidBtn = `<button type="button" class="admin-btn admin-btn--prep" data-action="mark_paid" data-id="${id}" style="background:#16a34a;color:#fff;">Mark Paid</button>`;
         }
+    }
+    
+    if (o.payment_screenshot) {
+        screenshotBtn = `<button type="button" class="admin-btn admin-btn--copy" onclick="openAdminScreenshotModal(this)" data-screenshot="${escapeHtml(o.payment_screenshot)}" style="background:#2563EB;color:#fff;border-color:#2563EB;">View Screenshot</button>`;
+    } else if (o.payment_status !== 'completed' && o.status !== 'cancelled' && o.status !== 'rejected') {
+        screenshotBtn = `<span style="font-size: 0.75rem; color: #94a3b8; padding: 0.25rem 0.5rem;">Screenshot pending</span>`;
     }
 
     return `
@@ -1138,7 +1148,7 @@ function buildDeliveryOrderArticleHtml(o) {
                     <div class="admin-order-items">${itemsHtml}</div>
                     <div class="admin-order-total">Total: ₹${Number(o.total) || 0}</div>
                     <div class="admin-order-actions">
-                        ${actions}${markPaidBtn}
+                        ${actions}${markPaidBtn}${screenshotBtn}
                         <button type="button" class="admin-btn admin-btn--outline" onclick="printAdminOrderReceipt('${escapeHtml(id)}')">Print</button>
                     </div>
                 </article>
@@ -1170,6 +1180,13 @@ function buildKotOrderArticleHtml(o) {
             : 'No tickets yet';
     const payPill = o.status === 'completed' ? formatPaymentPillHtml(o) : '';
 
+    let screenshotBtn = '';
+    if (o.payment_screenshot) {
+        screenshotBtn = `<button type="button" class="admin-btn admin-btn--copy" onclick="openAdminScreenshotModal(this)" data-screenshot="${escapeHtml(o.payment_screenshot)}" style="background:#2563EB;color:#fff;border-color:#2563EB;">View Screenshot</button>`;
+    } else if (o.payment_status !== 'completed' && o.status !== 'cancelled' && o.status !== 'rejected') {
+        screenshotBtn = `<span style="font-size: 0.75rem; color: #94a3b8; padding: 0.25rem 0.5rem;">Screenshot pending</span>`;
+    }
+
     return `
                 <article class="admin-order admin-order--kot" data-order-id="${id}">
                     <header class="admin-order-head admin-order-head--kot">
@@ -1189,7 +1206,7 @@ function buildKotOrderArticleHtml(o) {
                     </div>
                     <div class="admin-order-items">${itemsHtml || '<div class="admin-order-line" style="color:var(--muted)">No lines yet</div>'}</div>
                     <div class="admin-order-total">Total: ₹${Number(o.total) || 0}</div>
-                    <div class="admin-order-actions">${copyBtn}${floorBtn}</div>
+                    <div class="admin-order-actions">${copyBtn}${floorBtn}${screenshotBtn}</div>
                 </article>
             `;
 }
@@ -3874,4 +3891,25 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     initAdmin();
+});
+
+// Admin Screenshot Modal Logic
+document.addEventListener('DOMContentLoaded', () => {
+    const screenshotModal = document.getElementById('adminScreenshotModal');
+    const screenshotImg = document.getElementById('adminScreenshotImg');
+    const screenshotClose = document.getElementById('adminScreenshotClose');
+
+    window.openAdminScreenshotModal = function(btn) {
+        if (!screenshotModal || !screenshotImg) return;
+        screenshotImg.src = btn.getAttribute('data-screenshot') || '';
+        screenshotModal.hidden = false;
+        screenshotModal.style.display = 'flex';
+    };
+
+    if (screenshotClose && screenshotModal) {
+        screenshotClose.addEventListener('click', () => {
+            screenshotModal.hidden = true;
+            screenshotModal.style.display = 'none';
+        });
+    }
 });

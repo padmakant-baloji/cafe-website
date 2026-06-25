@@ -338,10 +338,89 @@ window.openCustomerQrModal = function(orderId) {
     const modal = document.getElementById('customerQrModal');
     const img = document.getElementById('customerQrImg');
     const btn = document.getElementById('customerQrWhatsappBtn');
+    const uploadBtn = document.getElementById('customerQrUploadBtn');
+    const uploadInput = document.getElementById('customerQrUploadInput');
     
     if (modal && img) {
         img.src = order.venuePaymentQrCode;
         modal.hidden = false;
+        modal.style.display = 'flex';
+        
+        if (uploadBtn && uploadInput) {
+            uploadBtn.textContent = 'Upload Screenshot';
+            uploadBtn.disabled = false;
+            
+            // Clean up previous event listeners
+            const newUploadBtn = uploadBtn.cloneNode(true);
+            uploadBtn.parentNode.replaceChild(newUploadBtn, uploadBtn);
+            const newUploadInput = uploadInput.cloneNode(true);
+            uploadInput.parentNode.replaceChild(newUploadInput, uploadInput);
+            
+            newUploadBtn.addEventListener('click', () => {
+                newUploadInput.click();
+            });
+            
+            newUploadInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                newUploadBtn.textContent = 'Compressing...';
+                newUploadBtn.disabled = true;
+                
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const image = new Image();
+                    image.onload = async () => {
+                        const canvas = document.createElement('canvas');
+                        let w = image.width, h = image.height;
+                        const maxDim = 600;
+                        if (w > maxDim || h > maxDim) {
+                            if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+                            else { w = Math.round(w * maxDim / h); h = maxDim; }
+                        }
+                        canvas.width = w;
+                        canvas.height = h;
+                        canvas.getContext('2d').drawImage(image, 0, 0, w, h);
+                        
+                        const base64 = canvas.toDataURL('image/webp', 0.8);
+                        
+                        newUploadBtn.textContent = 'Uploading...';
+                        try {
+                            const token = getCustomerToken();
+                            const profile = getCustomerProfile();
+                            const res = await fetch(`/api/orders/${order.id}/screenshot`, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`,
+                                    'x-customer-mobile': String(profile.mobile)
+                                },
+                                body: JSON.stringify({ paymentScreenshot: base64 })
+                            });
+                            
+                            if (res.ok) {
+                                newUploadBtn.textContent = 'Screenshot Uploaded';
+                                newUploadBtn.style.background = '#059669'; // Green success
+                                order.payment_screenshot = base64; // Update local state
+                            } else {
+                                newUploadBtn.textContent = 'Upload Failed. Try Again';
+                                newUploadBtn.disabled = false;
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            newUploadBtn.textContent = 'Upload Failed. Try Again';
+                            newUploadBtn.disabled = false;
+                        }
+                    };
+                    image.onerror = () => {
+                        newUploadBtn.textContent = 'Invalid Image. Try Again';
+                        newUploadBtn.disabled = false;
+                    };
+                    image.src = reader.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
         
         btn.onclick = function() {
             const contact = String(order.venueContactMobile || '').replace(/\D/g, '');
@@ -362,7 +441,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
             const modal = document.getElementById('customerQrModal');
-            if (modal) modal.hidden = true;
+            if (modal) {
+                modal.hidden = true;
+                modal.style.display = 'none';
+            }
         });
     }
 });

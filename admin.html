@@ -3159,7 +3159,19 @@
         </div>
     </div>
 
+    <div id="adminScreenshotModal" class="admin-modal-overlay" hidden>
+        <div class="admin-modal" role="dialog" aria-modal="true" aria-labelledby="adminScreenshotTitle" style="max-width: 450px;">
+            <header class="admin-modal-header">
+                <h2 id="adminScreenshotTitle" class="admin-modal-title">Payment Screenshot</h2>
+                <button type="button" class="admin-modal-close" id="adminScreenshotClose" aria-label="Close modal">×</button>
+            </header>
+            <div style="padding: 1rem; text-align: center;">
+                <img id="adminScreenshotImg" src="" alt="Payment Screenshot" style="max-width: 100%; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+
     <script src="/admin-auth.js?v=6"></script>
-    <script src="/admin.js?v=35"></script>
+    <script src="/admin.js?v=36"></script>
 </body>
 </html>
