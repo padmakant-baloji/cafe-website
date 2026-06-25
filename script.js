@@ -2298,9 +2298,9 @@ function renderCartSummary() {
     const deliveryFee = showDelivery ? getDeliveryFee(subtotal, feeCity) : 0;
 
     if (subtotalEl) subtotalEl.textContent = String(subtotal);
-    if (deliveryEl) deliveryEl.textContent = String(deliveryFee);
-    if (deliveryRow) deliveryRow.hidden = !showDelivery;
-    if (totalEl) totalEl.textContent = String(subtotal + deliveryFee);
+    if (deliveryEl) deliveryEl.textContent = '0';
+    if (deliveryRow) deliveryRow.hidden = true; // Do not show delivery fee in cart, only at checkout
+    if (totalEl) totalEl.textContent = String(subtotal);
 }
 
 function renderCartDeliveryNote() {
@@ -2428,9 +2428,7 @@ function updateCartUI() {
         if (cartBarCount) cartBarCount.textContent = totalItems;
         if (cartBarItems) cartBarItems.textContent = totalItems === 1 ? '1 item' : `${totalItems} items`;
         const subtotal = getCartTotal();
-        const feeCity = getEffectiveDeliveryCity(getNormalizedCustomerCity());
-        const deliveryFee = subtotal > 0 ? getDeliveryFee(subtotal, feeCity) : 0;
-        if (cartBarTotal) cartBarTotal.textContent = `₹${subtotal + deliveryFee}`;
+        if (cartBarTotal) cartBarTotal.textContent = `₹${subtotal}`;
     }
     
     // Update cart items display

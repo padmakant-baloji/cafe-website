@@ -175,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!showFood && !showGrocery) return const SizedBox.shrink();
 
         final count = showFood ? fCount : gCount;
-        final total = showFood ? foodCart.total : groceryCart.cartSubtotal;
+        final total = showFood ? foodCart.subtotal : groceryCart.cartSubtotal;
         final title = showFood ? 'Food Cart' : 'Mart Cart';
         final route = showFood ? AppRoutes.cart : AppRoutes.groceryCart;
         // Using secondary (darker) gradient for grocery to differentiate

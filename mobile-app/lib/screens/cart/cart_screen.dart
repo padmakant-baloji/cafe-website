@@ -118,18 +118,12 @@ class CartScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       _buildTotalRow('Subtotal', '₹${cart.subtotal.round()}'),
-                      const SizedBox(height: 6),
-                      _buildTotalRow(
-                        cart.deliveryFee == 0 ? 'Delivery (free)' : 'Delivery',
-                        cart.deliveryFee == 0 ? 'FREE' : '₹${cart.deliveryFee.round()}',
-                        isHighlight: cart.deliveryFee == 0,
-                      ),
                       if (cart.couponDiscount > 0) ...[
                         const SizedBox(height: 6),
                         _buildTotalRow('Discount', '-₹${cart.couponDiscount.round()}', isHighlight: true),
                       ],
                       const Divider(height: 20, color: AppTheme.cardBorder),
-                      _buildTotalRow('Total', '₹${cart.total.round()}', isBold: true),
+                      _buildTotalRow('Total', '₹${(cart.subtotal - cart.couponDiscount).clamp(0, double.infinity).round()}', isBold: true),
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
@@ -138,7 +132,7 @@ class CartScreen extends StatelessWidget {
                           onPressed: () {
                             Navigator.pushNamed(context, AppRoutes.checkout);
                           },
-                          child: Text('Proceed to checkout · ₹${cart.total.round()}'),
+                          child: Text('Proceed to checkout · ₹${(cart.subtotal - cart.couponDiscount).clamp(0, double.infinity).round()}'),
                         ),
                       ),
                     ],
