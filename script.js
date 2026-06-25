@@ -1759,7 +1759,7 @@ function buildCartLineName(item, selectedSize, selectedAddons = []) {
 }
 
 function buildCartLinePrice(item, selectedSize, selectedAddons = []) {
-    let basePrice = selectedSize ? selectedSize.price : item.price;
+    let basePrice = selectedSize ? (selectedSize.onlinePrice || selectedSize.price) : (item.onlinePrice || item.price);
     let totalPrice = getDiscountedPrice(basePrice);
     selectedAddons.forEach((addon) => {
         totalPrice += addon.price;
@@ -4146,8 +4146,12 @@ function createMenuItem(item, categoryId) {
     let priceHTML = '';
     const hasSizes = item.sizes && item.sizes.length > 0;
 
+    function getItemOnlinePrice(itm) {
+        return itm.onlinePrice != null ? itm.onlinePrice : itm.price;
+    }
+
     if (hasSizes) {
-        const minPrice = Math.min(...item.sizes.map(s => s.price));
+        const minPrice = Math.min(...item.sizes.map(s => getItemOnlinePrice(s)));
         const discountedMin = getDiscountedPrice(minPrice);
         priceHTML = `
             <p class="price price--multi">
@@ -4156,10 +4160,11 @@ function createMenuItem(item, categoryId) {
             </p>
         `;
     } else {
-        const discountedPrice = getDiscountedPrice(item.price);
+        const p = getItemOnlinePrice(item);
+        const discountedPrice = getDiscountedPrice(p);
         priceHTML = `
             <p class="price">
-                <span class="price-original">₹${item.price}</span>
+                <span class="price-original">₹${p}</span>
                 <span class="price-main">₹${discountedPrice}</span>
             </p>
         `;
@@ -4175,7 +4180,7 @@ function createMenuItem(item, categoryId) {
                 <div class="menu-cart-control">
                     <button type="button" class="order-btn order-btn--primary-add menu-cart-add" data-item-id="${item.id}">
                         <span class="order-btn-label">Add</span>
-                        <span class="order-btn-price"><span class="order-btn-price-original">₹${item.price}</span> ₹${getDiscountedPrice(item.price)}</span>
+                        <span class="order-btn-price"><span class="order-btn-price-original">₹${getItemOnlinePrice(item)}</span> ₹${getDiscountedPrice(getItemOnlinePrice(item))}</span>
                     </button>
                     <div class="menu-cart-qty-bar" hidden aria-hidden="true" role="group">
                         <button type="button" class="menu-qty-minus" aria-label="Decrease quantity">−</button>
@@ -4206,12 +4211,13 @@ function createMenuItem(item, categoryId) {
     if (hasSizes) {
         const chipsWrap = menuItem.querySelector('.size-chips');
         item.sizes.forEach((size) => {
-            const discountedSizePrice = getDiscountedPrice(size.price);
+            const sizePrice = getItemOnlinePrice(size);
+            const discountedSizePrice = getDiscountedPrice(sizePrice);
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'size-chip';
             btn.dataset.label = size.label;
-            btn.dataset.price = String(size.price);
+            btn.dataset.price = String(sizePrice);
             btn.setAttribute(
                 'aria-label',
                 `Add ${item.name}, ${size.label} size, ${discountedSizePrice} rupees (${DISCOUNT_PERCENT}% off)`
@@ -4221,7 +4227,7 @@ function createMenuItem(item, categoryId) {
             lab.textContent = size.label;
             const origPr = document.createElement('span');
             origPr.className = 'size-chip-price-original';
-            origPr.textContent = `₹${size.price}`;
+            origPr.textContent = `₹${sizePrice}`;
             const pr = document.createElement('span');
             pr.className = 'size-chip-price';
             pr.textContent = `₹${discountedSizePrice}`;
@@ -4972,6 +4978,12 @@ function initPromoModal() {
     const ctaBtn = document.getElementById('promoCtaBtn');
 
     if (!modal || !closeBtn || !ctaBtn) return;
+
+    // Only show promo modal for Kudachi
+    const city = String(currentCustomer?.city || '').trim().toLowerCase();
+    if (city !== 'kudachi') {
+        return;
+    }
 
     setTimeout(() => {
         modal.removeAttribute('hidden');

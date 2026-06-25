@@ -210,16 +210,24 @@ function pushMenuItemToFlat(out, item, categoryType) {
     const base = String(item.name || '').trim();
     if (!base) return;
     const sizes = item.sizes && Array.isArray(item.sizes) ? item.sizes : [];
+
+    function getOfflinePrice(obj) {
+        if (obj.offlinePrice != null) return obj.offlinePrice;
+        if (obj.onlinePrice != null) return obj.onlinePrice;
+        return obj.price;
+    }
+
     if (sizes.length) {
         for (const sz of sizes) {
             const label = String(sz.label || sz.name || '').trim();
             const name = label ? `${base} (${label})` : base;
-            pushMenuFlatEntry(out, name, sz.price, categoryType);
+            pushMenuFlatEntry(out, name, getOfflinePrice(sz), categoryType);
         }
         return;
     }
-    if (item.price != null && item.price !== '') {
-        pushMenuFlatEntry(out, base, item.price, categoryType);
+    const itemPrice = getOfflinePrice(item);
+    if (itemPrice != null && itemPrice !== '') {
+        pushMenuFlatEntry(out, base, itemPrice, categoryType);
     }
 }
 

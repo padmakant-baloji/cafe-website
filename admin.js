@@ -1147,7 +1147,10 @@ function buildDeliveryOrderArticleHtml(o) {
                     </div>
                     <div class="admin-order-items">${itemsHtml}</div>
                     <div class="admin-order-total">Total: ₹${Number(o.total) || 0}</div>
-                    <div class="admin-order-actions">${actions}${markPaidBtn}</div>
+                    <div class="admin-order-actions">
+                        ${actions}${markPaidBtn}
+                        <button type="button" class="admin-btn admin-btn--outline" onclick="printAdminOrderReceipt('${escapeHtml(id)}')">Print</button>
+                    </div>
                 </article>
             `;
 }
@@ -2499,12 +2502,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const partnerMenuCloseBtn = document.getElementById('adminPartnerMenuCloseBtn');
     const partnerMenuAddForm = document.getElementById('adminPartnerMenuAddForm');
     const partnerMenuItemName = document.getElementById('adminPartnerMenuItemName');
-    const partnerMenuItemPrice = document.getElementById('adminPartnerMenuItemPrice');
+    const partnerMenuItemOnlinePrice = document.getElementById('adminPartnerMenuItemOnlinePrice');
+    const partnerMenuItemOfflinePrice = document.getElementById('adminPartnerMenuItemOfflinePrice');
     const partnerMenuHalfFullToggle = document.getElementById('adminPartnerMenuHalfFull');
     const partnerMenuSinglePriceRow = document.getElementById('adminPartnerMenuSinglePriceRow');
     const partnerMenuHalfFullRow = document.getElementById('adminPartnerMenuHalfFullRow');
-    const partnerMenuItemHalfPrice = document.getElementById('adminPartnerMenuItemHalfPrice');
-    const partnerMenuItemFullPrice = document.getElementById('adminPartnerMenuItemFullPrice');
+    const partnerMenuItemHalfOnlinePrice = document.getElementById('adminPartnerMenuItemHalfOnlinePrice');
+    const partnerMenuItemHalfOfflinePrice = document.getElementById('adminPartnerMenuItemHalfOfflinePrice');
+    const partnerMenuItemFullOnlinePrice = document.getElementById('adminPartnerMenuItemFullOnlinePrice');
+    const partnerMenuItemFullOfflinePrice = document.getElementById('adminPartnerMenuItemFullOfflinePrice');
     const partnerMenuItemCategory = document.getElementById('adminPartnerMenuItemCategory');
     const partnerMenuCategoryList = document.getElementById('adminPartnerMenuCategoryList');
     const partnerMenuList = document.getElementById('adminPartnerMenuList');
@@ -2671,30 +2677,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getPartnerMenuItemPrice(item) {
-        if (!item) return null;
-        const direct = parseInt(String(item.price), 10);
-        if (Number.isFinite(direct) && direct >= 0) return direct;
-        if (Array.isArray(item.sizes) && item.sizes.length) {
-            const prices = item.sizes
-                .map((size) => parseInt(String(size.price), 10))
-                .filter((value) => Number.isFinite(value) && value >= 0);
-            if (prices.length) return Math.min(...prices);
-        }
+        if (item.onlinePrice != null) return item.onlinePrice;
+        if (item.price != null) return item.price;
         return null;
     }
 
-    function getPartnerMenuSizePrice(item, label) {
-        if (!item || !Array.isArray(item.sizes)) return null;
-        const size = item.sizes.find((row) => String(row.label || '').trim().toLowerCase() === label);
-        if (!size) return null;
-        const price = parseInt(String(size.price), 10);
-        return Number.isFinite(price) && price >= 0 ? price : null;
+    function getPartnerMenuItemOfflinePrice(item) {
+        if (item.offlinePrice != null) return item.offlinePrice;
+        return getPartnerMenuItemPrice(item);
     }
 
     function itemUsesHalfFullPricing(item) {
-        if (!item || !Array.isArray(item.sizes) || !item.sizes.length) return false;
-        const labels = item.sizes.map((size) => String(size.label || '').trim().toLowerCase());
-        return labels.includes('half') || labels.includes('full');
+        return Boolean(item.sizes && (item.sizes.half != null || item.sizes.full != null));
+    }
+
+    function getPartnerMenuSizePrice(item, size) {
+        if (!item.sizes || !item.sizes[size]) return null;
+        if (item.sizes[size].onlinePrice != null) return item.sizes[size].onlinePrice;
+        if (item.sizes[size].price != null) return item.sizes[size].price;
+        return null;
+    }
+
+    function getPartnerMenuSizeOfflinePrice(item, size) {
+        if (!item.sizes || !item.sizes[size]) return null;
+        if (item.sizes[size].offlinePrice != null) return item.sizes[size].offlinePrice;
+        return getPartnerMenuSizePrice(item, size);
     }
 
     function formatPartnerMenuItemPrice(item) {
@@ -2704,43 +2711,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (half != null && full != null) return `₹${half} / ₹${full}`;
         if (full != null && half == null) return `₹${full}`;
         if (half != null) return `₹${half}`;
-        const direct = parseInt(String(item.price), 10);
-        if (Number.isFinite(direct) && direct >= 0) return `₹${direct}`;
-        if (Array.isArray(item.sizes) && item.sizes.length) {
-            return item.sizes.map((size) => `₹${size.price}`).join(' / ');
-        }
-        return '—';
+        const p = getPartnerMenuItemPrice(item);
+        return p != null ? `₹${p}` : '—';
     }
 
     function syncPartnerMenuPricingFields() {
         const useHalfFull = Boolean(partnerMenuHalfFullToggle?.checked);
         if (partnerMenuSinglePriceRow) partnerMenuSinglePriceRow.hidden = useHalfFull;
         if (partnerMenuHalfFullRow) partnerMenuHalfFullRow.hidden = !useHalfFull;
-        if (partnerMenuItemPrice) partnerMenuItemPrice.required = !useHalfFull;
-        if (partnerMenuItemFullPrice) partnerMenuItemFullPrice.required = useHalfFull;
+        if (partnerMenuItemOnlinePrice) partnerMenuItemOnlinePrice.required = !useHalfFull;
+        if (partnerMenuItemFullOnlinePrice) partnerMenuItemFullOnlinePrice.required = useHalfFull;
     }
 
-    function buildPartnerMenuItemPricing({ useHalfFull, price, halfPrice, fullPrice }) {
-        if (useHalfFull) {
-            const half = parseInt(String(halfPrice), 10);
-            const full = parseInt(String(fullPrice), 10);
-            const hasHalf = Number.isFinite(half) && half >= 1;
-            const hasFull = Number.isFinite(full) && full >= 1;
-            if (hasHalf && hasFull) {
-                return {
-                    sizes: [
-                        { label: 'Half', price: half },
-                        { label: 'Full', price: full }
-                    ]
+    function buildPartnerMenuItemPricing(values) {
+        if (values.useHalfFull) {
+            const sizes = {};
+            if (Number.isFinite(values.halfOnlinePrice) && values.halfOnlinePrice >= 1) {
+                sizes.half = { 
+                    onlinePrice: values.halfOnlinePrice,
+                    offlinePrice: Number.isFinite(values.halfOfflinePrice) && values.halfOfflinePrice >= 1 ? values.halfOfflinePrice : values.halfOnlinePrice
                 };
             }
-            if (hasFull) return { price: full };
-            if (hasHalf) return { price: half };
-            return {};
+            if (Number.isFinite(values.fullOnlinePrice) && values.fullOnlinePrice >= 1) {
+                sizes.full = { 
+                    onlinePrice: values.fullOnlinePrice,
+                    offlinePrice: Number.isFinite(values.fullOfflinePrice) && values.fullOfflinePrice >= 1 ? values.fullOfflinePrice : values.fullOnlinePrice
+                };
+            }
+            return { sizes };
         }
-        const single = parseInt(String(price), 10);
-        if (Number.isFinite(single) && single >= 1) return { price: single };
-        return {};
+        return { 
+            onlinePrice: values.onlinePrice,
+            offlinePrice: Number.isFinite(values.offlinePrice) && values.offlinePrice >= 1 ? values.offlinePrice : values.onlinePrice
+        };
     }
 
     function collectPartnerMenuRows(categories) {
@@ -2862,20 +2865,37 @@ document.addEventListener('DOMContentLoaded', () => {
         syncPartnerMenuPricingFields();
 
         if (useHalfFull) {
-            if (partnerMenuItemHalfPrice) {
+            if (partnerMenuItemHalfOnlinePrice) {
                 const half = getPartnerMenuSizePrice(ref.item, 'half');
-                partnerMenuItemHalfPrice.value = half != null ? String(half) : '';
+                partnerMenuItemHalfOnlinePrice.value = half != null ? String(half) : '';
             }
-            if (partnerMenuItemFullPrice) {
+            if (partnerMenuItemHalfOfflinePrice) {
+                const halfOff = getPartnerMenuSizeOfflinePrice(ref.item, 'half');
+                partnerMenuItemHalfOfflinePrice.value = halfOff != null ? String(halfOff) : '';
+            }
+            if (partnerMenuItemFullOnlinePrice) {
                 const full = getPartnerMenuSizePrice(ref.item, 'full');
-                partnerMenuItemFullPrice.value = full != null ? String(full) : '';
+                partnerMenuItemFullOnlinePrice.value = full != null ? String(full) : '';
             }
-            if (partnerMenuItemPrice) partnerMenuItemPrice.value = '';
-        } else if (partnerMenuItemPrice) {
-            const price = getPartnerMenuItemPrice(ref.item);
-            partnerMenuItemPrice.value = price != null ? String(price) : '';
-            if (partnerMenuItemHalfPrice) partnerMenuItemHalfPrice.value = '';
-            if (partnerMenuItemFullPrice) partnerMenuItemFullPrice.value = '';
+            if (partnerMenuItemFullOfflinePrice) {
+                const fullOff = getPartnerMenuSizeOfflinePrice(ref.item, 'full');
+                partnerMenuItemFullOfflinePrice.value = fullOff != null ? String(fullOff) : '';
+            }
+            if (partnerMenuItemOnlinePrice) partnerMenuItemOnlinePrice.value = '';
+            if (partnerMenuItemOfflinePrice) partnerMenuItemOfflinePrice.value = '';
+        } else {
+            if (partnerMenuItemOnlinePrice) {
+                const price = getPartnerMenuItemPrice(ref.item);
+                partnerMenuItemOnlinePrice.value = price != null ? String(price) : '';
+            }
+            if (partnerMenuItemOfflinePrice) {
+                const priceOff = getPartnerMenuItemOfflinePrice(ref.item);
+                partnerMenuItemOfflinePrice.value = priceOff != null ? String(priceOff) : '';
+            }
+            if (partnerMenuItemHalfOnlinePrice) partnerMenuItemHalfOnlinePrice.value = '';
+            if (partnerMenuItemHalfOfflinePrice) partnerMenuItemHalfOfflinePrice.value = '';
+            if (partnerMenuItemFullOnlinePrice) partnerMenuItemFullOnlinePrice.value = '';
+            if (partnerMenuItemFullOfflinePrice) partnerMenuItemFullOfflinePrice.value = '';
         }
 
         clearMenuItemImage();
@@ -2894,10 +2914,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = String(partnerMenuItemName?.value || '').trim();
         const categoryName = String(partnerMenuItemCategory?.value || '').trim();
         const useHalfFull = Boolean(partnerMenuHalfFullToggle?.checked);
-        const price = parseInt(String(partnerMenuItemPrice?.value || ''), 10);
-        const halfPrice = parseInt(String(partnerMenuItemHalfPrice?.value || ''), 10);
-        const fullPrice = parseInt(String(partnerMenuItemFullPrice?.value || ''), 10);
-        return { name, categoryName, useHalfFull, price, halfPrice, fullPrice };
+        const onlinePrice = parseInt(String(partnerMenuItemOnlinePrice?.value || ''), 10);
+        const offlinePrice = parseInt(String(partnerMenuItemOfflinePrice?.value || ''), 10);
+        const halfOnlinePrice = parseInt(String(partnerMenuItemHalfOnlinePrice?.value || ''), 10);
+        const halfOfflinePrice = parseInt(String(partnerMenuItemHalfOfflinePrice?.value || ''), 10);
+        const fullOnlinePrice = parseInt(String(partnerMenuItemFullOnlinePrice?.value || ''), 10);
+        const fullOfflinePrice = parseInt(String(partnerMenuItemFullOfflinePrice?.value || ''), 10);
+        return { name, categoryName, useHalfFull, onlinePrice, offlinePrice, halfOnlinePrice, halfOfflinePrice, fullOnlinePrice, fullOfflinePrice };
     }
 
     function validatePartnerMenuFormValues(values) {
@@ -2912,23 +2935,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
         if (values.useHalfFull) {
-            const hasHalf = Number.isFinite(values.halfPrice) && values.halfPrice >= 1;
-            const hasFull = Number.isFinite(values.fullPrice) && values.fullPrice >= 1;
+            const hasHalf = Number.isFinite(values.halfOnlinePrice) && values.halfOnlinePrice >= 1;
+            const hasFull = Number.isFinite(values.fullOnlinePrice) && values.fullOnlinePrice >= 1;
             if (!hasHalf && !hasFull) {
-                setPartnerMenuMessage('Enter at least a Full price, or both Half and Full.', 'error');
-                partnerMenuItemFullPrice?.focus();
+                setPartnerMenuMessage('Enter at least a Full online price, or both Half and Full.', 'error');
+                partnerMenuItemFullOnlinePrice?.focus();
                 return false;
             }
-            if (hasHalf && hasFull && values.halfPrice >= values.fullPrice) {
-                setPartnerMenuMessage('Half price must be less than Full price.', 'error');
-                partnerMenuItemHalfPrice?.focus();
+            if (hasHalf && hasFull && values.halfOnlinePrice >= values.fullOnlinePrice) {
+                setPartnerMenuMessage('Half online price must be less than Full online price.', 'error');
+                partnerMenuItemHalfOnlinePrice?.focus();
                 return false;
             }
             return true;
         }
-        if (!Number.isFinite(values.price) || values.price < 1) {
-            setPartnerMenuMessage('Enter a valid price.', 'error');
-            partnerMenuItemPrice?.focus();
+        if (!Number.isFinite(values.onlinePrice) || values.onlinePrice < 1) {
+            setPartnerMenuMessage('Enter a valid online price.', 'error');
+            partnerMenuItemOnlinePrice?.focus();
             return false;
         }
         return true;
@@ -3765,6 +3788,109 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         }
+    };
+
+    window.printAdminOrderReceipt = function(orderId) {
+        const order = allOrdersMap.get(orderId);
+        if (!order) return;
+
+        const styles = `
+        body { font-family: -apple-system, sans-serif; margin: 0; padding: 2mm; background: #fff; color: #000; width: 72mm; }
+        .kot-print-sheet { width: 100%; box-sizing: border-box; }
+        .kot-print-header { text-align: center; margin-bottom: 2mm; }
+        .kot-print-title { font-size: 20px; font-weight: 800; line-height: 1.25; margin-bottom: 1mm; }
+        .kot-print-address { font-size: 14px; font-weight: 600; line-height: 1.35; white-space: pre-wrap; }
+        .kot-print-rule { border-top: 1px dashed #000; margin: 2mm 0; }
+        .kot-print-order-meta { margin-bottom: 0.5mm; }
+        .kot-print-meta-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; line-height: 1.35; }
+        .kot-print-meta-left { text-align: left; flex: 1 1 auto; min-width: 0; }
+        .kot-print-meta-right { text-align: right; flex: 0 0 auto; white-space: nowrap; }
+        .kot-print-meta-line--muted { color: #333; font-size: 12px; font-weight: 500; margin-top: 0.5mm; }
+        .kot-print-table { width: 100%; border-collapse: collapse; }
+        .kot-print-table th { border-bottom: 1px dashed #000; padding: 1mm 0; font-size: 13px; font-weight: 800; }
+        .kot-print-table td { padding: 1.5mm 0; font-size: 14px; vertical-align: top; }
+        .kot-print-item { width: auto; text-align: left; word-break: break-word; font-weight: 700; }
+        .kot-print-qty { width: 10mm; text-align: center; white-space: nowrap; font-weight: 800; }
+        .kot-print-amt { width: 16mm; text-align: right; white-space: nowrap; font-weight: 800; }
+        .kot-print-empty { text-align: center; color: #444; font-weight: 600; }
+        .kot-print-total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; margin-top: 1mm; }
+        .kot-print-footer { text-align: center; font-size: 15px; font-weight: 800; margin-top: 2mm; padding-top: 1mm; }
+        .kot-print-delivery { text-align: center; font-size: 14px; font-weight: 700; line-height: 1.4; margin-top: 1.5mm; }
+        `;
+
+        const venueName = (adminState.adminVenue && adminState.adminVenue.name) || "QuickKart";
+        const printedAt = new Date().toLocaleString('en-IN', {
+            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+        });
+
+        const lines = (order.items || [])
+            .map((ln) => {
+                const q = Number(ln.quantity) || 0;
+                const p = Number(ln.price) || 0;
+                const amt = q * p;
+                return `<tr>
+                    <td class="kot-print-item">${escapeHtml(String(ln.name || ''))}</td>
+                    <td class="kot-print-qty">${q}</td>
+                    <td class="kot-print-amt">₹${amt}</td>
+                </tr>`;
+            })
+            .join('');
+
+        const receiptHtml = `<div class="kot-print-sheet">
+            <header class="kot-print-header">
+                <div class="kot-print-title">${escapeHtml(venueName)}</div>
+                <div class="kot-print-address">Online Order</div>
+            </header>
+            <div class="kot-print-rule"></div>
+            <div class="kot-print-order-meta">
+                <div class="kot-print-meta-row">
+                    <span class="kot-print-meta-left">${escapeHtml(order.name || 'Customer')}</span>
+                    <span class="kot-print-meta-right">#${escapeHtml(order.id)}</span>
+                </div>
+                ${order.mobile ? `<div class="kot-print-meta-row"><span>${escapeHtml(order.mobile)}</span></div>` : ''}
+                <div class="kot-print-meta-line--muted">${escapeHtml(printedAt)}</div>
+            </div>
+            <div class="kot-print-rule"></div>
+            <table class="kot-print-table">
+                <thead>
+                    <tr>
+                        <th class="kot-print-item">Item</th>
+                        <th class="kot-print-qty">Qty</th>
+                        <th class="kot-print-amt">Amt</th>
+                    </tr>
+                </thead>
+                <tbody>${lines || '<tr><td colspan="3" class="kot-print-empty">No items</td></tr>'}</tbody>
+            </table>
+            <div class="kot-print-rule"></div>
+            <div class="kot-print-total-row">
+                <span>Total</span>
+                <span>₹${Number(order.total) || 0}</span>
+            </div>
+            <footer class="kot-print-footer">Thank you! Visit again</footer>
+            <div class="kot-print-delivery"><strong>${escapeHtml(order.city || '')}</strong></div>
+        </div>`;
+
+        let frame = document.getElementById('kotPrintFrame');
+        if (!frame) {
+            frame = document.createElement('iframe');
+            frame.id = 'kotPrintFrame';
+            frame.setAttribute('title', 'KOT print');
+            frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none';
+            document.body.appendChild(frame);
+        }
+
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        doc.open();
+        doc.write(
+            `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>KOT</title><style>${styles}</style></head><body>${receiptHtml}</body></html>`
+        );
+        doc.close();
+
+        setTimeout(() => {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+        }, 500);
+    };
 
         if (adminManualLoginDone) return;
         await loadAdminDashboard('Loading orders…');

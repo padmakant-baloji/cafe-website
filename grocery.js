@@ -125,6 +125,16 @@
             btn.setAttribute('aria-selected', active ? 'true' : 'false');
         });
 
+        // Hide grocery tab from bottom nav when not in grocery mode
+        const martTab = document.querySelector('.app-tab[data-app-tab="grocery"]');
+        if (martTab) {
+            if (grocery) {
+                martTab.removeAttribute('hidden');
+            } else {
+                martTab.setAttribute('hidden', '');
+            }
+        }
+
         try {
             localStorage.setItem(MODE_KEY, grocery ? 'grocery' : 'food');
         } catch {

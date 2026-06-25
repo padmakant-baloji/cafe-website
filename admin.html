@@ -2895,20 +2895,42 @@
                                 <span>Half / Full portions</span>
                             </label>
                             <div class="admin-partner-menu-add-row" id="adminPartnerMenuSinglePriceRow">
-                                <label class="admin-search" for="adminPartnerMenuItemPrice">
-                                    <span>Price (₹)</span>
-                                    <input id="adminPartnerMenuItemPrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="99">
+                                <label class="admin-search" for="adminPartnerMenuItemOnlinePrice">
+                                    <span>Online Price (₹)</span>
+                                    <input id="adminPartnerMenuItemOnlinePrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="99">
+                                </label>
+                                <label class="admin-search" for="adminPartnerMenuItemOfflinePrice">
+                                    <span>Offline Price (₹)</span>
+                                    <input id="adminPartnerMenuItemOfflinePrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="89">
                                 </label>
                             </div>
                             <div class="admin-partner-menu-half-full-row" id="adminPartnerMenuHalfFullRow" hidden>
-                                <label class="admin-search" for="adminPartnerMenuItemHalfPrice">
-                                    <span>Half (₹)</span>
-                                    <input id="adminPartnerMenuItemHalfPrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="20">
-                                </label>
-                                <label class="admin-search" for="adminPartnerMenuItemFullPrice">
-                                    <span>Full (₹)</span>
-                                    <input id="adminPartnerMenuItemFullPrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="40">
-                                </label>
+                                <div style="display:flex; flex-direction:column; gap:0.5rem; flex:1;">
+                                    <span style="font-size:0.75rem; font-weight:600; color:var(--muted);">Half Portion</span>
+                                    <div class="admin-partner-menu-add-row">
+                                        <label class="admin-search" for="adminPartnerMenuItemHalfOnlinePrice">
+                                            <span>Online (₹)</span>
+                                            <input id="adminPartnerMenuItemHalfOnlinePrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="50">
+                                        </label>
+                                        <label class="admin-search" for="adminPartnerMenuItemHalfOfflinePrice">
+                                            <span>Offline (₹)</span>
+                                            <input id="adminPartnerMenuItemHalfOfflinePrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="40">
+                                        </label>
+                                    </div>
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:0.5rem; flex:1;">
+                                    <span style="font-size:0.75rem; font-weight:600; color:var(--muted);">Full Portion</span>
+                                    <div class="admin-partner-menu-add-row">
+                                        <label class="admin-search" for="adminPartnerMenuItemFullOnlinePrice">
+                                            <span>Online (₹)</span>
+                                            <input id="adminPartnerMenuItemFullOnlinePrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="90">
+                                        </label>
+                                        <label class="admin-search" for="adminPartnerMenuItemFullOfflinePrice">
+                                            <span>Offline (₹)</span>
+                                            <input id="adminPartnerMenuItemFullOfflinePrice" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="80">
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                             <div class="admin-partner-menu-add-row" style="margin-top: 0.35rem;">
                                 <label class="admin-search" for="adminPartnerMenuItemImage">

@@ -21,6 +21,10 @@
     { "source": "/admin/", "destination": "/admin.html" },
     { "source": "/admin.html", "destination": "/admin.html" },
 
+    { "source": "/admin-login", "destination": "/admin-login.html" },
+    { "source": "/admin-login/", "destination": "/admin-login.html" },
+    { "source": "/admin-login.html", "destination": "/admin-login.html" },
+
     { "source": "/orders", "destination": "/orders.html" },
     { "source": "/orders/", "destination": "/orders.html" },
 
