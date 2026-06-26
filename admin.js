@@ -3330,24 +3330,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('adminPartnerMenuCategoryListDiv')?.addEventListener('change', async (e) => {
+    let categoryToggleDebounceTimer = null;
+    let categoryToggleSnapshot = null;
+
+    document.getElementById('adminPartnerMenuCategoryListDiv')?.addEventListener('change', (e) => {
         if (!e.target.classList.contains('admin-partner-menu-cat-toggle')) return;
         const catId = e.target.getAttribute('data-cat-id');
         const cat = partnerMenuCategories.find(c => String(c.id) === String(catId));
         if (!cat) return;
         
-        const snapshot = normalizePartnerMenuCategories(partnerMenuCategories);
+        if (!categoryToggleDebounceTimer) {
+            categoryToggleSnapshot = normalizePartnerMenuCategories(partnerMenuCategories);
+        }
+        
         cat.enabled = e.target.checked;
         
-        setPartnerMenuMessage('Saving category...', null);
-        try {
-            await savePartnerMenuCategories();
-            setPartnerMenuMessage('Category visibility updated.', 'success');
-        } catch (err) {
-            partnerMenuCategories = snapshot;
-            renderPartnerMenuList();
-            setPartnerMenuMessage(err.message || 'Could not save category.', 'error');
-        }
+        if (categoryToggleDebounceTimer) clearTimeout(categoryToggleDebounceTimer);
+        categoryToggleDebounceTimer = setTimeout(async () => {
+            categoryToggleDebounceTimer = null;
+            setPartnerMenuMessage('Saving categories...', null);
+            try {
+                await savePartnerMenuCategories();
+                setPartnerMenuMessage('Categories visibility updated.', 'success');
+            } catch (err) {
+                partnerMenuCategories = categoryToggleSnapshot;
+                renderPartnerMenuList();
+                setPartnerMenuMessage(err.message || 'Could not save categories.', 'error');
+            }
+        }, 1000);
     });
 
     fillAdminDefaults();
