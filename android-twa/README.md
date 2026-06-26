@@ -1,6 +1,6 @@
-# QuickKart's Cafe — Android app (Play Store)
+# Baloji Cafe — Android app (Play Store)
 
-This folder builds a **Trusted Web Activity (TWA)** app that opens **https://www.quickkartcafe.com** in full screen (no browser bar). The website stays on your server; the APK is a thin Android wrapper.
+This folder builds a **Trusted Web Activity (TWA)** app that opens **https://www.balojicafe.com** in full screen (no browser bar). The website stays on your server; the APK is a thin Android wrapper.
 
 ## Prerequisites
 
@@ -61,16 +61,16 @@ yarn android:check
    ```bash
    KEYSTORE_PASSWORD=your_password yarn android:sync-assetlinks
    ```
-   Deploy, then open https://www.quickkartcafe.com/.well-known/assetlinks.json
+   Deploy, then open https://www.balojicafe.com/.well-known/assetlinks.json
 
-2. **Privacy policy** (live): https://www.quickkartcafe.com/privacy-policy
+2. **Privacy policy** (live): https://www.balojicafe.com/privacy-policy
 
 3. **Upload file**: `android-twa/app-release-bundle.aab` (not the `.apk`)
 
 ## Google Play Console — step by step
 
 1. [Create a developer account](https://play.google.com/console/signup) ($25 one-time fee).
-2. **Create app** → App name: `QuickKart's Cafe` → Default language: English (India) → App / Game: App → Free.
+2. **Create app** → App name: `Baloji Cafe` → Default language: English (India) → App / Game: App → Free.
 3. **Dashboard** — complete every item under “Set up your app” (required before production):
 
    | Section | What to enter |
@@ -82,9 +82,9 @@ yarn android:check
    | **News app** | No. |
    | **COVID-19** | No (if shown). |
    | **Data safety** | Collect: name, phone, address, app activity (orders). Purpose: app functionality. Not sold. Encrypted in transit. See privacy policy URL. |
-   | **Privacy policy** | `https://www.quickkartcafe.com/privacy-policy` |
+   | **Privacy policy** | `https://www.balojicafe.com/privacy-policy` |
    | **Store listing** | Short & full description (below), app icon 512×512, feature graphic 1024×500, ≥2 phone screenshots. |
-   | **Main store listing contact** | Phone +91 9900582650, website https://www.quickkartcafe.com |
+   | **Main store listing contact** | Phone +91 9900582650, website https://www.balojicafe.com |
 
 4. **Release** → **Production** → **Create new release** → Upload `app-release-bundle.aab`.
 5. **Release name**: `1.0.0` (match `appVersion` in `twa-manifest.json`).
@@ -95,13 +95,13 @@ yarn android:check
 **Short description** (max 80 chars):
 
 ```
-Order veg food from QuickKart's Cafe, Kudachi. Menu, cart & live order tracking.
+Order veg food from Baloji Cafe, Kudachi. Menu, cart & live order tracking.
 ```
 
 **Full description**:
 
 ```
-Order vegetarian food online from QuickKart's Cafe in Kudachi.
+Order vegetarian food online from Baloji Cafe in Kudachi.
 
 • Browse our full menu — pizza, Chinese, momos, beverages & more
 • Add items to cart and place orders for delivery
@@ -133,7 +133,7 @@ Without the correct fingerprint, the app opens your site in a browser tab with a
 
 ## Verify asset links
 
-- https://www.quickkartcafe.com/.well-known/assetlinks.json  
+- https://www.balojicafe.com/.well-known/assetlinks.json  
 - [Statement Tester](https://developers.google.com/digital-asset-links/tools/generator)
 
 ## Version updates
@@ -154,4 +154,4 @@ Upload the new `.aab` to Play Console.
 
 ## Package name
 
-`com.quickkartcafe.app` — cannot be changed after publishing without a new Play listing.
+`com.balojicafe.app` — cannot be changed after publishing without a new Play listing.

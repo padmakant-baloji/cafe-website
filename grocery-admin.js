@@ -500,7 +500,7 @@ function showReceipt(orderId, items, total, method, bagCharge = 0) {
     html += `</table>
         <div style="font-size:0.75rem; color:#666; margin-top:10px; text-align:center;">Paid via ${method.toUpperCase()}</div>
         <hr>
-        <div style="font-size:0.7rem; color:#999; margin-top:4px; text-align:center;">Thank you! Visit again.</div>
+        <div style="font-size:0.7rem; color:#999; margin-top:4px; text-align:center;">Thank you! Visit again.<br>Home delivery - www.balojicafe.com</div>
     </div>`;
 
     $('receiptBody').innerHTML = html;

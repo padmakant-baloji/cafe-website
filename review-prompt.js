@@ -54,7 +54,7 @@ function ensureModalMarkup() {
             <div class="google-review-modal-inner">
                 <p class="google-review-eyebrow" aria-hidden="true">Thank you</p>
                 <h2 id="googleReviewTitle">How was your order?</h2>
-                <p class="google-review-lead" id="googleReviewLead">We’d love a quick Google review — it helps more neighbors find QuickKart’s Cafe.</p>
+                <p class="google-review-lead" id="googleReviewLead">We’d love a quick Google review — it helps more neighbors find Baloji Cafe’s Cafe.</p>
                 <div class="google-review-actions">
                     <a class="btn btn-primary google-review-link" id="googleReviewOpenBtn" href="${GOOGLE_REVIEW_URL}" target="_blank" rel="noopener noreferrer">Leave a Google review</a>
                     <button type="button" class="btn btn-secondary" id="googleReviewDismissBtn">Maybe later</button>
@@ -87,8 +87,8 @@ function showModal(payload) {
     if (lead) {
         const id = payload && payload.orderId != null ? String(payload.orderId).trim() : '';
         lead.textContent = id
-            ? `Order #${id} is complete. We’d love a quick Google review — it helps more neighbors find QuickKart’s Cafe.`
-            : 'We’d love a quick Google review — it helps more neighbors find QuickKart’s Cafe.';
+            ? `Order #${id} is complete. We’d love a quick Google review — it helps more neighbors find Baloji Cafe’s Cafe.`
+            : 'We’d love a quick Google review — it helps more neighbors find Baloji Cafe’s Cafe.';
     }
 
     modal.classList.add('active');

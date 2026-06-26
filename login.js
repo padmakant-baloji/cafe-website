@@ -132,6 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.exists && data.token) {
                 setCustomerToken(data.token);
                 setCustomerProfile(data.customer || null);
+                if (data.customer && data.customer.city) {
+                    localStorage.setItem('quickkartGlobalCity', data.customer.city.charAt(0).toUpperCase() + data.customer.city.slice(1));
+                }
                 goToMenu();
                 return;
             }
@@ -183,6 +186,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) throw new Error(apiFailureMessage(res, raw, data));
             setCustomerToken(data.token);
             setCustomerProfile(data.customer || null);
+            if (data.customer && data.customer.city) {
+                localStorage.setItem('quickkartGlobalCity', data.customer.city.charAt(0).toUpperCase() + data.customer.city.slice(1));
+            }
             goToMenu();
         } catch (err) {
             showError(err.message || 'Registration failed.');

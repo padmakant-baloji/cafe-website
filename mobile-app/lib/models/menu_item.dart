@@ -110,7 +110,7 @@ class MenuItem {
 
   factory MenuItem.fromJson(Map<String, dynamic> json) {
     final venueName = (json['venueName'] ?? '').toString();
-    final isQuickKart = venueName.toLowerCase().contains('quickkart') || (json['venueId'] == null);
+    final isBaloji Cafe = venueName.toLowerCase().contains('quickkart') || (json['venueId'] == null);
 
     List<MenuSize> sizes = [];
     if (json['sizes'] is List) {
@@ -118,7 +118,7 @@ class MenuItem {
           .map((s) {
             if (s is Map<String, dynamic>) {
               final size = MenuSize.fromJson(s);
-              return isQuickKart 
+              return isBaloji Cafe 
                   ? MenuSize(label: size.label, price: (size.price * 0.8).roundToDouble())
                   : size;
             }
@@ -139,7 +139,7 @@ class MenuItem {
     double? price;
     if (json['price'] != null) {
       price = (json['price'] is num) ? (json['price'] as num).toDouble() : double.tryParse(json['price'].toString());
-      if (price != null && isQuickKart) {
+      if (price != null && isBaloji Cafe) {
         price = (price * 0.8).roundToDouble();
       }
     }
@@ -175,7 +175,7 @@ class MenuItem {
     return '${_baseUrl}/$image';
   }
 
-  static const String _baseUrl = 'https://www.quickkartcafe.com';
+  static const String _baseUrl = 'https://www.balojicafe.com';
 }
 
 class MenuSize {

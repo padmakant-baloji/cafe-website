@@ -23,7 +23,8 @@ const {
     applyFloorOrderAdminPatch,
     createFloorSession,
     commitFloorOrderToDb,
-    cancelOrderByCustomer
+    cancelOrderByCustomer,
+    cleanupOldScreenshots
 } = require('./lib/order-service');
 const { placeOrderForCustomer } = require('./lib/place-order');
 const { placeGroceryOrderForCustomer } = require('./lib/place-grocery-order');
@@ -1085,4 +1086,10 @@ app.listen(PORT, () => {
     ensureSchema().catch((err) => {
         console.warn('Could not run DB migrations yet:', err.message);
     });
+
+    // Cleanup old user-uploaded screenshots from DB (3 days old)
+    cleanupOldScreenshots().catch(() => {});
+    setInterval(() => {
+        cleanupOldScreenshots().catch(() => {});
+    }, 6 * 60 * 60 * 1000); // Run every 6 hours
 });

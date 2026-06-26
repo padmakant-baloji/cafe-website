@@ -23,11 +23,11 @@ void main() async {
     statusBarBrightness: Brightness.dark,
   ));
 
-  runApp(const QuickKartCafeApp());
+  runApp(const Baloji CafeCafeApp());
 }
 
-class QuickKartCafeApp extends StatelessWidget {
-  const QuickKartCafeApp({super.key});
+class Baloji CafeCafeApp extends StatelessWidget {
+  const Baloji CafeCafeApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +48,7 @@ class QuickKartCafeApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => OrdersProvider()),
       ],
       child: MaterialApp(
-        title: "QuickKart",
+        title: "Baloji Cafe",
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         initialRoute: AppRoutes.splash,

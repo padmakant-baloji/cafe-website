@@ -1045,7 +1045,7 @@ function initTestimonials() {
 let cart = [];
 let appliedCoupon = null; // { code: string, discount: number, subtotal: number }
 let defaultVenueId = 1;
-let defaultVenueName = "QuickKart";
+let defaultVenueName = "Baloji Cafe";
 let partnerDeliveryFee = 20;
 let deliveryZonesMap = { 'default': [] };
 let menuVenues = [];
@@ -2392,7 +2392,7 @@ function renderCheckoutTotals() {
                 noteEl.textContent = `Delivery is not available to ${cityLower} from this location.`;
             } else {
                 const remaining = minOrder - subtotal;
-                noteEl.textContent = `Minimum order outside Kudachi is ₹${minOrder}. Add ₹${remaining} more to place your order.`;
+                noteEl.textContent = `Minimum order is ₹${minOrder}. Add ₹${remaining} more to place your order.`;
             }
             noteEl.hidden = false;
         } else {
@@ -3461,12 +3461,35 @@ function updateCityDropdown() {
             if (globalDisplay) globalDisplay.textContent = globalSelectedCity;
             localStorage.setItem('quickkartGlobalCity', globalSelectedCity);
             
-            globalSelect.addEventListener('change', (e) => {
+            globalSelect.addEventListener('change', async (e) => {
                 globalSelectedCity = e.target.value;
                 if (globalDisplay) globalDisplay.textContent = globalSelectedCity;
                 localStorage.setItem('quickkartGlobalCity', globalSelectedCity);
                 
                 if (citySelect) citySelect.value = globalSelectedCity;
+                
+                const token = getCustomerToken();
+                if (token) {
+                    try {
+                        const res = await fetch('/api/auth/profile', {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ city: globalSelectedCity })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data && data.customer) {
+                                setCustomerProfile(data.customer);
+                                currentCustomer = data.customer;
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('Failed to update city in profile:', err);
+                    }
+                }
                 
                 renderCheckoutDeliveryCard();
                 updateCartUI(); // Update fees and min orders
@@ -3524,7 +3547,7 @@ async function loadMenu() {
             const data = await jsonRes.json();
             if (data && Array.isArray(data.categories) && data.categories.length) {
                 defaultVenueId = 1;
-                defaultVenueName = "QuickKart";
+                defaultVenueName = "Baloji Cafe";
                 selectedMenuVenueId = defaultVenueId;
                 menuVenues = deriveMenuVenues(data.categories);
                 menuData = data;
@@ -3537,7 +3560,7 @@ async function loadMenu() {
     } catch (error) {
         console.warn('Could not load menu, using embedded data:', error);
         defaultVenueId = 1;
-        defaultVenueName = "QuickKart";
+        defaultVenueName = "Baloji Cafe";
         selectedMenuVenueId = defaultVenueId;
         menuVenues = deriveMenuVenues(fallbackMenuData.categories || []);
         menuData = fallbackMenuData;
@@ -3741,6 +3764,16 @@ function buildHotelFilterTabs() {
             return `<button type="button" class="menu-hotel-filter-tab${active ? ' active' : ''}${closedClass}" data-venue-id="${venue.id}" role="tab" aria-selected="${active ? 'true' : 'false'}">${escapeHtml(label)}</button>`;
         })
         .join('');
+        
+    const promoTitle = document.getElementById('promoTitle');
+    if (promoTitle) {
+        const selectedVenue = availableVenues.find((v) => Number(v.id) === Number(selectedMenuVenueId));
+        if (selectedVenue && !selectedVenue.isMain) {
+            promoTitle.hidden = true;
+        } else {
+            promoTitle.hidden = false;
+        }
+    }
 }
 
 function setSelectedMenuVenue(venueId) {
@@ -4232,10 +4265,14 @@ function createMenuItem(item, categoryId) {
             </div>`;
         })();
 
+    const isDiscounted = hasSizes 
+        ? (getDiscountedPrice(Math.min(...item.sizes.map(s => getItemOnlinePrice(s)))) < Math.min(...item.sizes.map(s => getItemOnlinePrice(s))))
+        : (getDiscountedPrice(getItemOnlinePrice(item)) < getItemOnlinePrice(item));
+
     menuItem.innerHTML = `
         <div class="discount-badge-wrap">
             ${buildMenuItemImageHtml(item, categoryId)}
-            <span class="discount-badge">${DISCOUNT_PERCENT}% OFF</span>
+            ${isDiscounted ? `<span class="discount-badge">${DISCOUNT_PERCENT}% OFF</span>` : ''}
         </div>
         <div class="menu-item-content">
             <div class="menu-item-header">
@@ -4261,7 +4298,9 @@ function createMenuItem(item, categoryId) {
             btn.dataset.price = String(sizePrice);
             btn.setAttribute(
                 'aria-label',
-                `Add ${item.name}, ${size.label} size, ${discountedSizePrice} rupees (${DISCOUNT_PERCENT}% off)`
+                isDiscounted
+                    ? `Add ${item.name}, ${size.label} size, ${discountedSizePrice} rupees (${DISCOUNT_PERCENT}% off)`
+                    : `Add ${item.name}, ${size.label} size, ${sizePrice} rupees`
             );
             const lab = document.createElement('span');
             lab.className = 'size-chip-label';
@@ -4467,7 +4506,7 @@ function initCartModal() {
                     showToast(`Delivery is not available to ${cityLower} from this location.`, { type: 'error' });
                 } else {
                     const remaining = minOrder - subtotal;
-                    showToast(`Add ₹${remaining} more — minimum order for delivery outside Kudachi is ₹${minOrder}.`, { type: 'error' });
+                    showToast(`Add ₹${remaining} more — minimum order for delivery is ₹${minOrder}.`, { type: 'error' });
                 }
                 return;
             }
@@ -4735,6 +4774,8 @@ function showOrderSuccessModal(_placedAtMs, venueInfo = {}) {
     const qrBlock = document.getElementById('orderSuccessQrBlock');
     const qrImg = document.getElementById('orderSuccessQrImg');
     const qrBtn = document.getElementById('orderSuccessWhatsappBtn');
+    const uploadBtn = document.getElementById('orderSuccessUploadBtn');
+    const screenshotInput = document.getElementById('orderSuccessScreenshotInput');
     
     if (qrBlock && qrImg && qrBtn) {
         if (venueInfo.venuePaymentQrCode) {
@@ -4752,10 +4793,70 @@ function showOrderSuccessModal(_placedAtMs, venueInfo = {}) {
                     alert('Restaurant contact number is not available for WhatsApp.');
                 }
             };
+            
+            if (uploadBtn && screenshotInput) {
+                // Reset button state
+                uploadBtn.textContent = 'Upload screenshot';
+                uploadBtn.classList.remove('is-success');
+                uploadBtn.disabled = false;
+                
+                uploadBtn.onclick = () => screenshotInput.click();
+                screenshotInput.onchange = async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                        showToast('File too large. Max 5MB.', { type: 'error' });
+                        screenshotInput.value = '';
+                        return;
+                    }
+                    
+                    const token = getCustomerToken();
+                    if (!token) return;
+                    
+                    uploadBtn.textContent = 'Uploading...';
+                    uploadBtn.disabled = true;
+                    
+                    try {
+                        const reader = new FileReader();
+                        reader.onload = async (ev) => {
+                            const base64Data = ev.target.result;
+                            const res = await fetch(`/api/orders/${venueInfo.orderId}/upload-screenshot`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({ paymentScreenshot: base64Data })
+                            });
+                            
+                            if (!res.ok) {
+                                throw new Error('Upload failed');
+                            }
+                            
+                            uploadBtn.textContent = 'Uploaded ✓';
+                            uploadBtn.classList.add('is-success');
+                            showToast('Screenshot uploaded successfully', { type: 'success' });
+                        };
+                        reader.onerror = () => {
+                            throw new Error('Could not read file');
+                        };
+                        reader.readAsDataURL(file);
+                    } catch (err) {
+                        console.warn(err);
+                        uploadBtn.textContent = 'Upload Failed';
+                        uploadBtn.disabled = false;
+                        showToast('Failed to upload screenshot', { type: 'error' });
+                    } finally {
+                        screenshotInput.value = '';
+                    }
+                };
+            }
         } else {
             qrBlock.hidden = true;
             qrImg.src = '';
             qrBtn.onclick = null;
+            if (uploadBtn) uploadBtn.onclick = null;
+            if (screenshotInput) screenshotInput.onchange = null;
         }
     }
 

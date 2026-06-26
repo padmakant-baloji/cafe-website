@@ -1,8 +1,8 @@
 {
-  "packageId": "com.quickkartcafe.app",
-  "host": "www.quickkartcafe.com",
-  "name": "QuickKart's Cafe",
-  "launcherName": "QuickKart's Cafe",
+  "packageId": "com.balojicafe.app",
+  "host": "www.balojicafe.com",
+  "name": "Baloji Cafe's Cafe",
+  "launcherName": "Baloji Cafe's Cafe",
   "display": "standalone",
   "themeColor": "#15803D",
   "themeColorDark": "#14532D",
@@ -13,19 +13,19 @@
   "backgroundColor": "#F8FAFC",
   "enableNotifications": true,
   "startUrl": "/menu",
-  "iconUrl": "https://www.quickkartcafe.com/images/logo/pwa-512.png",
-  "maskableIconUrl": "https://www.quickkartcafe.com/images/logo/pwa-maskable-512.png",
-  "monochromeIconUrl": "https://www.quickkartcafe.com/images/logo/pwa-192.png",
+  "iconUrl": "https://www.balojicafe.com/images/logo/pwa-512.png",
+  "maskableIconUrl": "https://www.balojicafe.com/images/logo/pwa-maskable-512.png",
+  "monochromeIconUrl": "https://www.balojicafe.com/images/logo/pwa-192.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./android-release.keystore",
-    "alias": "quickkartcafe"
+    "alias": "balojicafe"
   },
   "appVersionName": "y",
   "appVersionCode": 2,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://www.quickkartcafe.com/manifest.json",
+  "webManifestUrl": "https://www.balojicafe.com/manifest.json",
   "fallbackType": "customtabs",
   "features": {},
   "alphaDependencies": {

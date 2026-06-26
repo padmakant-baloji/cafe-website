@@ -2,7 +2,7 @@ class AppConstants {
   AppConstants._();
 
   // API
-  static const String apiBaseUrl = 'https://www.quickkartcafe.com';
+  static const String apiBaseUrl = 'https://www.balojicafe.com';
 
   // Storage keys
   static const String tokenKey = 'quickkartCustomerToken';
@@ -27,7 +27,7 @@ class AppConstants {
   static const double minGroceryOrder = 49.0;
 
   // Branding
-  static const String appName = "QuickKart";
+  static const String appName = "Baloji Cafe";
   static const String tagline = 'Pure veg · Kudachi';
   static const String whatsappNumber = '+919876543210';
 }

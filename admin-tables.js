@@ -152,7 +152,7 @@ function floorMeta(order) {
 
 function isMainKotVenue(venue) {
     if (!venue) return true;
-    return Boolean(venue.isMain || venue.isDefault || venue.slug === 'quickkartcafe');
+    return Boolean(venue.isMain || venue.isDefault || venue.slug === 'balojicafe');
 }
 
 function resetKotMenuCache() {
@@ -1227,7 +1227,7 @@ function buildKotReceiptHtml(order, kot) {
             : meta.slot && meta.slot.startsWith('parcel:')
               ? `Parcel ${meta.slot.split(':')[1]}`
               : meta.slot || '—';
-    const venueName = (currentVenue && currentVenue.name) || "QuickKart";
+    const venueName = (currentVenue && currentVenue.name) || "Baloji Cafe";
     const venueAddress = getKotPrintAddress(currentVenue);
     const kotTit = kot.label && String(kot.label).trim() ? kot.label : `KOT #${kot.seq || ''}`;
     const printedAt = new Date().toLocaleString('en-IN', {
@@ -1290,8 +1290,7 @@ function buildKotReceiptHtml(order, kot) {
             <span>Total</span>
             <span>${formatRupee(lineTotal)}</span>
         </div>
-        <footer class="kot-print-footer">Thank you! Visit again</footer>
-        <div class="kot-print-delivery"><strong>Home delivery - www.quickkartcafe.com</strong></div>
+        <footer class="kot-print-footer">Thank you! Visit again<br>Home delivery - www.balojicafe.com</footer>
     </div>`;
 }
 

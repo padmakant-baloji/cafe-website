@@ -21,11 +21,11 @@ plugins {
 }
 
 def twaManifest = [
-    applicationId: 'com.quickkartcafe.app',
-    hostName: 'www.quickkartcafe.com', // The domain being opened in the TWA.
+    applicationId: 'com.balojicafe.app',
+    hostName: 'www.balojicafe.com', // The domain being opened in the TWA.
     launchUrl: '/menu', // The start path for the TWA. Must be relative to the domain.
-    name: 'QuickKart\\\'s Cafe', // The application name.
-    launcherName: 'QuickKart\\\'s Cafe', // The name shown on the Android Launcher.
+    name: 'Baloji Cafe\\\'s Cafe', // The application name.
+    launcherName: 'Baloji Cafe\\\'s Cafe', // The name shown on the Android Launcher.
     themeColor: '#15803D', // The color used for the status bar.
     themeColorDark: '#14532D', // The color used for the dark status bar.
     navigationColor: '#15803D', // The color used for the navigation bar.
@@ -52,9 +52,9 @@ def twaManifest = [
 
 android {
     compileSdkVersion 36
-    namespace "com.quickkartcafe.app"
+    namespace "com.balojicafe.app"
     defaultConfig {
-        applicationId "com.quickkartcafe.app"
+        applicationId "com.balojicafe.app"
         minSdkVersion 21
         targetSdkVersion 35
         versionCode 2
@@ -76,7 +76,7 @@ android {
             // The URL the Web Manifest for the Progressive Web App that the TWA points to. This
             // is used by Chrome OS and Meta Quest to open the Web version of the PWA instead of
             // the TWA, as it will probably give a better user experience for non-mobile devices.
-            resValue "string", "webManifestUrl", 'https://www.quickkartcafe.com/manifest.json'
+            resValue "string", "webManifestUrl", 'https://www.balojicafe.com/manifest.json'
         
 
         

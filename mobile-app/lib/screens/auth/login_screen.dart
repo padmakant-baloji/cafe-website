@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     // Header
                     const Text(
-                      "QuickKart",
+                      "Baloji Cafe",
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,

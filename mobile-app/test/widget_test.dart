@@ -3,8 +3,8 @@ import 'package:quickkart_cafe/main.dart';
 
 void main() {
   testWidgets('App launches', (WidgetTester tester) async {
-    await tester.pumpWidget(const QuickKartCafeApp());
+    await tester.pumpWidget(const Baloji CafeCafeApp());
     // Verify splash screen is displayed
-    expect(find.text("QuickKart's Cafe"), findsOneWidget);
+    expect(find.text("Baloji Cafe"), findsOneWidget);
   });
 }

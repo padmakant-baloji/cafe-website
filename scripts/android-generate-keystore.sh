@@ -9,7 +9,7 @@ source "${SCRIPT_DIR}/android-java-env.sh"
 
 ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 KEYSTORE="$ROOT/android-twa/android-release.keystore"
-ALIAS="quickkartcafe"
+ALIAS="balojicafe"
 KEYTOOL="${JAVA_HOME}/bin/keytool"
 
 if [[ -f "$KEYSTORE" ]]; then
@@ -19,7 +19,7 @@ if [[ -f "$KEYSTORE" ]]; then
 fi
 
 echo "Using Java: $JAVA_HOME"
-echo "Creating release keystore for QuickKart's Cafe Android app..."
+echo "Creating release keystore for Baloji Cafe Android app..."
 echo "SAVE THE PASSWORDS — you need them for every release build."
 echo ""
 
@@ -30,7 +30,7 @@ KEYTOOL_ARGS=(
   -keyalg RSA
   -keysize 2048
   -validity 10000
-  -dname "CN=QuickKart's Cafe, OU=Mobile, O=QuickKart's Cafe, L=Kudachi, ST=Karnataka, C=IN"
+  -dname "CN=Baloji Cafe, OU=Mobile, O=Baloji Cafe, L=Kudachi, ST=Karnataka, C=IN"
 )
 
 if [[ -n "${KEYSTORE_PASSWORD:-}" ]]; then

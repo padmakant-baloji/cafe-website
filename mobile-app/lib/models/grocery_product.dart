@@ -118,7 +118,7 @@ class GroceryProduct {
   String get imageUrl {
     if (image == null || image!.isEmpty) return '';
     if (image!.startsWith('http')) return image!;
-    return 'https://www.quickkartcafe.com/$image';
+    return 'https://www.balojicafe.com/$image';
   }
 }
 

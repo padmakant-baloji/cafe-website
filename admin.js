@@ -1,6 +1,6 @@
 'use strict';
 
-const DEFAULT_ADMIN_USER = 'quickkartcafe';
+const DEFAULT_ADMIN_USER = 'balojicafe';
 const DEFAULT_ADMIN_PASS = 'admin';
 const SESSION_STORAGE_SEEN = 'quickkartAdminSeenPendingIds';
 const SESSION_STORAGE_LAST_ORDER = 'quickkartAdminLastOrderId';
@@ -512,7 +512,7 @@ function applyMainVenueUi() {
     const hotelsModalSub = document.getElementById('adminHotelsModalSub');
     if (hotelsModalSub) {
         hotelsModalSub.textContent = isMain
-            ? 'QuickKart is the main hotel. Create other hotels here and give each its own admin login.'
+            ? 'Baloji Cafe is the main hotel. Create other hotels here and give each its own admin login.'
             : 'Hotel details for your property.';
     }
 
@@ -1258,7 +1258,7 @@ function buildOrderCopyText(order) {
     const pm = orderPaymentMethod(order);
 
     const lines = [
-        `QuickKart — Order #${id}`,
+        `Baloji Cafe — Order #${id}`,
         when ? `Time: ${when}` : '',
         name ? `Name: ${name}` : '',
         mobile ? `Mobile: ${mobile}` : '',
@@ -2384,7 +2384,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     hotelCreateBtn?.addEventListener('click', async () => {
         if (!isMainAdminVenue()) {
-            setHotelsMessage('Only QuickKart can create hotels.', 'error');
+            setHotelsMessage('Only Baloji Cafe can create hotels.', 'error');
             return;
         }
         const name = String(hotelNameInput?.value || '').trim();
@@ -2577,14 +2577,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (partnerMenuItemImagePreviewImg) partnerMenuItemImagePreviewImg.src = '';
     }
 
-    partnerMenuItemImage?.addEventListener('change', async () => {
-        const file = partnerMenuItemImage.files?.[0];
-        if (!file) return;
-        try {
-            partnerMenuPendingImageBase64 = await compressMenuItemImage(file);
-            showMenuItemImagePreview(partnerMenuPendingImageBase64);
-        } catch {
-            setPartnerMenuMessage('Could not load image.', 'error');
+    partnerMenuItemImage?.addEventListener('input', () => {
+        const url = partnerMenuItemImage.value.trim();
+        if (url) {
+            partnerMenuPendingImageBase64 = url;
+            showMenuItemImagePreview(url);
+        } else {
+            partnerMenuPendingImageBase64 = '__clear__';
             clearMenuItemImage();
         }
     });
@@ -2908,6 +2907,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearMenuItemImage();
         if (ref.item.image && ref.item.image !== 'images/placeholder-icon.svg') {
             partnerMenuPendingImageBase64 = null;
+            if (partnerMenuItemImage) partnerMenuItemImage.value = ref.item.image;
             showMenuItemImagePreview(ref.item.image);
         }
 
@@ -3082,7 +3082,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.editable === false) {
                 setPartnerMenuMessage('This hotel menu is managed in menu.json.', 'error');
                 if (partnerMenuAddForm) partnerMenuAddForm.hidden = true;
-                partnerMenuList.innerHTML = '<p class="admin-partner-menu-empty">QuickKart menu is edited in menu.json.</p>';
+                partnerMenuList.innerHTML = '<p class="admin-partner-menu-empty">Baloji Cafe menu is edited in menu.json.</p>';
                 return;
             }
             if (partnerMenuAddForm) partnerMenuAddForm.hidden = false;
@@ -3505,7 +3505,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopyTodaySummary?.addEventListener('click', async () => {
         const data = computeAdminAnalytics(filterOrdersForAdminView(lastOrders));
         const lines = [
-            `QuickKart — Today summary`,
+            `Baloji Cafe — Today summary`,
             `Updated: ${data.updatedAt.toLocaleString()}`,
             `Orders today: ${data.ordersTodayCount} (delivery ${data.ordersTodayDelivery} · floor ${data.ordersTodayKot})`,
             `Settled sales: ${formatMoney(data.settledSalesToday)} (online ${formatMoney(data.settledDeliverySales)} · KOT ${formatMoney(data.settledKotSales)})`,
@@ -3893,7 +3893,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .kot-print-delivery { text-align: center; font-size: 14px; font-weight: 700; line-height: 1.4; margin-top: 1.5mm; }
         `;
 
-        const venueName = (currentVenue && currentVenue.name) || 'QuickKart';
+        const venueName = (currentVenue && currentVenue.name) || 'Baloji Cafe';
         const printedAt = new Date().toLocaleString('en-IN', {
             day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
         });
@@ -3942,7 +3942,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span>₹${Number(order.total) || 0}</span>
             </div>
             <footer class="kot-print-footer">Thank you! Visit again</footer>
-            <div class="kot-print-delivery"><strong>${escapeHtml(order.city || '')}</strong></div>
+            <div class="kot-print-delivery">Home delivery - www.balojicafe.com<br><strong>${escapeHtml(order.city || '')}</strong></div>
         </div>`;
 
         let frame = document.getElementById('kotPrintFrame');
