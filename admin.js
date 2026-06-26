@@ -3089,6 +3089,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 </table>
             </div>`;
         updatePartnerMenuCategoryDatalist();
+        renderPartnerMenuCategoriesList();
+    }
+
+    function renderPartnerMenuCategoriesList() {
+        const listDiv = document.getElementById('adminPartnerMenuCategoryListDiv');
+        if (!listDiv) return;
+        if (!partnerMenuCategories || !partnerMenuCategories.length) {
+            listDiv.innerHTML = '<p class="admin-partner-menu-empty">No categories yet.</p>';
+            return;
+        }
+        listDiv.innerHTML = partnerMenuCategories.map(cat => {
+            const isEnabled = cat.enabled !== false;
+            return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding: 0.5rem; border-bottom: 1px solid var(--card-border);">
+                <span style="font-weight:600; font-size:0.85rem;">${escapeHtml(cat.name)}</span>
+                <label class="admin-partner-menu-pricing-mode" style="margin:0;">
+                    <input type="checkbox" class="admin-partner-menu-cat-toggle" data-cat-id="${escapeHtml(cat.id)}" ${isEnabled ? 'checked' : ''}>
+                    <span>Online Active</span>
+                </label>
+            </div>
+            `;
+        }).join('');
     }
 
     function removePartnerMenuItem(categoryId, itemId) {
@@ -3278,6 +3300,26 @@ document.addEventListener('DOMContentLoaded', () => {
             setPartnerMenuMessage(err.message || 'Could not save menu.', 'error');
         } finally {
             setBtnLoading(btn, false);
+        }
+    });
+
+    document.getElementById('adminPartnerMenuCategoryListDiv')?.addEventListener('change', async (e) => {
+        if (!e.target.classList.contains('admin-partner-menu-cat-toggle')) return;
+        const catId = e.target.getAttribute('data-cat-id');
+        const cat = partnerMenuCategories.find(c => String(c.id) === String(catId));
+        if (!cat) return;
+        
+        const snapshot = normalizePartnerMenuCategories(partnerMenuCategories);
+        cat.enabled = e.target.checked;
+        
+        setPartnerMenuMessage('Saving category...', null);
+        try {
+            await savePartnerMenuCategories();
+            setPartnerMenuMessage('Category visibility updated.', 'success');
+        } catch (err) {
+            partnerMenuCategories = snapshot;
+            renderPartnerMenuList();
+            setPartnerMenuMessage(err.message || 'Could not save category.', 'error');
         }
     });
 

@@ -1277,7 +1277,7 @@ function findMilanUdapiVenue() {
 
 function findBreakfastCategoryForVenue(venueId) {
     const categories = (menuData?.categories || []).filter(
-        (cat) => getCategoryVenueId(cat) === Number(venueId)
+        (cat) => getCategoryVenueId(cat) === Number(venueId) && cat.enabled !== false
     );
     for (const cat of categories) {
         if (getCategoryListedCount(cat) <= 0) continue;
@@ -1298,7 +1298,7 @@ function findBreakfastCategoryForVenue(venueId) {
 function findVenueCategoryId(venueId, categoryKeys) {
     const keys = Array.isArray(categoryKeys) ? categoryKeys : [categoryKeys];
     const categories = (menuData?.categories || []).filter(
-        (cat) => getCategoryVenueId(cat) === Number(venueId)
+        (cat) => getCategoryVenueId(cat) === Number(venueId) && cat.enabled !== false
     );
     for (const categoryKey of keys) {
         const needle = String(categoryKey).toLowerCase();
@@ -3699,9 +3699,9 @@ function getCategoryVenueId(category) {
 
 function getCategoriesForDisplay(searchQuery = '') {
     if (!menuData || !Array.isArray(menuData.categories)) return [];
-    if (isCrossHotelSearch(searchQuery)) return menuData.categories;
+    if (isCrossHotelSearch(searchQuery)) return menuData.categories.filter(c => c.enabled !== false);
     return menuData.categories.filter(
-        (category) => getCategoryVenueId(category) === Number(selectedMenuVenueId)
+        (category) => getCategoryVenueId(category) === Number(selectedMenuVenueId) && category.enabled !== false
     );
 }
 
