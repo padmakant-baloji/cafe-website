@@ -2576,6 +2576,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const partnerMenuBtn = document.getElementById('adminPartnerMenuBtn');
     const partnerMenuModal = document.getElementById('adminPartnerMenuModal');
     const partnerMenuCloseBtn = document.getElementById('adminPartnerMenuCloseBtn');
+    const partnerMenuItemModal = document.getElementById('adminPartnerMenuItemModal');
+    const partnerMenuItemCloseBtn = document.getElementById('adminPartnerMenuItemCloseBtn');
+    const openAddMenuItemBtn = document.getElementById('openAddMenuItemBtn');
     const partnerMenuAddForm = document.getElementById('adminPartnerMenuAddForm');
     const partnerMenuItemName = document.getElementById('adminPartnerMenuItemName');
     const partnerMenuItemOnlinePrice = document.getElementById('adminPartnerMenuItemOnlinePrice');
@@ -2932,6 +2935,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (partnerMenuFormTitle) partnerMenuFormTitle.textContent = 'Edit menu item';
         if (partnerMenuAddBtn) partnerMenuAddBtn.textContent = 'Save changes';
         if (partnerMenuCancelBtn) partnerMenuCancelBtn.hidden = false;
+        
+        partnerMenuItemModal.hidden = false;
+
         if (partnerMenuItemName) partnerMenuItemName.value = String(ref.item.name || '').trim();
         if (partnerMenuItemCategory) partnerMenuItemCategory.value = String(ref.cat.name || '').trim();
 
@@ -3207,11 +3213,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     partnerMenuBtn?.addEventListener('click', () => openPartnerMenuEditor(null));
     partnerMenuCloseBtn?.addEventListener('click', closePartnerMenuModal);
+    
+    openAddMenuItemBtn?.addEventListener('click', () => {
+        resetPartnerMenuFormMode();
+        if (partnerMenuItemModal) partnerMenuItemModal.hidden = false;
+        partnerMenuItemName?.focus();
+    });
+
+    partnerMenuItemCloseBtn?.addEventListener('click', () => {
+        if (partnerMenuItemModal) partnerMenuItemModal.hidden = true;
+        resetPartnerMenuFormMode();
+    });
+
     partnerMenuCancelBtn?.addEventListener('click', () => {
+        if (partnerMenuItemModal) partnerMenuItemModal.hidden = true;
         resetPartnerMenuFormMode();
         renderPartnerMenuList();
         setPartnerMenuMessage('Edit cancelled.', null);
     });
+
+    partnerMenuItemModal?.addEventListener('click', (e) => {
+        if (e.target === partnerMenuItemModal) {
+            partnerMenuItemModal.hidden = true;
+            resetPartnerMenuFormMode();
+        }
+    });
+
     partnerMenuModal?.addEventListener('click', (e) => {
         if (e.target === partnerMenuModal) closePartnerMenuModal();
     });
