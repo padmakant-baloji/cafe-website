@@ -2186,8 +2186,19 @@ function getEffectiveDeliveryCity(cityLower) {
 
 function getDeliveryFee(subtotal, cityLower) {
     if (!subtotal) return 0;
-    // Flat ₹8 delivery fee for all cities
-    return 8;
+
+    const vId = cart.length > 0 ? cart[0].venueId : defaultVenueId;
+    if (vId != null && vId !== defaultVenueId) {
+        return 8; // Flat ₹8 delivery fee for partners
+    }
+
+    const zone = findDeliveryZone(getEffectiveDeliveryCity(cityLower));
+    if (!zone) return 0;
+
+    if (zone.freeDeliveryAbove != null && subtotal >= zone.freeDeliveryAbove) {
+        return 0;
+    }
+    return Number(zone.deliveryFee) || 0;
 }
 
 function getMinOrderForCity(cityLower) {
