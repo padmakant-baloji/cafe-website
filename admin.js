@@ -3282,7 +3282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await savePartnerMenuCategories();
             resetPartnerMenuFormMode();
-            partnerMenuItemName?.focus();
+            if (partnerMenuItemModal) partnerMenuItemModal.hidden = true;
             setPartnerMenuMessage(isEditing ? 'Item updated.' : 'Item added.', 'success');
         } catch (err) {
             partnerMenuCategories = snapshot;
