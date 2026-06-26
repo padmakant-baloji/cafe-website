@@ -4981,14 +4981,7 @@ async function placeOrder() {
     const subtotal = getCartTotal();
     const cityLower = getCheckoutSelectedCity();
 
-    if (globalSelectedCity && cityLower.toLowerCase() !== globalSelectedCity.toLowerCase()) {
-        showToast(`Your selected city is ${globalSelectedCity}, but your address is in ${cityLower.charAt(0).toUpperCase() + cityLower.slice(1)}. Please switch your city or change your address.`, { type: 'error', duration: 5000 });
-        addressEditing = true;
-        applyCheckoutAddressSelection();
-        const wrap = document.getElementById('checkoutAddressWrap');
-        if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-    }
+    // Removed globalSelectedCity strict match check. Delivery zone validation handles it below.
 
     if (!isCheckoutAllowed(subtotal, cityLower)) {
         const minOrder = getMinOrderForCity(cityLower);
