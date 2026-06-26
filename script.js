@@ -2193,7 +2193,7 @@ function getDeliveryFee(subtotal, cityLower) {
     }
 
     const zone = findDeliveryZone(getEffectiveDeliveryCity(cityLower));
-    if (!zone) return 0;
+    if (!zone) return 8; // Match backend fallback
 
     if (zone.freeDeliveryAbove != null && subtotal >= zone.freeDeliveryAbove) {
         return 0;
