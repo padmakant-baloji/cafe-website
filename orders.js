@@ -211,6 +211,7 @@ function renderMyOrders(orders) {
             const status = order.status || '';
             const stLower = String(status).trim().toLowerCase();
             const contactBlock = buildOrderContactBlock(order, stLower);
+            const trackingId = order.daily_order_number || order.id;
 
             let paymentBadge = '';
             if (order.paymentStatus === 'completed') {
@@ -231,7 +232,8 @@ function renderMyOrders(orders) {
                 <article class="my-order-card my-order-card--${escapeHtml(status)}">
                     <div class="my-order-card-inner">
                         <header class="my-order-card-top">
-                            <div>
+                            <div class="order-head">
+                                <span class="order-id">Order #${escapeHtml(trackingId)}</span>
                                 <span class="my-order-status my-order-status--${escapeHtml(status)}">${escapeHtml(formatOrderStatus(status))}</span>
                                 ${paymentBadge}
                             </div>
@@ -428,7 +430,7 @@ window.openCustomerQrModal = function(orderId) {
             if (contact) {
                 let formattedContact = contact;
                 if (formattedContact.length === 10) formattedContact = '91' + formattedContact;
-                const message = encodeURIComponent(`Hello, I have made the payment for Order #${order.id}. Here is the screenshot.`);
+                const message = encodeURIComponent(`Hello, I have made the payment for Order #${order.daily_order_number || order.id}. Here is the screenshot.`);
                 window.open(`https://wa.me/${formattedContact}?text=${message}`, '_blank');
             } else {
                 alert('Restaurant contact number is not available for WhatsApp.');

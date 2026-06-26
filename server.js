@@ -315,6 +315,40 @@ app.patch('/api/orders/:id/screenshot', requireCustomer, async (req, res) => {
     }
 });
 
+// Backward compatibility for older clients
+app.post('/api/orders/:id/upload-screenshot', requireCustomer, async (req, res) => {
+    try {
+        await ensureSchema();
+        const orderId = parseId(req.params.id);
+        if (Number.isNaN(orderId)) {
+            return res.status(400).json({ error: 'Invalid order id.' });
+        }
+        
+        const { paymentScreenshot } = req.body || {};
+        if (!paymentScreenshot || typeof paymentScreenshot !== 'string') {
+            return res.status(400).json({ error: 'Invalid screenshot.' });
+        }
+        
+        const { query } = require('./lib/db.js');
+        // ensure customer owns order
+        const { rows } = await query(
+            `UPDATE orders SET payment_screenshot = $1
+             WHERE id = $2 AND customer_mobile = $3
+             RETURNING id, payment_screenshot`,
+            [paymentScreenshot, orderId, req.customerSession.mobile]
+        );
+        
+        if (rows.length === 0) {
+             return res.status(404).json({ error: 'Order not found or unauthorized.' });
+        }
+        
+        return res.json({ ok: true });
+    } catch (err) {
+        console.error('upload screenshot error:', err.message);
+        return res.status(500).json({ error: 'Could not upload screenshot.' });
+    }
+});
+
 app.post('/api/orders/:id/cancel', requireCustomer, async (req, res) => {
     try {
         await ensureSchema();
@@ -514,7 +548,8 @@ app.put('/api/admin/floor-config', requireAdmin, async (req, res) => {
         const body = req.body || {};
         const config = await setFloorConfig(req.adminVenue.id, {
             tableCount: body.tableCount ?? body.table_count,
-            parcelCount: body.parcelCount ?? body.parcel_count
+            parcelCount: body.parcelCount ?? body.parcel_count,
+            tableCategories: body.tableCategories
         });
         return res.json({ ok: true, ...config, venue: venuePublicPayload(req.adminVenue) });
     } catch (err) {
@@ -806,9 +841,9 @@ app.post('/api/admin/grocery/pos-order', requireAdmin, async (req, res) => {
             }
 
             const { rows } = await client.query(
-                `INSERT INTO orders (customer_mobile, status, items, subtotal, delivery_fee, discount, coupon_code, total, delivery_address, venue_id, channel)
-                 VALUES ($1, 'completed', $2::jsonb, $3, $4, $5, $6, $7, $8::jsonb, $9, 'walk_in')
-                 RETURNING id, customer_mobile, status, items, subtotal, delivery_fee, discount, coupon_code, total, delivery_address, created_at, updated_at, venue_id, channel`,
+                `INSERT INTO orders (customer_mobile, status, items, subtotal, delivery_fee, discount, coupon_code, total, delivery_address, venue_id, channel, daily_order_number)
+                 VALUES ($1, 'completed', $2::jsonb, $3, $4, $5, $6, $7, $8::jsonb, $9, 'walk_in', COALESCE((SELECT MAX(daily_order_number) FROM orders WHERE venue_id = $9 AND created_at AT TIME ZONE 'Asia/Kolkata' >= CURRENT_DATE AT TIME ZONE 'Asia/Kolkata'), 0) + 1)
+                 RETURNING id, daily_order_number, customer_mobile, status, items, subtotal, delivery_fee, discount, coupon_code, total, delivery_address, created_at, updated_at, venue_id, channel`,
                 [
                     body.customerMobile || '8888888888', // Default walk-in mobile
                     JSON.stringify(priced.normalizedItems),
@@ -831,7 +866,7 @@ app.post('/api/admin/grocery/pos-order', requireAdmin, async (req, res) => {
             client.release();
         }
 
-        return res.json({ ok: true, orderId: order.id });
+        return res.json({ ok: true, orderId: order.id, dailyOrderNumber: order.daily_order_number });
     } catch (err) {
         return sendGroceryError(res, err, 'Could not complete POS order.');
     }

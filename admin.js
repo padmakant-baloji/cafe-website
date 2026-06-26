@@ -661,7 +661,8 @@ async function fetchFloorConfig() {
     if (!res.ok) throw new Error(data.error || res.statusText);
     floorConfig = {
         tableCount: Number(data.tableCount) || 7,
-        parcelCount: Number(data.parcelCount) || 5
+        parcelCount: Number(data.parcelCount) || 5,
+        tableCategories: data.tableCategories || null
     };
     if (data.venue) {
         currentVenue = data.venue;
@@ -670,21 +671,22 @@ async function fetchFloorConfig() {
     return floorConfig;
 }
 
-async function saveFloorConfig(tableCount, parcelCount) {
+async function saveFloorConfig(tableCount, parcelCount, tableCategories) {
     const res = await fetch('/api/admin/floor-config', {
         method: 'PUT',
         headers: {
             ...adminHeaders(),
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ tableCount, parcelCount })
+        body: JSON.stringify({ tableCount, parcelCount, tableCategories })
     });
     const data = await res.json().catch(() => ({}));
     if (res.status === 401) throw Object.assign(new Error(data.error || 'Authentication required'), { code: 401 });
     if (!res.ok) throw new Error(data.error || res.statusText);
     floorConfig = {
         tableCount: Number(data.tableCount) || tableCount,
-        parcelCount: Number(data.parcelCount) || parcelCount
+        parcelCount: Number(data.parcelCount) || parcelCount,
+        tableCategories: data.tableCategories || null
     };
     return data;
 }
@@ -1123,7 +1125,7 @@ function buildDeliveryOrderArticleHtml(o) {
     return `
                 <article class="admin-order admin-order--${escapeHtml(o.status)}" data-order-id="${id}">
                     <header class="admin-order-head">
-                        <span class="admin-order-id">#${escapeHtml(id)}</span>
+                        <span class="admin-order-id">#${escapeHtml(o.daily_order_number || id)}</span>
                         <span class="admin-order-head-badges">
                             ${!isFoodPartnerVenue() && isGroceryOrder(o) ? '<span class="admin-order-status" style="background:#7c3aed;color:#fff;">🛒 Grocery</span>' : ''}
                             ${payPill}
@@ -1190,7 +1192,7 @@ function buildKotOrderArticleHtml(o) {
     return `
                 <article class="admin-order admin-order--kot" data-order-id="${id}">
                     <header class="admin-order-head admin-order-head--kot">
-                        <span class="admin-order-id">#${escapeHtml(id)}</span>
+                        <span class="admin-order-id">#${escapeHtml(o.daily_order_number || id)}</span>
                         <span class="admin-order-head-badges">
                             ${payPill}
                             <span class="admin-kot-ribbon" title="Floor kitchen ticket order">${escapeHtml(ch)}</span>
@@ -2249,6 +2251,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const floorParcelCountInput = document.getElementById('adminFloorParcelCount');
     const floorConfigSaveBtn = document.getElementById('adminFloorConfigSaveBtn');
     const floorConfigMsg = document.getElementById('adminFloorConfigMsg');
+    const floorCategoriesList = document.getElementById('adminFloorCategoriesList');
+    const floorCategoryAddBtn = document.getElementById('adminFloorCategoryAddBtn');
+    let editingCategories = [];
 
     function setFloorConfigMessage(text, state) {
         if (!floorConfigMsg) return;
@@ -2257,9 +2262,69 @@ document.addEventListener('DOMContentLoaded', () => {
         else floorConfigMsg.removeAttribute('data-state');
     }
 
+    function renderCategoriesList() {
+        if (!floorCategoriesList) return;
+        floorCategoriesList.innerHTML = '';
+        editingCategories.forEach((cat, idx) => {
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.gap = '0.5rem';
+            row.style.alignItems = 'center';
+            
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.value = cat.name;
+            nameInput.placeholder = 'Category Name';
+            nameInput.style.flex = '1';
+            nameInput.addEventListener('input', (e) => editingCategories[idx].name = e.target.value);
+            
+            const limitInput = document.createElement('input');
+            limitInput.type = 'number';
+            limitInput.min = '1';
+            limitInput.max = '999';
+            limitInput.value = cat.limit === Infinity ? '' : cat.limit;
+            limitInput.placeholder = 'Max Tables';
+            limitInput.style.width = '100px';
+            limitInput.title = "Leave empty for remaining tables";
+            limitInput.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                editingCategories[idx].limit = isNaN(val) ? Infinity : val;
+            });
+            
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'admin-btn admin-btn--outline admin-btn--danger';
+            delBtn.textContent = 'x';
+            delBtn.style.padding = '0.35rem 0.6rem';
+            delBtn.addEventListener('click', () => {
+                editingCategories.splice(idx, 1);
+                renderCategoriesList();
+            });
+            
+            row.appendChild(nameInput);
+            row.appendChild(limitInput);
+            row.appendChild(delBtn);
+            floorCategoriesList.appendChild(row);
+        });
+    }
+
+    if (floorCategoryAddBtn) {
+        floorCategoryAddBtn.addEventListener('click', () => {
+            editingCategories.push({ name: '', limit: Infinity });
+            renderCategoriesList();
+        });
+    }
+
     function renderFloorConfigForm() {
         if (floorTableCountInput) floorTableCountInput.value = String(floorConfig.tableCount || 7);
         if (floorParcelCountInput) floorParcelCountInput.value = String(floorConfig.parcelCount || 5);
+        editingCategories = Array.isArray(floorConfig.tableCategories) ? JSON.parse(JSON.stringify(floorConfig.tableCategories)) : [
+            { name: 'AC Room', limit: 3 },
+            { name: 'Family Hall', limit: 4 },
+            { name: 'Normal Area', limit: 5 },
+            { name: 'Outdoor / Garden', limit: Infinity }
+        ];
+        renderCategoriesList();
     }
 
     async function openFloorConfigModal() {
@@ -2298,7 +2363,11 @@ document.addEventListener('DOMContentLoaded', () => {
         setBtnLoading(floorConfigSaveBtn, true);
         setFloorConfigMessage('Saving…', null);
         try {
-            await saveFloorConfig(tableCount, parcelCount);
+            const cleanCategories = editingCategories.filter(c => c.name.trim()).map(c => ({
+                name: c.name.trim(),
+                limit: c.limit
+            }));
+            await saveFloorConfig(tableCount, parcelCount, cleanCategories.length > 0 ? cleanCategories : null);
             renderFloorConfigForm();
             setFloorConfigMessage('Floor layout saved. Open the tables screen to see changes.', 'success');
         } catch (err) {
@@ -3298,7 +3367,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (screenshotSubtitleEl) {
             screenshotSubtitleEl.textContent = order
-                ? `Order #${order.id} · ${order.name || 'Customer'} · ₹${Number(order.total) || 0}`
+                ? `Order #${order.daily_order_number || order.id} · ${order.name || 'Customer'} · ₹${Number(order.total) || 0}`
                 : `Order #${orderId}`;
         }
 
@@ -3920,7 +3989,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="kot-print-order-meta">
                 <div class="kot-print-meta-row">
                     <span class="kot-print-meta-left">${escapeHtml(order.name || 'Customer')}</span>
-                    <span class="kot-print-meta-right">#${escapeHtml(order.id)}</span>
+                    <span class="kot-print-meta-right">#${escapeHtml(order.daily_order_number || order.id)}</span>
                 </div>
                 ${order.mobile ? `<div class="kot-print-meta-row"><span>${escapeHtml(order.mobile)}</span></div>` : ''}
                 <div class="kot-print-meta-line--muted">${escapeHtml(printedAt)}</div>

@@ -401,7 +401,7 @@ async function checkout() {
         });
         const data = await res.json();
         if (data.ok) {
-            showReceipt(data.orderId, S.cart, grandTotal, S.paymentMethod, bagCharge);
+            showReceipt(data.dailyOrderNumber || data.orderId, S.cart, grandTotal, S.paymentMethod, bagCharge);
             S.cart = [];
             S.billNumber++;
             S.carryBagEnabled = false;

@@ -7,27 +7,23 @@
     <title>Floor & KOT — Baloji Cafe Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,500&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg0: #f8fafc;
-            --bg1: #eef2f7;
+            --bg0: #f4f4f5;
             --card: #ffffff;
-            --card2: #ffffff;
-            --border: rgba(148, 163, 184, 0.55);
-            --text: #0f172a;
-            --muted: #64748b;
-            --accent: #059669;
-            --accent2: #0891b2;
-            --warn: #d97706;
-            --danger: #e11d48;
-            --upi: #7c3aed;
-            --cash: #ca8a04;
-            --radius: 16px;
-            --shadow: 0 12px 40px rgba(15, 23, 42, 0.1);
-            --surface-muted: #f1f5f9;
-            --input-bg: #ffffff;
-            --font: 'DM Sans', system-ui, sans-serif;
+            --border: #e4e4e7;
+            --text: #18181b;
+            --muted: #71717a;
+            --accent: #3b82f6;
+            --success: #10b981;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --radius: 8px;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --surface-muted: #f4f4f5;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             --mono: 'JetBrains Mono', ui-monospace, monospace;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,11 +35,10 @@
         body {
             width: 100%;
             font-family: var(--font);
-            background:
-                radial-gradient(1200px 600px at 10% -10%, rgba(52, 211, 153, 0.1), transparent 55%),
-                radial-gradient(900px 500px at 100% 0%, rgba(34, 211, 238, 0.08), transparent 50%),
-                linear-gradient(165deg, var(--bg0), var(--bg1) 40%, #fafbfc);
+            background-color: var(--bg0);
             color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             padding: 1rem;
             padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
         }
@@ -238,6 +233,13 @@
         }
         .floor-section-head span { font-size: 0.75rem; color: var(--muted); }
 
+        .floor-category-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--muted);
+            margin: 0 0 0.5rem 0.1rem;
+            letter-spacing: 0.02em;
+        }
         .floor-slots {
             display: grid;
             gap: 0.65rem;
@@ -292,60 +294,108 @@
             border-radius: var(--radius);
             border: 1px solid var(--border);
             background: var(--card);
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-            padding: 0.75rem 0.7rem;
-            min-height: 118px;
+            box-shadow: var(--shadow);
+            padding: 1rem;
+            min-height: 120px;
             display: flex;
             flex-direction: column;
-            gap: 0.35rem;
+            gap: 0.5rem;
             cursor: pointer;
             text-align: left;
             color: inherit;
             font: inherit;
-            transition: border-color 0.18s, transform 0.12s, box-shadow 0.18s;
+            transition: all 0.2s ease;
+            overflow: hidden;
         }
         .slot-card:hover:not(:disabled) {
-            border-color: rgba(52, 211, 153, 0.45);
-            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+            border-color: #a1a1aa;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
         }
-        .slot-card:active:not(:disabled) { transform: scale(0.99); }
+        .slot-card:active:not(:disabled) { transform: scale(0.99) translateY(0); }
         .slot-card:disabled {
-            opacity: 0.55;
+            opacity: 0.6;
             cursor: not-allowed;
+            background: #fafafa;
         }
         .slot-card--busy {
-            border-color: rgba(8, 145, 178, 0.4);
-            background: linear-gradient(155deg, #ffffff, #f0fdfa 55%);
+            border-color: #3b82f6;
+            background: #eff6ff;
+            box-shadow: 0 1px 3px 0 rgba(59, 130, 246, 0.1), 0 1px 2px -1px rgba(59, 130, 246, 0.1);
+        }
+        .slot-card--busy:hover:not(:disabled) {
+            border-color: #2563eb;
+            background: #e0e7ff;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.15), 0 2px 4px -2px rgba(59, 130, 246, 0.1);
         }
         .slot-card--busy::before {
             content: '';
             position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            pointer-events: none;
-            background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), transparent 40%, rgba(34, 211, 238, 0.06));
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: #3b82f6;
+            border-top-left-radius: inherit;
+            border-bottom-left-radius: inherit;
         }
         .slot-label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
+            font-size: 0.75rem;
+            font-weight: 500;
             color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
         }
-        .slot-name { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em; }
+        .slot-name { 
+            font-size: 1.15rem; 
+            font-weight: 600; 
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
         .slot-badge {
-            align-self: flex-start;
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 0.2rem 0.45rem;
-            border-radius: 999px;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            letter-spacing: 0.02em;
         }
-        .slot-badge--free { background: rgba(148, 163, 184, 0.25); color: #475569; }
-        .slot-badge--live { background: rgba(52, 211, 153, 0.22); color: #047857; }
-        .slot-meta { font-size: 0.75rem; color: var(--muted); margin-top: auto; font-family: var(--mono); }
-        .slot-total { font-size: 0.95rem; font-weight: 700; color: #b45309; }
+        .slot-badge--free { 
+            background: #f4f4f5; 
+            color: #52525b; 
+            border: 1px solid #e4e4e7;
+        }
+        .slot-badge--live { 
+            background: #dcfce7; 
+            color: #15803d; 
+            border: 1px solid #bbf7d0;
+        }
+        .slot-meta { 
+            font-size: 0.8rem; 
+            color: var(--muted); 
+            margin-top: auto; 
+            font-family: var(--mono);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--border);
+        }
+        .slot-card--busy .slot-meta {
+            border-top-color: #bfdbfe;
+        }
+        .slot-total { 
+            font-size: 1rem; 
+            font-weight: 600; 
+            color: #ea580c; 
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 0.25rem;
+        }
 
         /* Drawer */
         .floor-drawer-backdrop {
@@ -1622,7 +1672,7 @@
                     <h2>Dining tables</h2>
                     <span id="tableCountLabel">—</span>
                 </div>
-                <div class="floor-slots floor-slots--tables" id="tableSlots" aria-label="Dining tables"></div>
+                <div id="tableSlotsWrap" style="display:flex; flex-direction:column; gap:1.5rem;"></div>
             </section>
             <section>
                 <div class="floor-section-head">

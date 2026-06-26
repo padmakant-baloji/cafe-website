@@ -841,14 +841,16 @@
     <div class="checkout-modal order-success-modal" id="orderSuccessModal" aria-hidden="true">
         <div class="checkout-modal-content order-success-modal-content" role="dialog" aria-modal="true" aria-labelledby="orderSuccessTitle">
             <div class="order-success-hero">
-                <div class="order-success-icon" aria-hidden="true">✓</div>
-                <p class="order-success-eyebrow" id="orderSuccessEyebrow">You’re all set</p>
-                <h2 id="orderSuccessTitle">Order placed</h2>
-                <div class="order-success-wait order-success-wait--arrival" id="orderSuccessWaitBlock" aria-label="Estimated delivery">
-                    <p class="order-success-wait-range" id="orderSuccessWaitMessage">Your order will arrive in 30 mins</p>
+                <div id="orderSuccessMessageBlock">
+                    <div class="order-success-icon" aria-hidden="true">✓</div>
+                    <p class="order-success-eyebrow" id="orderSuccessEyebrow">You’re all set</p>
+                    <h2 id="orderSuccessTitle">Order placed</h2>
+                    <div class="order-success-wait order-success-wait--arrival" id="orderSuccessWaitBlock" aria-label="Estimated delivery">
+                        <p class="order-success-wait-range" id="orderSuccessWaitMessage">Your order will arrive in 30 mins</p>
+                    </div>
+                    <p class="order-success-copy" id="orderSuccessCopy">We’ll notify you as your order moves along. Open My orders anytime for live status.</p>
+                    <p class="order-success-contact" id="orderSuccessVenueContact" hidden></p>
                 </div>
-                <p class="order-success-copy" id="orderSuccessCopy">We’ll notify you as your order moves along. Open My orders anytime for live status.</p>
-                <p class="order-success-contact" id="orderSuccessVenueContact" hidden></p>
                 <div id="orderSuccessQrBlock" class="order-success-qr" hidden>
                     <div class="payment-action-alert">
                         <div class="payment-action-alert-icon">⚠️</div>
@@ -871,7 +873,7 @@
                     </div>
                 </div>
             </div>
-            <div class="order-success-actions order-success-actions--stack">
+            <div class="order-success-actions order-success-actions--stack" id="orderSuccessActionsBlock">
                 <button type="button" class="btn btn-primary" id="trackOrderBtn">Track order</button>
                 <button type="button" class="btn btn-secondary" id="orderSuccessCloseBtn">Keep browsing menu</button>
             </div>
@@ -1072,7 +1074,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="/script.js?v=44" defer></script>
+    <script src="/script.js?v=45" defer></script>
     <script src="/grocery.js?v=2" defer></script>
     <script src="/review-prompt.js" defer></script>
     <script src="/pwa-client.js" defer></script>

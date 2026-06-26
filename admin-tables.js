@@ -880,13 +880,11 @@ function updateFloorConfigLabels() {
 }
 
 function applyFloorSlotGridColumns() {
-    const tableWrap = document.getElementById('tableSlots');
+    const tableWrap = document.getElementById('tableSlotsWrap');
     const parcelWrap = document.getElementById('parcelSlots');
     const nTables = Math.max(1, floorConfig.tableCount || 7);
     const nParcels = Math.max(1, floorConfig.parcelCount || 5);
-    if (tableWrap) {
-        tableWrap.style.setProperty('--floor-slot-cols', String(nTables));
-    }
+    // Table wrap grid cols are set dynamically per category now
     if (parcelWrap) {
         parcelWrap.style.setProperty('--floor-slot-cols', String(nParcels));
     }
@@ -1364,7 +1362,7 @@ function renderSlotButton({ kind, num, order }) {
             (sum, k) => sum + (k.lines || []).reduce((a, l) => a + (Number(l.quantity) || 0), 0),
             0
         );
-        const idShow = isLocalFloorId(order.id) ? 'Draft' : `#${order.id}`;
+        const idShow = isLocalFloorId(order.id) ? 'Draft' : `#${order.daily_order_number || order.id}`;
         metaEl.textContent = `${idShow} · ${itemCount} item${itemCount === 1 ? '' : 's'}`;
         const tot = document.createElement('div');
         tot.className = 'slot-total';
@@ -1925,7 +1923,7 @@ function renderDrawer() {
               : meta.slot || '—';
 
     title.textContent = slotLabel;
-    sub.textContent = `${isLocalFloorId(order.id) ? 'Draft order' : `Order #${order.id}`} · ${formatRupee(order.total)} · ${meta.guest_label ? meta.guest_label : 'Walk-in guest'}`;
+    sub.textContent = `${isLocalFloorId(order.id) ? 'Draft order' : `Order #${order.daily_order_number || order.id}`} · ${formatRupee(order.total)} · ${meta.guest_label ? meta.guest_label : 'Walk-in guest'}`;
 
     const leftCol = [];
     leftCol.push(`<div class="kot-draft-panel" id="kotDraftPanel">
@@ -2634,7 +2632,7 @@ function closeDrawer() {
 }
 
 function renderSlots() {
-    const tableWrap = document.getElementById('tableSlots');
+    const tableWrap = document.getElementById('tableSlotsWrap');
     const parcelWrap = document.getElementById('parcelSlots');
     if (!tableWrap || !parcelWrap) return;
     const map = slotMapFromOrders(floorOrders);
@@ -2644,9 +2642,59 @@ function renderSlots() {
     const nParcels = Math.max(1, floorConfig.parcelCount || 5);
     applyFloorSlotGridColumns();
     updateFloorConfigLabels();
-    for (let n = 1; n <= nTables; n += 1) {
-        tableWrap.appendChild(renderSlotButton({ kind: 'table', num: n, order: map.get(`table:${n}`) }));
+
+    let sourceCategories = Array.isArray(floorConfig.tableCategories) ? floorConfig.tableCategories : [
+        { name: 'AC Room', limit: 3 },
+        { name: 'Family Hall', limit: 4 },
+        { name: 'Normal Area', limit: 5 },
+        { name: 'Outdoor / Garden', limit: Infinity }
+    ];
+    if (sourceCategories.length === 0) {
+        sourceCategories = [{ name: 'Dining Tables', limit: Infinity }];
     }
+    
+    // Convert to working copies
+    const categories = sourceCategories.map(c => ({
+        name: c.name,
+        limit: c.limit === null || c.limit === undefined || c.limit === '' ? Infinity : c.limit,
+        items: []
+    }));
+
+    let currentCat = 0;
+    for (let n = 1; n <= nTables; n++) {
+        if (categories[currentCat].items.length >= categories[currentCat].limit) {
+            if (currentCat < categories.length - 1) {
+                currentCat++;
+            } else {
+                // If we are at the last category, just keep adding items despite limit.
+            }
+        }
+        categories[currentCat].items.push(n);
+    }
+
+    for (const cat of categories) {
+        if (cat.items.length === 0) continue;
+        
+        const catDiv = document.createElement('div');
+        catDiv.className = 'floor-category';
+        
+        const catTitle = document.createElement('h3');
+        catTitle.className = 'floor-category-title';
+        catTitle.textContent = cat.name;
+        catDiv.appendChild(catTitle);
+        
+        const catGrid = document.createElement('div');
+        catGrid.className = 'floor-slots floor-slots--tables';
+        catGrid.style.setProperty('--floor-slot-cols', String(cat.items.length));
+        
+        for (const n of cat.items) {
+            catGrid.appendChild(renderSlotButton({ kind: 'table', num: n, order: map.get(`table:${n}`) }));
+        }
+        
+        catDiv.appendChild(catGrid);
+        tableWrap.appendChild(catDiv);
+    }
+
     for (let n = 1; n <= nParcels; n += 1) {
         parcelWrap.appendChild(renderSlotButton({ kind: 'parcel', num: n, order: map.get(`parcel:${n}`) }));
     }

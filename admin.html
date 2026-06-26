@@ -10,39 +10,42 @@
     <title>Orders — Baloji Cafe Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg0: #f8fafc;
-            --bg1: #eef2f7;
+            --bg0: #f1f5f9;
+            --bg1: #f8fafc;
             --card: #ffffff;
-            --card-border: rgba(148, 163, 184, 0.55);
+            --card-border: rgba(148, 163, 184, 0.25);
             --text: #0f172a;
             --muted: #64748b;
-            --accent: #059669;
-            --accent2: #0891b2;
-            --danger: #e11d48;
-            --warn: #d97706;
-            --surface-muted: #f1f5f9;
+            --accent: #0ea5e9;
+            --accent2: #6366f1;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+            --surface-muted: #f8fafc;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        [hidden] { display: none !important; }
         html {
             overflow-x: clip;
             max-width: 100%;
         }
         body {
-            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             width: 100%;
             max-width: 100%;
             overflow-x: clip;
-            background:
-                radial-gradient(1100px 520px at 8% -8%, rgba(52, 211, 153, 0.1), transparent 55%),
-                radial-gradient(900px 480px at 100% 0%, rgba(34, 211, 238, 0.08), transparent 50%),
-                linear-gradient(165deg, var(--bg0), var(--bg1) 42%, #fafbfc);
+            background-color: var(--bg0);
+            background-image: radial-gradient(at 40% 20%, rgba(14, 165, 233, 0.08) 0px, transparent 50%),
+                              radial-gradient(at 80% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+                              radial-gradient(at 0% 50%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
             color: var(--text);
             min-height: 100vh;
             padding: 1.25rem;
             padding-bottom: 2rem;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         .admin-header {
             width: 100%;
@@ -2725,6 +2728,10 @@
                     <span>Parcel counters</span>
                     <input id="adminFloorParcelCount" type="number" min="1" max="20" step="1" inputmode="numeric">
                 </label>
+                <div style="height: 1rem;"></div>
+                <div style="font-weight:700; color:var(--text); margin-bottom:0.5rem; font-size:0.9rem;">Table Categories (Visual Grouping)</div>
+                <div id="adminFloorCategoriesList" style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.5rem;"></div>
+                <button type="button" class="admin-btn admin-btn--outline" id="adminFloorCategoryAddBtn" style="width:100%; justify-content:center; padding:0.4rem; font-size:0.85rem;">+ Add Category</button>
                 <div class="admin-store-status-foot" style="margin-top: 1rem;">
                     <button type="button" class="admin-store-save-btn" id="adminFloorConfigSaveBtn">Save</button>
                     <span class="admin-store-status-msg" id="adminFloorConfigMsg" role="status"></span>

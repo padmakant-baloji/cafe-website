@@ -4776,19 +4776,26 @@ function showOrderSuccessModal(_placedAtMs, venueInfo = {}) {
     const qrBtn = document.getElementById('orderSuccessWhatsappBtn');
     const uploadBtn = document.getElementById('orderSuccessUploadBtn');
     const screenshotInput = document.getElementById('orderSuccessScreenshotInput');
+    const messageBlock = document.getElementById('orderSuccessMessageBlock');
+    const actionsBlock = document.getElementById('orderSuccessActionsBlock');
     
     if (qrBlock && qrImg && qrBtn) {
         if (venueInfo.venuePaymentQrCode) {
             qrImg.src = venueInfo.venuePaymentQrCode;
             qrBlock.hidden = false;
+            if (messageBlock) messageBlock.hidden = true;
+            if (actionsBlock) actionsBlock.hidden = true;
             
             qrBtn.onclick = function() {
                 const contact = contactMobile.replace(/\D/g, '');
                 if (contact) {
                     let formattedContact = contact;
                     if (formattedContact.length === 10) formattedContact = '91' + formattedContact;
-                    const message = encodeURIComponent(`Hello, I have made the payment for Order #${venueInfo.orderId || ''}. Here is the screenshot.`);
+                    const message = encodeURIComponent(`Hello, I have made the payment for Order #${venueInfo.dailyOrderNumber || venueInfo.orderId || ''}. Here is the screenshot.`);
                     window.open(`https://wa.me/${formattedContact}?text=${message}`, '_blank');
+                    if (messageBlock) messageBlock.hidden = false;
+                    if (actionsBlock) actionsBlock.hidden = false;
+                    qrBlock.hidden = true;
                 } else {
                     alert('Restaurant contact number is not available for WhatsApp.');
                 }
@@ -4820,11 +4827,13 @@ function showOrderSuccessModal(_placedAtMs, venueInfo = {}) {
                         const reader = new FileReader();
                         reader.onload = async (ev) => {
                             const base64Data = ev.target.result;
-                            const res = await fetch(`/api/orders/${venueInfo.orderId}/upload-screenshot`, {
-                                method: 'POST',
+                            const profile = getCustomerProfile() || {};
+                            const res = await fetch(`/api/orders/${venueInfo.orderId}/screenshot`, {
+                                method: 'PATCH',
                                 headers: {
                                     'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${token}`
+                                    'Authorization': `Bearer ${token}`,
+                                    'x-customer-mobile': profile.mobile ? String(profile.mobile) : ''
                                 },
                                 body: JSON.stringify({ paymentScreenshot: base64Data })
                             });
@@ -4836,6 +4845,9 @@ function showOrderSuccessModal(_placedAtMs, venueInfo = {}) {
                             uploadBtn.textContent = 'Uploaded ✓';
                             uploadBtn.classList.add('is-success');
                             showToast('Screenshot uploaded successfully', { type: 'success' });
+                            if (messageBlock) messageBlock.hidden = false;
+                            if (actionsBlock) actionsBlock.hidden = false;
+                            qrBlock.hidden = true;
                         };
                         reader.onerror = () => {
                             throw new Error('Could not read file');
@@ -4853,6 +4865,8 @@ function showOrderSuccessModal(_placedAtMs, venueInfo = {}) {
             }
         } else {
             qrBlock.hidden = true;
+            if (messageBlock) messageBlock.hidden = false;
+            if (actionsBlock) actionsBlock.hidden = false;
             qrImg.src = '';
             qrBtn.onclick = null;
             if (uploadBtn) uploadBtn.onclick = null;
@@ -5072,7 +5086,8 @@ async function placeOrder() {
             venueContactMobile: data.venueContactMobile || orderVenue?.contactMobile,
             venueHoursText: data.venueHoursText || orderVenue?.hoursText,
             venuePaymentQrCode: data.venuePaymentQrCode || orderVenue?.paymentQrCode,
-            orderId: data.id || data.order_id || data.orderId
+            orderId: data.id || data.order_id || data.orderId,
+            dailyOrderNumber: data.dailyOrderNumber
         });
     } catch (err) {
         const hint =
