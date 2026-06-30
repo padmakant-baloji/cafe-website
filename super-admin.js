@@ -189,7 +189,7 @@ function renderKpis(data) {
     document.getElementById('kpiRevenueHint').textContent = `${data.totalCompletedOrders} completed orders`;
 
     document.getElementById('kpiCommission').textContent = formatMoney(data.totalCommission);
-    document.getElementById('kpiCommissionHint').textContent = `1.4% of ${formatMoney(data.totalRevenue)}`;
+    document.getElementById('kpiCommissionHint').textContent = `Total commissions earned`;
 
     document.getElementById('kpiHotels').textContent = String(data.foodVenueCount);
     document.getElementById('kpiMarts').textContent = String(data.groceryVenueCount);
