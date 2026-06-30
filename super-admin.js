@@ -294,6 +294,7 @@ function renderVenueGrid(venues, summary) {
 
     let html = '';
     for (const v of venues) {
+        if (v.isMain) continue;
         const sv = summaryByVenue[v.id] || {};
         const revenue = sv.completedRevenue || 0;
         const commission = sv.commission || 0;
