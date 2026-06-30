@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
-const PRECACHE = 'quickkart-pwa-cache-v22';
-const RUNTIME = 'quickkart-pwa-runtime-v18';
+const PRECACHE = 'quickkart-pwa-cache-v28';
+const RUNTIME = 'quickkart-pwa-runtime-v24';
 
 self.addEventListener('install', (event) => {
   const assets = [

@@ -270,6 +270,7 @@ function renderCheckoutDeliveryCard() {
 
     const city =
         (selected?.city ||
+            (isNew && document.getElementById('checkoutNewAddressCity')?.value) ||
             document.getElementById('customerCity')?.value ||
             currentCustomer?.city ||
             '').trim() || 'Select city';
@@ -2133,10 +2134,21 @@ function findDeliveryZone(cityLower, explicitVenueId = null) {
     
     let zones = [];
     if (typeof deliveryZonesMap === 'object' && deliveryZonesMap !== null) {
-        zones = deliveryZonesMap[vKey] || deliveryZonesMap['default'] || [];
+        if (vKey === 'default') {
+            zones = deliveryZonesMap['default'] || [];
+        } else {
+            zones = deliveryZonesMap[vKey] || [];
+        }
     }
     
     if (!zones.length) {
+        if (vKey !== 'default') {
+            const venue = menuVenues.find(v => String(v.id) === vKey);
+            if (venue && venue.city && venue.city.trim().toLowerCase() === cityLower) {
+                return { city: cityLower, minOrder: 0, deliveryFee: 8, freeDeliveryAbove: null };
+            }
+            return null;
+        }
         return { city: '_default', minOrder: 0, deliveryFee: 8, freeDeliveryAbove: null };
     }
     const exact = zones.find((z) => z.city === cityLower);
@@ -2155,6 +2167,9 @@ function getCheckoutSelectedCity() {
     if (!isNew) {
         const selected = getCheckoutAddressById(checkoutSelectedAddressId);
         if (selected && selected.city) return String(selected.city).trim().toLowerCase();
+    } else {
+        const newCity = document.getElementById('checkoutNewAddressCity')?.value;
+        if (newCity) return String(newCity).trim().toLowerCase();
     }
     const citySelect = document.getElementById('customerCity');
     const raw = (citySelect && citySelect.value) || currentCustomer?.city || getCustomerProfile()?.city || '';
@@ -3432,13 +3447,22 @@ function updateCityDropdown() {
             });
         }
         
+        const checkoutNewCity = document.getElementById('checkoutNewAddressCity');
         if (globalSelect) {
             globalSelect.innerHTML = '';
+            if (checkoutNewCity) checkoutNewCity.innerHTML = '';
             customCities.forEach(city => {
                 const opt = document.createElement('option');
                 opt.value = city;
                 opt.textContent = city;
                 globalSelect.appendChild(opt);
+                
+                if (checkoutNewCity) {
+                    const optNew = document.createElement('option');
+                    optNew.value = city;
+                    optNew.textContent = city;
+                    checkoutNewCity.appendChild(optNew);
+                }
             });
             
             const profile = getCustomerProfile();
@@ -3450,6 +3474,7 @@ function updateCityDropdown() {
             }
             
             globalSelect.value = globalSelectedCity;
+            if (checkoutNewCity) checkoutNewCity.value = globalSelectedCity;
             if (globalDisplay) globalDisplay.textContent = globalSelectedCity;
             localStorage.setItem('quickkartGlobalCity', globalSelectedCity);
             
@@ -3654,6 +3679,11 @@ function buildMenuItemImageHtml(item, categoryId) {
 
 function deriveMenuVenues(categories) {
     const byId = new Map();
+    if (Array.isArray(menuVenues)) {
+        for (const v of menuVenues) {
+            if (v.id != null) byId.set(Number(v.id), { ...v });
+        }
+    }
     for (const cat of categories || []) {
         const id = Number(cat.venueId ?? defaultVenueId);
         if (!Number.isFinite(id)) continue;
@@ -3716,7 +3746,28 @@ function buildHotelFilterTabs() {
     const list = document.getElementById('menuHotelFilterList');
     if (!container || !list) return;
 
+    window.noVenuesForSelectedCity = false;
+    
     if (!menuVenues.length || menuVenues.length <= 1) {
+        // If there's only 1 venue in the system (e.g. standalone storefront), we still need to check if it serves the city.
+        if (menuVenues.length === 1) {
+            const cityLower = (globalSelectedCity || '').toLowerCase();
+            const venue = menuVenues[0];
+            const vKey = venue.id == null || venue.isMain ? 'default' : String(venue.id);
+            const zones = (typeof deliveryZonesMap === 'object' && deliveryZonesMap !== null) ? (vKey === 'default' ? deliveryZonesMap['default'] || [] : deliveryZonesMap[vKey] || []) : [];
+            let isAvailable = false;
+            if (zones.length > 0) {
+                isAvailable = zones.some(z => (z.city && z.city.toLowerCase() === cityLower) || z.city === '_default');
+            } else if (!venue.isMain && venue.city && venue.city.trim().toLowerCase() === cityLower) {
+                isAvailable = true;
+            } else if (venue.isMain) {
+                isAvailable = true;
+            }
+            if (!cityLower) isAvailable = true;
+            
+            if (!isAvailable) window.noVenuesForSelectedCity = true;
+        }
+        
         container.hidden = true;
         list.innerHTML = '';
         return;
@@ -3728,10 +3779,20 @@ function buildHotelFilterTabs() {
         if (venue.city && venue.city.trim().toLowerCase() === cityLower) return true;
 
         const vKey = venue.id == null || venue.isMain ? 'default' : String(venue.id);
-        const zones = (typeof deliveryZonesMap === 'object' && deliveryZonesMap !== null) ? (deliveryZonesMap[vKey] || deliveryZonesMap['default'] || []) : [];
-        const hasExplicitZone = zones.some(z => z.city && z.city.toLowerCase() === cityLower);
-        return hasExplicitZone;
+        const zones = (typeof deliveryZonesMap === 'object' && deliveryZonesMap !== null) ? (vKey === 'default' ? deliveryZonesMap['default'] || [] : deliveryZonesMap[vKey] || []) : [];
+        if (zones.length > 0) {
+            return zones.some(z => (z.city && z.city.toLowerCase() === cityLower) || z.city === '_default');
+        }
+        // Fallback for partner venue without zones: only its own city
+        if (!venue.isMain && venue.city && venue.city.trim().toLowerCase() === cityLower) {
+            return true;
+        }
+        // Main venue fallback
+        if (venue.isMain) return true;
+        return false;
     });
+
+    window.noVenuesForSelectedCity = (availableVenues.length === 0);
 
     if (availableVenues.length <= 1) {
         container.hidden = true;
@@ -3977,6 +4038,49 @@ function renderMenu(searchQuery = '') {
     const container = document.getElementById('menuItemsContainer');
     container.innerHTML = '';
     updateHotelFilterSearchState(searchQuery);
+    
+    const searchContainer = document.querySelector('.menu-search-container');
+    const categoryTabsContainer = document.getElementById('categoryTabs');
+    const hotelFilter = document.getElementById('menuHotelFilter');
+    const fab = document.getElementById('categoryJumpFab');
+    const menuTitle = document.querySelector('.order-menu-title');
+    
+    if (window.noVenuesForSelectedCity) {
+        if (searchContainer) searchContainer.style.display = 'none';
+        if (categoryTabsContainer) categoryTabsContainer.style.display = 'none';
+        if (hotelFilter) hotelFilter.style.display = 'none';
+        if (menuTitle) menuTitle.style.display = 'none';
+        if (fab) {
+            fab.hidden = true;
+            fab.classList.remove('visible');
+        }
+        
+        const displayCity = globalSelectedCity ? escapeHtml(globalSelectedCity.charAt(0).toUpperCase() + globalSelectedCity.slice(1)) : 'this city';
+        let venueName = '';
+        if (menuVenues.length === 1) venueName = escapeHtml(menuVenues[0].name);
+        
+        container.innerHTML = `
+            <div class="coming-soon-container" style="text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.02); border-radius: 20px; margin: 40px auto; max-width: 400px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="font-size: 48px; margin-bottom: 20px;">🚀</div>
+                <h3 style="font-size: 24px; margin-bottom: 12px; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Coming soon to ${displayCity}!</h3>
+                <p style="color: var(--text-secondary); font-size: 15px; line-height: 1.5; margin-bottom: 0;">${venueName ? venueName + ' doesn\'t' : 'We don\'t'} have any delivery zones in ${displayCity} yet, but we're expanding rapidly. Check back later!</p>
+            </div>
+        `;
+        
+        const searchResultsInfo = document.getElementById('searchResultsInfo');
+        if (searchResultsInfo) searchResultsInfo.style.display = 'none';
+        
+        const list = document.getElementById('categorySheetList');
+        if (list) list.innerHTML = '';
+        
+        return;
+    }
+    
+    // Restore visibility if we have venues
+    if (searchContainer) searchContainer.style.display = '';
+    if (categoryTabsContainer) categoryTabsContainer.style.display = '';
+    if (hotelFilter) hotelFilter.style.display = '';
+    if (menuTitle) menuTitle.style.display = '';
     
     let totalResults = 0;
     let hasResults = false;
@@ -4566,6 +4670,11 @@ function initCheckoutModal() {
     citySelect?.addEventListener('change', () => {
         renderCheckoutTotals();
     });
+    
+    document.getElementById('checkoutNewAddressCity')?.addEventListener('change', () => {
+        renderCheckoutTotals();
+        renderCheckoutDeliveryCard();
+    });
 
     document.getElementById('addressLine')?.addEventListener('input', () => {
         renderCheckoutDeliveryCard();
@@ -4636,8 +4745,10 @@ function initCheckoutModal() {
         }
 
         const saveBtn = e.currentTarget;
-        const city =
-            (document.getElementById('customerCity')?.value || currentCustomer?.city || '').trim();
+        let city = document.getElementById('checkoutNewAddressCity')?.value;
+        if (!city) {
+            city = (document.getElementById('customerCity')?.value || currentCustomer?.city || '').trim();
+        }
         setBtnLoading(saveBtn, true);
         try {
             const res = await fetch('/api/auth/address', {
