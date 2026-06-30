@@ -346,6 +346,7 @@ function renderVenueGrid(venues, summary) {
                     ${editBtn}
                     ${v.contactMobile ? `<span style="font-size:0.75rem; color:var(--text-muted); align-self:center;">📞 ${escapeHtml(v.contactMobile)}</span>` : ''}
                     ${v.hoursText ? `<span style="font-size:0.75rem; color:var(--text-muted); align-self:center;">🕐 ${escapeHtml(v.hoursText)}</span>` : ''}
+                    ${!v.isMain && v.partnerMarkupPct != null ? `<span style="font-size:0.75rem; color:var(--text-muted); align-self:center;">💰 +${v.partnerMarkupPct}% Markup</span>` : ''}
                 </div>
             </div>`;
     }
@@ -369,6 +370,7 @@ async function createVenue() {
     const contactMobile = document.getElementById('saNewVenueContact').value.trim();
     const hoursText = document.getElementById('saNewVenueHours').value.trim();
     const venueType = document.getElementById('saNewVenueType').value;
+    const partnerMarkupPct = document.getElementById('saNewVenueMarkup').value.trim();
 
     if (!name) { showAddMsg('Venue name is required', true); return; }
     if (!adminUser) { showAddMsg('Admin username is required', true); return; }
@@ -383,7 +385,7 @@ async function createVenue() {
             headers: adminHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
                 name, city, slug, adminUser, adminPass,
-                contactMobile, hoursText, venueType
+                contactMobile, hoursText, venueType, partnerMarkupPct
             })
         });
 
@@ -415,6 +417,7 @@ function clearAddForm() {
         document.getElementById(id).value = '';
     });
     document.getElementById('saNewVenueType').value = 'food';
+    document.getElementById('saNewVenueMarkup').value = '8';
     document.getElementById('saAddMsg').textContent = '';
 }
 
@@ -434,6 +437,7 @@ function openEditModal(venueId) {
     document.getElementById('saEditContact').value = venue.contactMobile || '';
     document.getElementById('saEditHours').value = venue.hoursText || '';
     document.getElementById('saEditAddress').value = venue.addressLine || '';
+    document.getElementById('saEditMarkup').value = venue.partnerMarkupPct ?? 0;
     document.getElementById('saEditMsg').textContent = '';
 
     document.getElementById('saEditModal').hidden = false;
@@ -458,7 +462,8 @@ async function saveVenueEdit() {
         adminUser: document.getElementById('saEditAdminUser').value.trim(),
         contactMobile: document.getElementById('saEditContact').value.trim(),
         hoursText: document.getElementById('saEditHours').value.trim(),
-        addressLine: document.getElementById('saEditAddress').value.trim()
+        addressLine: document.getElementById('saEditAddress').value.trim(),
+        partnerMarkupPct: document.getElementById('saEditMarkup').value.trim()
     };
 
     const pass = document.getElementById('saEditAdminPass').value;
