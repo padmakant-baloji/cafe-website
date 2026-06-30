@@ -1,4 +1,4 @@
-# robots.txt for Baloji Cafe
+# robots.txt for FoodKart
 # https://www.balojicafe.com/robots.txt
 
 User-agent: *

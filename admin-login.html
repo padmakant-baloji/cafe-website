@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#15803d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Admin Sign In — Baloji Cafe</title>
+    <title>Admin Sign In — FoodKart</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -135,7 +135,9 @@
                 
                 if (res.ok && data.token) {
                     localStorage.setItem('quickkartAdminToken', data.token);
-                    if (data.venue && data.venue.venueType === 'grocery') {
+                    if (data.venue && data.venue.isMain) {
+                        window.location.href = '/super-admin';
+                    } else if (data.venue && data.venue.venueType === 'grocery') {
                         window.location.href = '/grocery-admin';
                     } else {
                         window.location.href = '/admin';

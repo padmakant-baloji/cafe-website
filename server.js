@@ -24,7 +24,8 @@ const {
     createFloorSession,
     commitFloorOrderToDb,
     cancelOrderByCustomer,
-    cleanupOldScreenshots
+    cleanupOldScreenshots,
+    listAllOrdersSummaryForSuperAdmin
 } = require('./lib/order-service');
 const { placeOrderForCustomer } = require('./lib/place-order');
 const { placeGroceryOrderForCustomer } = require('./lib/place-grocery-order');
@@ -41,7 +42,7 @@ const {
 } = require('./lib/grocery-service');
 const { validateCoupon } = require('./lib/coupon-service');
 const { getStoreStatus, setStoreStatus, getPublicStorefrontStatus } = require('./lib/store-status');
-const { resolveAdminVenue, authenticateAdminUser, getFloorConfig, setFloorConfig, resolvePublicVenue, venuePublicPayload, listVenuesForAdmin, createVenueByMain, updateVenueAccessByMain } = require('./lib/venue-service');
+const { resolveAdminVenue, authenticateAdminUser, getFloorConfig, setFloorConfig, resolvePublicVenue, venuePublicPayload, listVenuesForAdmin, createVenueByMain, updateVenueAccessByMain, deleteVenueByMain } = require('./lib/venue-service');
 const { getAggregatedCustomerMenu, getAdminMenuForVenue, saveAdminMenuForVenue } = require('./lib/menu-service');
 const { listDeliveryZones, upsertDeliveryZone, deleteDeliveryZone } = require('./lib/delivery-zone-service');
 
@@ -602,6 +603,39 @@ app.patch('/api/admin/venues/:id', requireAdmin, async (req, res) => {
     }
 });
 
+app.delete('/api/admin/venues/:id', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        const venueId = parseId(req.params.id);
+        if (Number.isNaN(venueId)) {
+            return res.status(400).json({ error: 'Invalid hotel id.' });
+        }
+        const result = await deleteVenueByMain(req.adminVenue, venueId);
+        return res.json(result);
+    } catch (err) {
+        const code =
+            err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+        if (code >= 500) console.error('admin venues delete:', err.message);
+        return res.status(code).json({ error: err.message || 'Could not delete hotel.' });
+    }
+});
+
+app.get('/api/admin/all-orders-summary', requireAdmin, async (req, res) => {
+    try {
+        await ensureSchema();
+        if (!req.adminVenue.isDefault) {
+            return res.status(403).json({ error: 'Only the super admin can access this.' });
+        }
+        const period = (req.query && String(req.query.period || '').trim().toLowerCase()) || 'today';
+        const summary = await listAllOrdersSummaryForSuperAdmin(period);
+        res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        return res.json({ ok: true, ...summary });
+    } catch (err) {
+        console.error('admin all-orders-summary:', err.message);
+        return res.status(500).json({ error: 'Could not load orders summary.' });
+    }
+});
+
 app.get('/api/admin/orders', requireAdmin, async (req, res) => {
     try {
         await ensureSchema();
@@ -1063,6 +1097,10 @@ app.delete('/api/admin/delivery-zones/:id', requireAdmin, async (req, res) => {
         if (code >= 500) console.error('admin delivery-zones delete:', err.message);
         return res.status(code).json({ error: err.message || 'Could not delete delivery zone.' });
     }
+});
+
+app.get('/super-admin', (req, res) => {
+    res.sendFile(path.join(ROOT, 'super-admin.html'));
 });
 
 app.get('/admin/tables', (req, res) => {

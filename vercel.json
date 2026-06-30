@@ -17,6 +17,9 @@
     { "source": "/admin-tables/", "destination": "/admin-tables.html" },
     { "source": "/admin-tables.html", "destination": "/admin-tables.html" },
 
+    { "source": "/super-admin", "destination": "/super-admin.html" },
+    { "source": "/super-admin/", "destination": "/super-admin.html" },
+
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/admin/", "destination": "/admin.html" },
     { "source": "/admin.html", "destination": "/admin.html" },

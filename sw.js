@@ -54,7 +54,7 @@ self.addEventListener('activate', (event) => {
             if (k === PRECACHE || k === RUNTIME) return Promise.resolve();
             if (
               k.startsWith('quickkart-pwa-cache-') || k.startsWith('quickkart-pwa-runtime-') ||
-              k.startsWith('baloji-pwa-cache-') || k.startsWith('baloji-pwa-runtime-')
+              k.startsWith('foodkart-pwa-cache-') || k.startsWith('foodkart-pwa-runtime-')
             ) {
               return caches.delete(k);
             }

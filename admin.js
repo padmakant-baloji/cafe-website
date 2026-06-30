@@ -512,7 +512,7 @@ function applyMainVenueUi() {
     const hotelsModalSub = document.getElementById('adminHotelsModalSub');
     if (hotelsModalSub) {
         hotelsModalSub.textContent = isMain
-            ? 'Baloji Cafe is the main hotel. Create other hotels here and give each its own admin login.'
+            ? 'FoodKart is the main hotel. Create other hotels here and give each its own admin login.'
             : 'Hotel details for your property.';
     }
 
@@ -1260,7 +1260,7 @@ function buildOrderCopyText(order) {
     const pm = orderPaymentMethod(order);
 
     const lines = [
-        `Baloji Cafe — Order #${id}`,
+        `FoodKart — Order #${id}`,
         when ? `Time: ${when}` : '',
         name ? `Name: ${name}` : '',
         mobile ? `Mobile: ${mobile}` : '',
@@ -2453,7 +2453,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     hotelCreateBtn?.addEventListener('click', async () => {
         if (!isMainAdminVenue()) {
-            setHotelsMessage('Only Baloji Cafe can create hotels.', 'error');
+            setHotelsMessage('Only FoodKart can create hotels.', 'error');
             return;
         }
         const name = String(hotelNameInput?.value || '').trim();
@@ -3179,7 +3179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.editable === false) {
                 setPartnerMenuMessage('This hotel menu is managed in menu.json.', 'error');
                 if (partnerMenuAddForm) partnerMenuAddForm.hidden = true;
-                partnerMenuList.innerHTML = '<p class="admin-partner-menu-empty">Baloji Cafe menu is edited in menu.json.</p>';
+                partnerMenuList.innerHTML = '<p class="admin-partner-menu-empty">FoodKart menu is edited in menu.json.</p>';
                 return;
             }
             if (partnerMenuAddForm) partnerMenuAddForm.hidden = false;
@@ -3653,7 +3653,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopyTodaySummary?.addEventListener('click', async () => {
         const data = computeAdminAnalytics(filterOrdersForAdminView(lastOrders));
         const lines = [
-            `Baloji Cafe — Today summary`,
+            `FoodKart — Today summary`,
             `Updated: ${data.updatedAt.toLocaleString()}`,
             `Orders today: ${data.ordersTodayCount} (delivery ${data.ordersTodayDelivery} · floor ${data.ordersTodayKot})`,
             `Settled sales: ${formatMoney(data.settledSalesToday)} (online ${formatMoney(data.settledDeliverySales)} · KOT ${formatMoney(data.settledKotSales)})`,
@@ -4041,7 +4041,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .kot-print-delivery { text-align: center; font-size: 14px; font-weight: 700; line-height: 1.4; margin-top: 1.5mm; }
         `;
 
-        const venueName = (currentVenue && currentVenue.name) || 'Baloji Cafe';
+        const venueName = (currentVenue && currentVenue.name) || 'FoodKart';
         const printedAt = new Date().toLocaleString('en-IN', {
             day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
         });

@@ -84,7 +84,7 @@
   function manualHint(os) {
     setNote(
       os === 'desktop'
-        ? 'If nothing happens, use your browser menu → “Install Baloji Cafe’s Cafe”. (Chrome or Edge support one-tap install.)'
+        ? 'If nothing happens, use your browser menu → “Install FoodKart’s Cafe”. (Chrome or Edge support one-tap install.)'
         : 'If nothing happens, open your browser menu (⋮) → “Install app” / “Add to Home screen”.'
     );
   }

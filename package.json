@@ -2,7 +2,7 @@
   "name": "quickkarts-cafe-website",
   "private": true,
   "version": "1.0.0",
-  "description": "Baloji Cafe's Cafe order site with email orders",
+  "description": "FoodKart order site with email orders",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",

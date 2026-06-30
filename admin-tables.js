@@ -1225,7 +1225,7 @@ function buildKotReceiptHtml(order, kot) {
             : meta.slot && meta.slot.startsWith('parcel:')
               ? `Parcel ${meta.slot.split(':')[1]}`
               : meta.slot || '—';
-    const venueName = (currentVenue && currentVenue.name) || "Baloji Cafe";
+    const venueName = (currentVenue && currentVenue.name) || "FoodKart";
     const venueAddress = getKotPrintAddress(currentVenue);
     const kotTit = kot.label && String(kot.label).trim() ? kot.label : `KOT #${kot.seq || ''}`;
     const printedAt = new Date().toLocaleString('en-IN', {

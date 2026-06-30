@@ -1045,7 +1045,7 @@ function initTestimonials() {
 let cart = [];
 let appliedCoupon = null; // { code: string, discount: number, subtotal: number }
 let defaultVenueId = 1;
-let defaultVenueName = "Baloji Cafe";
+let defaultVenueName = "FoodKart";
 let partnerDeliveryFee = 20;
 let deliveryZonesMap = { 'default': [] };
 let menuVenues = [];
@@ -1176,11 +1176,7 @@ function isItemOrderingOpen(item, date = new Date()) {
 }
 
 function getVenueClosedMessage(venue) {
-    const target = venue || getSelectedMenuVenue();
-    const parsed = parseVenueHoursText(target?.hoursText);
-    const label = parsed ? parsed.label : '9 AM–10 PM';
-    const name = target?.name || 'This hotel';
-    return `${name} is closed for orders right now. Online ordering: ${label} (India time).`;
+    return '';
 }
 
 function isSelectedVenueOrderingOpen(date = new Date()) {
@@ -1194,18 +1190,6 @@ function getOrderingWindowClosedMessage() {
 function syncMenuVenueClosedNotice() {
     const notice = document.getElementById('menuVenueClosedNotice');
     if (!notice) return;
-    const searchQuery = getMenuSearchQuery();
-    if (isCrossHotelSearch(searchQuery)) {
-        notice.hidden = true;
-        notice.textContent = '';
-        return;
-    }
-    const venue = getSelectedMenuVenue();
-    if (venue && !isVenueOrderingOpen(venue)) {
-        notice.textContent = getVenueClosedMessage(venue);
-        notice.hidden = false;
-        return;
-    }
     notice.hidden = true;
     notice.textContent = '';
 }
@@ -1218,16 +1202,13 @@ function isOnlineOrderingWindowOpenIST(date = new Date()) {
 function syncOrderingWindowUI() {
     const menuOpen = isSelectedVenueOrderingOpen();
     const checkoutOpen = getCheckoutOrderingOpen();
-    const msg = getCheckoutOrderingClosedMessage();
     const cartNote = document.getElementById('orderingClosedNoteCart');
     const checkoutNote = document.getElementById('orderingClosedNoteCheckout');
     if (cartNote) {
-        cartNote.textContent = msg;
-        cartNote.hidden = checkoutOpen;
+        cartNote.hidden = true;
     }
     if (checkoutNote) {
-        checkoutNote.textContent = msg;
-        checkoutNote.hidden = checkoutOpen;
+        checkoutNote.hidden = true;
     }
     // Header pill reflects the selected hotel's hours and admin store status.
     const liveOpen = menuOpen && storeAcceptingOrders;
@@ -3558,7 +3539,7 @@ async function loadMenu() {
             const data = await jsonRes.json();
             if (data && Array.isArray(data.categories) && data.categories.length) {
                 defaultVenueId = 1;
-                defaultVenueName = "Baloji Cafe";
+                defaultVenueName = "FoodKart";
                 selectedMenuVenueId = defaultVenueId;
                 menuVenues = deriveMenuVenues(data.categories);
                 menuData = data;
@@ -3571,7 +3552,7 @@ async function loadMenu() {
     } catch (error) {
         console.warn('Could not load menu, using embedded data:', error);
         defaultVenueId = 1;
-        defaultVenueName = "Baloji Cafe";
+        defaultVenueName = "FoodKart";
         selectedMenuVenueId = defaultVenueId;
         menuVenues = deriveMenuVenues(fallbackMenuData.categories || []);
         menuData = fallbackMenuData;
@@ -5133,45 +5114,6 @@ function initLazyLoading() {
     }
 }
 
-// ============================================
-// Promo Modal
-// ============================================
-function initPromoModal() {
-    const modal = document.getElementById('promoModal');
-    const closeBtn = document.getElementById('promoCloseBtn');
-    const ctaBtn = document.getElementById('promoCtaBtn');
-
-    if (!modal || !closeBtn || !ctaBtn || modal.hasAttribute('data-shown')) return;
-
-    // Only show promo modal for Kudachi
-    const userCity = String(currentCustomer?.city || globalSelectedCity || '').trim().toLowerCase();
-    if (userCity !== 'kudachi') {
-        return;
-    }
-
-    modal.setAttribute('data-shown', 'true');
-
-    setTimeout(() => {
-        modal.removeAttribute('hidden');
-    }, 1500);
-
-    const closePromo = () => {
-        modal.setAttribute('hidden', '');
-    };
-
-    closeBtn.addEventListener('click', closePromo);
-    ctaBtn.addEventListener('click', () => {
-        closePromo();
-        const menuSection = document.getElementById('menu');
-        if (menuSection) {
-            menuSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    });
-
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closePromo();
-    });
-}
 
 // ============================================
 // Initialize Everything
@@ -5194,7 +5136,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initMobileMenu();
     initSmoothScroll();
     initActiveNavLink();
-    initPromoModal();
     initHeroSection();
     loadMenu(); // Load menu from JSON first
     initMenuCategories();
